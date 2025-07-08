@@ -2,6 +2,193 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    /* Primary Theme Colors */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 98%;
+    
+    /* Background Colors */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    
+    /* Card Colors */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    
+    /* Popover Colors */
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    
+    /* Secondary Colors */
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    
+    /* Muted Colors */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    
+    /* Accent Colors */
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    
+    /* Destructive Colors */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    
+    /* Border Colors */
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    
+    /* Ring */
+    --ring: 217 91% 60%;
+    
+    /* Chart Colors */
+    --chart-1: 173 58% 39%;
+    --chart-2: 12 76% 61%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    
+    /* Success Colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+    
+    /* Warning Colors */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
+    
+    /* Info Colors */
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 98%;
+    
+    /* Radius */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Primary Theme Colors */
+    --primary: 217 91% 60%;
+    --primary-foreground: 222.2 84% 4.9%;
+    
+    /* Background Colors */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    
+    /* Card Colors */
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    
+    /* Popover Colors */
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    
+    /* Secondary Colors */
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    
+    /* Muted Colors */
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    
+    /* Accent Colors */
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    
+    /* Destructive Colors */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    
+    /* Border Colors */
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    
+    /* Ring */
+    --ring: 224.3 76.3% 94.1%;
+    
+    /* Chart Colors */
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    
+    /* Success Colors */
+    --success: 142 76% 36%;
+    --success-foreground: 210 40% 98%;
+    
+    /* Warning Colors */
+    --warning: 38 92% 50%;
+    --warning-foreground: 210 40% 98%;
+    
+    /* Info Colors */
+    --info: 199 89% 48%;
+    --info-foreground: 210 40% 98%;
+  }
+
+  .corporate {
+    /* Corporate Theme - Professional Blue/Gray Palette */
+    --primary: 215 84% 34%;
+    --primary-foreground: 0 0% 98%;
+    
+    /* Background Colors */
+    --background: 0 0% 100%;
+    --foreground: 215 25% 27%;
+    
+    /* Card Colors */
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 27%;
+    
+    /* Popover Colors */
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 27%;
+    
+    /* Secondary Colors */
+    --secondary: 215 16% 92%;
+    --secondary-foreground: 215 25% 27%;
+    
+    /* Muted Colors */
+    --muted: 215 16% 92%;
+    --muted-foreground: 215 13% 54%;
+    
+    /* Accent Colors */
+    --accent: 215 84% 34%;
+    --accent-foreground: 0 0% 98%;
+    
+    /* Destructive Colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    
+    /* Border Colors */
+    --border: 215 16% 87%;
+    --input: 215 16% 87%;
+    
+    /* Ring */
+    --ring: 215 84% 34%;
+    
+    /* Success Colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+    
+    /* Warning Colors */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
+    
+    /* Info Colors */
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 98%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
 :root {
   --background: hsl(0, 0%, 100%);
   --foreground: hsl(210, 40%, 10%);
@@ -148,30 +335,30 @@
   }
   
   .status-pending {
-    @apply bg-yellow-100 text-yellow-800;
+    @apply bg-warning/10 text-warning-foreground border border-warning/20;
   }
   
   .status-approved {
-    @apply bg-green-100 text-green-800;
+    @apply bg-success/10 text-success-foreground border border-success/20;
   }
   
   .status-rejected {
-    @apply bg-red-100 text-red-800;
+    @apply bg-destructive/10 text-destructive-foreground border border-destructive/20;
   }
   
   .status-overdue {
-    @apply bg-red-100 text-red-800;
+    @apply bg-destructive/10 text-destructive-foreground border border-destructive/20;
   }
   
   .priority-low {
-    @apply bg-blue-100 text-blue-800;
+    @apply bg-info/10 text-info-foreground border border-info/20;
   }
   
   .priority-medium {
-    @apply bg-yellow-100 text-yellow-800;
+    @apply bg-warning/10 text-warning-foreground border border-warning/20;
   }
   
   .priority-high {
-    @apply bg-red-100 text-red-800;
+    @apply bg-destructive/10 text-destructive-foreground border border-destructive/20;
   }
 }

@@ -102,10 +102,35 @@ This is a full-stack investment approval portal built with React, TypeScript, Ex
 - File upload directory configuration
 - Session store configuration
 
+## Theming System
+
+The application uses a comprehensive CSS custom properties-based theming system to support multiple themes without hard-coded colors:
+
+### Available Themes
+- **Light Theme**: Default clean, professional appearance
+- **Dark Theme**: High contrast dark mode for reduced eye strain
+- **Corporate Theme**: Professional blue/gray palette for formal settings
+
+### Implementation Details
+- All colors defined as HSL values in CSS custom properties
+- Theme switching via ThemeContext provider and useTheme hook
+- Themes applied through CSS classes on document root
+- Tailwind CSS configured to use CSS custom properties
+- Theme toggle component in header for runtime switching
+
+### Color System
+- Primary, secondary, accent, success, warning, info, destructive color groups
+- Each group includes foreground variants for optimal contrast
+- Chart colors defined for data visualization consistency
+- All status badges and UI elements use theme-aware colors
+
 ## Changelog
 
 - July 08, 2025. Initial setup
+- July 08, 2025. Implemented flexible theming system with light, dark, and corporate themes
+- July 08, 2025. Updated branding from Tawuniya to ABCBank throughout application
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Key requirement: NO hard-coded CSS or colors - all styling must support multiple themes through CSS custom properties.

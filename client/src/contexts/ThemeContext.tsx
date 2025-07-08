@@ -1,0 +1,60 @@
+import { createContext, useContext, useEffect, useState } from 'react';
+
+type Theme = 'light' | 'dark' | 'corporate';
+
+type ThemeContextType = {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+  themes: { label: string; value: Theme }[];
+};
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<Theme>(() => {
+    // Check localStorage for saved theme
+    const saved = localStorage.getItem('theme') as Theme;
+    if (saved && ['light', 'dark', 'corporate'].includes(saved)) {
+      return saved;
+    }
+    // Default to light theme
+    return 'light';
+  });
+
+  const themes = [
+    { label: 'Light', value: 'light' as Theme },
+    { label: 'Dark', value: 'dark' as Theme },
+    { label: 'Corporate', value: 'corporate' as Theme },
+  ];
+
+  const updateTheme = (newTheme: Theme) => {
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+  };
+
+  useEffect(() => {
+    const root = document.documentElement;
+    
+    // Remove all theme classes
+    root.classList.remove('light', 'dark', 'corporate');
+    
+    // Add the current theme class
+    if (theme !== 'light') {
+      root.classList.add(theme);
+    }
+  }, [theme]);
+
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme: updateTheme, themes }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+export function useTheme() {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+}
