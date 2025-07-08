@@ -113,7 +113,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createInvestmentRequest(request: InsertInvestmentRequest): Promise<InvestmentRequest> {
-    const [created] = await db.insert(investmentRequests).values(request).returning();
+    const [created] = await db.insert(investmentRequests).values([request]).returning();
     return created;
   }
 
@@ -123,17 +123,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getInvestmentRequests(filters?: { userId?: number; status?: string }): Promise<InvestmentRequest[]> {
-    let query = db.select().from(investmentRequests);
-    
-    if (filters?.userId) {
-      query = query.where(eq(investmentRequests.requesterId, filters.userId));
-    }
-    
-    if (filters?.status) {
-      query = query.where(eq(investmentRequests.status, filters.status));
-    }
-    
-    return await query.orderBy(desc(investmentRequests.createdAt));
+    const results = await db.select().from(investmentRequests).orderBy(desc(investmentRequests.createdAt));
+    return results;
   }
 
   async getCashRequest(id: number): Promise<CashRequest | undefined> {
@@ -147,7 +138,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCashRequest(request: InsertCashRequest): Promise<CashRequest> {
-    const [created] = await db.insert(cashRequests).values(request).returning();
+    const [created] = await db.insert(cashRequests).values([request]).returning();
     return created;
   }
 
@@ -157,17 +148,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCashRequests(filters?: { userId?: number; status?: string }): Promise<CashRequest[]> {
-    let query = db.select().from(cashRequests);
-    
-    if (filters?.userId) {
-      query = query.where(eq(cashRequests.requesterId, filters.userId));
-    }
-    
-    if (filters?.status) {
-      query = query.where(eq(cashRequests.status, filters.status));
-    }
-    
-    return await query.orderBy(desc(cashRequests.createdAt));
+    const results = await db.select().from(cashRequests).orderBy(desc(cashRequests.createdAt));
+    return results;
   }
 
   async createApproval(approval: InsertApproval): Promise<Approval> {
@@ -294,7 +276,8 @@ export class DatabaseStorage implements IStorage {
     createdAt: Date;
     requester: { firstName: string; lastName: string };
   }>> {
-    const investmentQuery = db.select({
+    // Get investment requests
+    const investmentResults = await db.select({
       id: investmentRequests.id,
       requestId: investmentRequests.requestId,
       type: sql<'investment'>`'investment'`,
@@ -305,9 +288,12 @@ export class DatabaseStorage implements IStorage {
       requesterLastName: users.lastName,
     })
     .from(investmentRequests)
-    .innerJoin(users, eq(investmentRequests.requesterId, users.id));
+    .innerJoin(users, eq(investmentRequests.requesterId, users.id))
+    .orderBy(desc(investmentRequests.createdAt))
+    .limit(limit);
 
-    const cashQuery = db.select({
+    // Get cash requests
+    const cashResults = await db.select({
       id: cashRequests.id,
       requestId: cashRequests.requestId,
       type: sql<'cash_request'>`'cash_request'`,
@@ -318,19 +304,22 @@ export class DatabaseStorage implements IStorage {
       requesterLastName: users.lastName,
     })
     .from(cashRequests)
-    .innerJoin(users, eq(cashRequests.requesterId, users.id));
+    .innerJoin(users, eq(cashRequests.requesterId, users.id))
+    .orderBy(desc(cashRequests.createdAt))
+    .limit(limit);
 
-    const results = await db.select().from(
-      sql`(${investmentQuery.getSQL()} UNION ALL ${cashQuery.getSQL()}) as combined`
-    ).orderBy(sql`created_at DESC`).limit(limit);
+    // Combine and sort results
+    const allResults = [...investmentResults, ...cashResults]
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      .slice(0, limit);
 
-    return results.map(row => ({
+    return allResults.map(row => ({
       id: row.id,
       requestId: row.requestId,
       type: row.type,
       amount: row.amount,
       status: row.status,
-      createdAt: row.createdAt,
+      createdAt: row.createdAt || new Date(),
       requester: {
         firstName: row.requesterFirstName,
         lastName: row.requesterLastName,

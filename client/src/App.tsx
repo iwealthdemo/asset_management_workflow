@@ -14,7 +14,7 @@ import NotFound from "@/pages/not-found";
 import { useUser } from "@/lib/auth";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useUser();
+  const { data: user, isLoading } = useUser();
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;

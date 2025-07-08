@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a full-stack investment approval portal built with React, TypeScript, Express, and PostgreSQL. The application manages investment requests, cash requests, and approval workflows with role-based access control and document management capabilities.
+This is a full-stack investment approval portal built with React, TypeScript, Express, and PostgreSQL for ABCBank. The application manages investment requests, cash requests, and approval workflows with role-based access control and document management capabilities.
 
 ## System Architecture
 

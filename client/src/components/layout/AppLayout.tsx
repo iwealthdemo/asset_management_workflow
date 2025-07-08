@@ -90,7 +90,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <BarChart3 className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold">Tawuniya</h1>
+            <h1 className="text-lg font-semibold">ABCBank</h1>
             <p className="text-sm text-muted-foreground">Investment Portal</p>
           </div>
         </div>

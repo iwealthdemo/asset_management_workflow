@@ -41,7 +41,7 @@ export default function Login() {
               <BarChart3 className="h-8 w-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Welcome to Tawuniya</CardTitle>
+          <CardTitle className="text-2xl">Welcome to ABCBank</CardTitle>
           <p className="text-muted-foreground">Investment Approval Portal</p>
         </CardHeader>
         <CardContent>
