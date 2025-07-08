@@ -1,0 +1,111 @@
+# Investment Approval Portal
+
+## Overview
+
+This is a full-stack investment approval portal built with React, TypeScript, Express, and PostgreSQL. The application manages investment requests, cash requests, and approval workflows with role-based access control and document management capabilities.
+
+## System Architecture
+
+### Frontend Architecture
+- **Framework**: React 18 with TypeScript
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **State Management**: TanStack React Query for server state
+- **Routing**: Wouter for client-side routing
+- **Form Management**: React Hook Form with Zod validation
+- **Build Tool**: Vite with custom plugins for development
+
+### Backend Architecture
+- **Runtime**: Node.js with Express.js
+- **Language**: TypeScript with ES modules
+- **Database**: PostgreSQL with Drizzle ORM
+- **Database Provider**: Neon Database (@neondatabase/serverless)
+- **Authentication**: Session-based auth with bcrypt for password hashing
+- **File Upload**: Multer for handling file uploads
+- **API Design**: RESTful endpoints with consistent error handling
+
+## Key Components
+
+### Database Schema
+- **Users**: Role-based system (analyst, manager, committee_member, finance, admin)
+- **Investment Requests**: Full investment proposal lifecycle
+- **Cash Requests**: Linked to approved investments
+- **Approvals**: Multi-stage approval workflow tracking
+- **Tasks**: Assignment and tracking system
+- **Documents**: File attachment system
+- **Notifications**: Real-time user notifications
+- **Templates**: Reusable form templates
+- **Audit Logs**: Complete action history
+
+### Authentication & Authorization
+- Session-based authentication with middleware protection
+- Role-based access control (RBAC)
+- Password hashing with bcrypt
+- Protected routes on both frontend and backend
+
+### Approval Workflow System
+- Multi-stage approval process
+- Role-based approval routing
+- SLA tracking and deadline management
+- Task assignment and notifications
+- Status tracking (pending, approved, rejected, changes_requested)
+
+### File Management
+- Multer-based file upload system
+- Support for documents, images, and spreadsheets
+- File type validation and size limits
+- Document linking to requests
+
+## Data Flow
+
+1. **User Authentication**: Users log in through session-based auth
+2. **Request Creation**: Analysts create investment/cash requests
+3. **Workflow Initiation**: System automatically starts approval workflow
+4. **Task Assignment**: Approvers receive tasks based on their role
+5. **Approval Process**: Multi-stage approval with comments and document support
+6. **Notification System**: Real-time updates to all stakeholders
+7. **Status Tracking**: Complete audit trail of all actions
+
+## External Dependencies
+
+### Core Dependencies
+- **@neondatabase/serverless**: PostgreSQL database connection
+- **drizzle-orm**: Database ORM and query builder
+- **@tanstack/react-query**: Server state management
+- **@radix-ui/***: Accessible UI components
+- **react-hook-form**: Form handling
+- **zod**: Schema validation
+- **bcrypt**: Password hashing
+- **multer**: File upload handling
+
+### Development Dependencies
+- **vite**: Build tool and dev server
+- **@replit/vite-plugin-runtime-error-modal**: Error overlay
+- **@replit/vite-plugin-cartographer**: Development tooling
+- **tailwindcss**: Styling framework
+- **typescript**: Type safety
+
+## Deployment Strategy
+
+### Build Process
+- Frontend: Vite builds React app to `dist/public`
+- Backend: esbuild bundles server code to `dist/index.js`
+- Database: Drizzle migrations in `migrations/` directory
+
+### Environment Configuration
+- `DATABASE_URL`: PostgreSQL connection string (required)
+- `NODE_ENV`: Environment setting (development/production)
+- Session configuration for authentication
+
+### Production Deployment
+- Single process serving both API and static files
+- PostgreSQL database (Neon or compatible)
+- File upload directory configuration
+- Session store configuration
+
+## Changelog
+
+- July 08, 2025. Initial setup
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.

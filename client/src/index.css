@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(210, 40%, 10%);
+  --muted: hsl(210, 40%, 96%);
+  --muted-foreground: hsl(215, 13%, 45%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(210, 40%, 10%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(210, 40%, 10%);
+  --border: hsl(214, 32%, 91%);
+  --input: hsl(214, 32%, 91%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(38, 92%, 50%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --accent: hsl(210, 40%, 96%);
+  --accent-foreground: hsl(210, 40%, 10%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --success: hsl(142, 71%, 45%);
+  --success-foreground: hsl(210, 40%, 98%);
+  --warning: hsl(36, 100%, 50%);
+  --warning-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(210, 40%, 10%);
+  --radius: 0.5rem;
+  
+  /* Custom variables for the investment app */
+  --neutral-50: hsl(0, 0%, 98%);
+  --neutral-100: hsl(0, 0%, 96%);
+  --neutral-200: hsl(0, 0%, 88%);
+  --neutral-300: hsl(0, 0%, 75%);
+  --neutral-400: hsl(0, 0%, 62%);
+  --neutral-500: hsl(0, 0%, 46%);
+  --neutral-600: hsl(0, 0%, 38%);
+  --neutral-700: hsl(0, 0%, 26%);
+  --neutral-800: hsl(0, 0%, 20%);
+  --neutral-900: hsl(0, 0%, 13%);
+  
+  /* Sidebar colors */
+  --sidebar-background: hsl(0, 0%, 100%);
+  --sidebar-foreground: hsl(210, 40%, 10%);
+  --sidebar-primary: hsl(207, 90%, 54%);
+  --sidebar-primary-foreground: hsl(210, 40%, 98%);
+  --sidebar-accent: hsl(210, 40%, 96%);
+  --sidebar-accent-foreground: hsl(210, 40%, 10%);
+  --sidebar-border: hsl(214, 32%, 91%);
+  --sidebar-ring: hsl(210, 40%, 10%);
+}
+
+.dark {
+  --background: hsl(222, 84%, 5%);
+  --foreground: hsl(210, 40%, 98%);
+  --muted: hsl(217, 33%, 17%);
+  --muted-foreground: hsl(215, 20%, 65%);
+  --popover: hsl(222, 84%, 5%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --card: hsl(222, 84%, 5%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217, 33%, 17%);
+  --input: hsl(217, 33%, 17%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(38, 92%, 50%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --accent: hsl(217, 33%, 17%);
+  --accent-foreground: hsl(210, 40%, 98%);
+  --destructive: hsl(0, 62%, 30%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --success: hsl(142, 71%, 45%);
+  --success-foreground: hsl(210, 40%, 98%);
+  --warning: hsl(36, 100%, 50%);
+  --warning-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(212, 33%, 89%);
+  
+  --sidebar-background: hsl(222, 84%, 5%);
+  --sidebar-foreground: hsl(210, 40%, 98%);
+  --sidebar-primary: hsl(207, 90%, 54%);
+  --sidebar-primary-foreground: hsl(210, 40%, 98%);
+  --sidebar-accent: hsl(217, 33%, 17%);
+  --sidebar-accent-foreground: hsl(210, 40%, 98%);
+  --sidebar-border: hsl(217, 33%, 17%);
+  --sidebar-ring: hsl(212, 33%, 89%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .transition-all {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+  
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(207, 90%, 54%) 0%, hsl(207, 90%, 48%) 100%);
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: hsl(var(--neutral-100));
+    border-radius: 10px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--neutral-400));
+    border-radius: 10px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--neutral-500));
+  }
+  
+  .file-upload-area {
+    border: 2px dashed hsl(var(--border));
+    transition: all 0.3s ease;
+  }
+  
+  .file-upload-area:hover {
+    border-color: hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.05);
+  }
+  
+  .file-upload-area.drag-over {
+    border-color: hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.1);
+  }
+  
+  .status-pending {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .status-approved {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .status-rejected {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  .status-overdue {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  .priority-low {
+    @apply bg-blue-100 text-blue-800;
+  }
+  
+  .priority-medium {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .priority-high {
+    @apply bg-red-100 text-red-800;
+  }
+}
