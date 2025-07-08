@@ -107,9 +107,8 @@ This is a full-stack investment approval portal built with React, TypeScript, Ex
 The application uses a comprehensive CSS custom properties-based theming system to support multiple themes without hard-coded colors:
 
 ### Available Themes
-- **Light Theme**: Default clean, professional appearance
-- **Dark Theme**: High contrast dark mode for reduced eye strain
-- **Corporate Theme**: Professional blue/gray palette for formal settings
+- **Light Theme**: Clean appearance with bluish accents and black text for professional readability
+- **Dark Theme**: High contrast dark mode for reduced eye strain with light text on dark backgrounds
 
 ### Implementation Details
 - All colors defined as HSL values in CSS custom properties

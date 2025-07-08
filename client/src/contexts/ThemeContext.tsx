@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'light' | 'dark' | 'corporate';
+type Theme = 'light' | 'dark';
 
 type ThemeContextType = {
   theme: Theme;
@@ -14,7 +14,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     // Check localStorage for saved theme
     const saved = localStorage.getItem('theme') as Theme;
-    if (saved && ['light', 'dark', 'corporate'].includes(saved)) {
+    if (saved && ['light', 'dark'].includes(saved)) {
       return saved;
     }
     // Default to light theme
@@ -24,7 +24,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const themes = [
     { label: 'Light', value: 'light' as Theme },
     { label: 'Dark', value: 'dark' as Theme },
-    { label: 'Corporate', value: 'corporate' as Theme },
   ];
 
   const updateTheme = (newTheme: Theme) => {
@@ -36,7 +35,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement;
     
     // Remove all theme classes
-    root.classList.remove('light', 'dark', 'corporate');
+    root.classList.remove('light', 'dark');
     
     // Add the current theme class
     if (theme !== 'light') {
