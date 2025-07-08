@@ -9,8 +9,8 @@ import { BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("admin123");
   const login = useLogin();
   const { toast } = useToast();
 
