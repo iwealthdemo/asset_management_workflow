@@ -113,7 +113,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createInvestmentRequest(request: InsertInvestmentRequest): Promise<InvestmentRequest> {
-    const [created] = await db.insert(investmentRequests).values([request]).returning();
+    const [created] = await db.insert(investmentRequests).values(request).returning();
     return created;
   }
 
@@ -138,7 +138,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCashRequest(request: InsertCashRequest): Promise<CashRequest> {
-    const [created] = await db.insert(cashRequests).values([request]).returning();
+    const [created] = await db.insert(cashRequests).values(request).returning();
     return created;
   }
 
