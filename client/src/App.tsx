@@ -14,6 +14,8 @@ import { useUser } from "@/lib/auth";
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading, error } = useUser();
 
+  console.log("ProtectedRoute state:", { user, isLoading, error });
+
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
@@ -24,9 +26,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
+    console.log("No user, showing login");
     return <Login />;
   }
 
+  console.log("User authenticated, showing app layout");
   return <AppLayout>{children}</AppLayout>;
 }
 

@@ -18,12 +18,15 @@ export default function Login() {
     e.preventDefault();
     
     try {
-      await login.mutateAsync({ username, password });
+      console.log("Attempting login with:", { username, password });
+      const result = await login.mutateAsync({ username, password });
+      console.log("Login result:", result);
       toast({
         title: "Login successful",
         description: "Welcome to the Investment Portal",
       });
     } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
         description: error.message || "Invalid credentials",
