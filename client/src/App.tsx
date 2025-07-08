@@ -12,10 +12,15 @@ import NotFound from "@/pages/not-found";
 import { useUser } from "@/lib/auth";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { data: user, isLoading } = useUser();
+  const { data: user, isLoading, error } = useUser();
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (error) {
+    console.error("Auth error:", error);
+    return <Login />;
   }
 
   if (!user) {

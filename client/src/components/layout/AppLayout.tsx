@@ -12,7 +12,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+// Temporarily commenting out ThemeToggle to debug blank screen
+// import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useUser, useLogout } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -260,7 +261,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </div>
                 
                 {/* Theme Toggle */}
-                <ThemeToggle />
+                {/* <ThemeToggle /> */}
                 
                 {/* Quick Actions */}
                 <div className="flex items-center space-x-2">
