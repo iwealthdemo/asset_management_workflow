@@ -200,14 +200,12 @@ export const insertUserSchema = createInsertSchema(users).omit({
 
 export const insertInvestmentRequestSchema = createInsertSchema(investmentRequests).omit({
   id: true,
-  requestId: true,
   createdAt: true,
   updatedAt: true,
 });
 
 export const insertCashRequestSchema = createInsertSchema(cashRequests).omit({
   id: true,
-  requestId: true,
   createdAt: true,
   updatedAt: true,
 });
