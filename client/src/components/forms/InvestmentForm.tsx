@@ -16,15 +16,15 @@ import { insertInvestmentRequestSchema } from "@shared/schema"
 import { z } from "zod"
 import { useLocation } from "wouter"
 
-const formSchema = insertInvestmentRequestSchema.extend({
-  expectedReturn: z.string().min(1, "Expected return is required").transform(val => parseFloat(val)),
-  amount: z.string().min(1, "Amount is required").transform(val => parseFloat(val)),
-}).omit({
+const formSchema = insertInvestmentRequestSchema.omit({
   requestId: true,
   requesterId: true,
   currentApprovalStage: true,
   slaDeadline: true,
   status: true,
+}).extend({
+  expectedReturn: z.string().min(1, "Expected return is required"),
+  amount: z.string().min(1, "Amount is required"),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -50,7 +50,14 @@ export function InvestmentForm() {
   const createInvestment = useMutation({
     mutationFn: async (data: FormData) => {
       console.log("Making API request with data:", data)
-      const response = await apiRequest("POST", "/api/investments", data)
+      // Keep amounts as strings for decimal validation
+      const apiData = {
+        ...data,
+        amount: data.amount.toString(),
+        expectedReturn: data.expectedReturn.toString(),
+      }
+      console.log("Converted API data:", apiData)
+      const response = await apiRequest("POST", "/api/investments", apiData)
       console.log("API response:", response)
       return response.json()
     },
