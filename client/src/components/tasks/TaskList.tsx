@@ -50,9 +50,10 @@ export function TaskList({ tasks }: TaskListProps) {
     }
   }
 
-  const getTimeLeft = (dueDate: Date) => {
+  const getTimeLeft = (dueDate: Date | string) => {
     const now = new Date()
-    const diff = dueDate.getTime() - now.getTime()
+    const dueDateObj = typeof dueDate === 'string' ? new Date(dueDate) : dueDate
+    const diff = dueDateObj.getTime() - now.getTime()
     const hours = Math.floor(diff / (1000 * 60 * 60))
     
     if (hours < 0) {

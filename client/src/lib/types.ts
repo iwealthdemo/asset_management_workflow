@@ -24,9 +24,10 @@ export interface TaskItem {
   description: string;
   status: string;
   priority: string;
-  dueDate: Date;
+  dueDate: Date | string;
   requestType: string;
   requestId: number;
+  taskType?: string;
 }
 
 export interface FileUploadResponse {
