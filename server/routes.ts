@@ -296,13 +296,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/documents/:requestType/:requestId', authMiddleware, async (req, res) => {
+  // Add preview endpoint (must come before the general documents route)
+  app.get('/api/documents/preview/:documentId', authMiddleware, async (req, res) => {
     try {
-      const { requestType, requestId } = req.params;
-      const documents = await storage.getDocumentsByRequest(requestType, parseInt(requestId));
-      res.json(documents);
+      const { documentId } = req.params;
+      console.log('Preview request for document ID:', documentId);
+      
+      const document = await storage.getDocument(parseInt(documentId));
+      console.log('Found document:', document);
+      
+      if (!document) {
+        console.log('Document not found in database');
+        return res.status(404).json({ message: 'Document not found' });
+      }
+      
+      const path = require('path');
+      const fs = require('fs');
+      const filePath = path.join(process.cwd(), document.fileUrl);
+      console.log('Checking file path:', filePath);
+      
+      // Check if file exists
+      try {
+        await fs.promises.access(filePath);
+      } catch (err) {
+        console.log('File does not exist on disk:', filePath);
+        return res.status(404).json({ message: 'File not found on server' });
+      }
+      
+      console.log('File exists, preparing preview');
+      res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', 'inline'); // For preview, not attachment
+      
+      // Get file stats for proper content length
+      const stats = await fs.promises.stat(filePath);
+      res.setHeader('Content-Length', stats.size.toString());
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.on('error', (err) => {
+        console.error('File stream error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ message: 'Error reading file' });
+        }
+      });
+      
+      fileStream.pipe(res);
     } catch (error) {
-      res.status(500).json({ message: 'Internal server error' });
+      console.error('Preview error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Internal server error' });
+      }
     }
   });
 
@@ -357,48 +399,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add preview endpoint
-  app.get('/api/documents/preview/:documentId', authMiddleware, async (req, res) => {
+  app.get('/api/documents/:requestType/:requestId', authMiddleware, async (req, res) => {
     try {
-      const { documentId } = req.params;
-      console.log('Preview request for document ID:', documentId);
-      
-      const document = await storage.getDocument(parseInt(documentId));
-      console.log('Found document:', document);
-      
-      if (!document) {
-        console.log('Document not found in database');
-        return res.status(404).json({ message: 'Document not found' });
-      }
-      
-      const path = require('path');
-      const fs = require('fs');
-      const filePath = path.join(process.cwd(), document.fileUrl);
-      console.log('Checking file path:', filePath);
-      
-      if (!fs.existsSync(filePath)) {
-        console.log('File does not exist on disk:', filePath);
-        return res.status(404).json({ message: 'File not found on server' });
-      }
-      
-      console.log('File exists, preparing preview');
-      res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
-      res.setHeader('Content-Length', document.fileSize.toString());
-      
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.on('error', (err) => {
-        console.error('File stream error:', err);
-        if (!res.headersSent) {
-          res.status(500).json({ message: 'Error reading file' });
-        }
-      });
-      
-      fileStream.pipe(res);
+      const { requestType, requestId } = req.params;
+      const documents = await storage.getDocumentsByRequest(requestType, parseInt(requestId));
+      res.json(documents);
     } catch (error) {
-      console.error('Preview error:', error);
-      if (!res.headersSent) {
-        res.status(500).json({ message: 'Internal server error' });
-      }
+      res.status(500).json({ message: 'Internal server error' });
     }
   });
 

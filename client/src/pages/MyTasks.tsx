@@ -225,7 +225,32 @@ export default function MyTasks() {
             <Button variant="outline" onClick={() => setPreviewDocument(null)}>
               Close
             </Button>
-            <Button onClick={() => handleDownload(previewDocument)}>
+            <Button onClick={() => {
+              if (previewDocument) {
+                // Create download functionality within dialog scope
+                fetch(`/api/documents/download/${previewDocument.id}`, {
+                  credentials: 'include'
+                })
+                .then(response => {
+                  if (!response.ok) throw new Error('Download failed');
+                  return response.blob();
+                })
+                .then(blob => {
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = previewDocument.originalName;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+                })
+                .catch(error => {
+                  console.error('Download failed:', error);
+                  alert('Download failed. Please try again.');
+                });
+              }
+            }}>
               <Download className="h-4 w-4 mr-2" />
               Download
             </Button>
