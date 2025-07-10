@@ -146,6 +146,7 @@ export default function MyTasks() {
                   onProcessApproval={processApproval}
                   comments={comments}
                   setComments={setComments}
+                  onPreview={setPreviewDocument}
                 />
               ))}
             </div>
@@ -176,6 +177,7 @@ export default function MyTasks() {
                   onProcessApproval={processApproval}
                   comments={comments}
                   setComments={setComments}
+                  onPreview={setPreviewDocument}
                 />
               ))
             )}
@@ -196,6 +198,7 @@ export default function MyTasks() {
                   onProcessApproval={processApproval}
                   comments={comments}
                   setComments={setComments}
+                  onPreview={setPreviewDocument}
                 />
               ))}
             </div>
@@ -239,7 +242,8 @@ function TaskCard({
   isExpanded, 
   onProcessApproval,
   comments,
-  setComments
+  setComments,
+  onPreview
 }: { 
   task: any; 
   onAction: (task: any) => void;
@@ -247,6 +251,7 @@ function TaskCard({
   onProcessApproval: any;
   comments: string;
   setComments: (comments: string) => void;
+  onPreview: (document: any) => void;
 }) {
   const Icon = getTaskIcon(task.taskType);
   
@@ -287,15 +292,22 @@ function TaskCard({
 
   const handleDownload = async (document: any) => {
     try {
+      console.log('Starting download for document:', document);
       const response = await fetch(`/api/documents/download/${document.id}`, {
         credentials: 'include'
       });
       
+      console.log('Download response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to download file');
+        const errorText = await response.text();
+        console.error('Download failed with error:', errorText);
+        throw new Error(`Failed to download file: ${response.status} - ${errorText}`);
       }
       
       const blob = await response.blob();
+      console.log('Downloaded blob size:', blob.size);
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -304,14 +316,16 @@ function TaskCard({
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      console.log('Download completed successfully');
     } catch (error) {
       console.error('Download failed:', error);
+      // Show user-friendly error message
+      alert('Download failed. Please try again or contact support.');
     }
   };
 
-  const handlePreview = (document: any) => {
-    setPreviewDocument(document);
-  };
+
   
   return (
     <Card className={`hover:shadow-md transition-shadow ${
@@ -447,7 +461,7 @@ function TaskCard({
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => handlePreview(document)}
+                          onClick={() => onPreview(document)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           Preview

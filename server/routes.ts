@@ -324,7 +324,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filePath = path.join(process.cwd(), document.fileUrl);
       console.log('Checking file path:', filePath);
       
-      if (!fs.existsSync(filePath)) {
+      // Check if file exists
+      try {
+        await fs.promises.access(filePath);
+      } catch (err) {
         console.log('File does not exist on disk:', filePath);
         return res.status(404).json({ message: 'File not found on server' });
       }
@@ -332,7 +335,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('File exists, preparing download');
       res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(document.originalName)}"`);
       res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
-      res.setHeader('Content-Length', document.fileSize.toString());
+      
+      // Get file stats for proper content length
+      const stats = await fs.promises.stat(filePath);
+      res.setHeader('Content-Length', stats.size.toString());
       
       const fileStream = fs.createReadStream(filePath);
       fileStream.on('error', (err) => {
