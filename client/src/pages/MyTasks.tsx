@@ -214,20 +214,12 @@ export default function MyTasks() {
           </DialogHeader>
           <div className="flex-1 overflow-hidden">
             {previewDocument && (
-              <object
-                data={`/api/documents/preview/${previewDocument.id}`}
+              <embed
+                src={`/api/documents/preview/${previewDocument.id}`}
                 type="application/pdf"
-                className="w-full h-[70vh] border-0"
+                className="w-full h-[70vh] border rounded"
                 title={previewDocument.originalName}
-              >
-                <div className="flex items-center justify-center h-[70vh] bg-gray-50 rounded border">
-                  <div className="text-center">
-                    <FileText className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                    <p className="text-gray-600">Preview not available</p>
-                    <p className="text-sm text-gray-500">Use the download button to view the file</p>
-                  </div>
-                </div>
-              </object>
+              />
             )}
           </div>
           <div className="flex justify-end gap-2 pt-4">
@@ -472,7 +464,16 @@ function TaskCard({
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => handleDownload(document)}
+                          onClick={() => {
+                            // Use direct link approach for download
+                            const link = document.createElement('a');
+                            link.href = `/api/documents/download/${document.id}`;
+                            link.download = document.originalName;
+                            link.target = '_blank';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
                         >
                           <Download className="h-4 w-4 mr-1" />
                           Download
