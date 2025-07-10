@@ -92,14 +92,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Investment request routes
   app.post('/api/investments', authMiddleware, async (req, res) => {
     try {
-      const requestData = insertInvestmentRequestSchema.parse({
+      console.log('Request body:', req.body);
+      console.log('User ID:', req.userId);
+      
+      const requestData = {
         ...req.body,
         requesterId: req.userId,
+      };
+      
+      console.log('Request data before validation:', requestData);
+      
+      // Validate only the necessary fields (requestId will be generated in service)
+      const validationSchema = insertInvestmentRequestSchema.omit({
+        requestId: true,
+        currentApprovalStage: true,
+        slaDeadline: true,
+        status: true,
       });
       
-      const request = await investmentService.createInvestmentRequest(requestData);
+      const validatedData = validationSchema.parse(requestData);
+      console.log('Validated data:', validatedData);
+      
+      const request = await investmentService.createInvestmentRequest(validatedData);
       res.json(request);
     } catch (error) {
+      console.error('Investment creation error:', error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: 'Validation error', errors: error.errors });
       }

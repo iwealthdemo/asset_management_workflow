@@ -3,12 +3,12 @@ import { workflowService } from "./workflowService";
 import { InsertInvestmentRequest, InsertCashRequest } from "@shared/schema";
 
 export class InvestmentService {
-  async createInvestmentRequest(requestData: InsertInvestmentRequest) {
+  async createInvestmentRequest(requestData: any) {
     try {
       // Generate request ID
       const requestId = await this.generateRequestId('INV');
       
-      // Create the request
+      // Create the request with generated fields
       const request = await storage.createInvestmentRequest({
         ...requestData,
         requestId,
