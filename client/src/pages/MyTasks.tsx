@@ -255,6 +255,7 @@ function TaskCard({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'approved':
+      case 'approve':
         return <CheckCircle className="h-5 w-5 text-green-600" />;
       case 'rejected':
         return <XCircle className="h-5 w-5 text-red-600" />;
@@ -462,10 +463,10 @@ function TaskCard({
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium">
-                            Stage {approval.stage} - {approval.status}
+                            Stage {approval.stage} - {approval.status === 'approve' ? 'approved' : approval.status}
                           </p>
-                          <Badge className={getStatusColor(approval.status)}>
-                            {approval.status}
+                          <Badge className={getStatusColor(approval.status === 'approve' ? 'approved' : approval.status)}>
+                            {approval.status === 'approve' ? 'approved' : approval.status}
                           </Badge>
                         </div>
                         {approval.approvedAt && (
@@ -552,8 +553,11 @@ function getStatusColor(status: string) {
     case 'pending':
       return 'bg-yellow-100 text-yellow-800';
     case 'completed':
+    case 'approved':
+    case 'approve':
       return 'bg-green-100 text-green-800';
     case 'overdue':
+    case 'rejected':
       return 'bg-red-100 text-red-800';
     default:
       return 'bg-gray-100 text-gray-800';
