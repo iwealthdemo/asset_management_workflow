@@ -214,11 +214,11 @@ export default function MyTasks() {
           </DialogHeader>
           <div className="flex-1 overflow-hidden">
             {previewDocument && (
-              <embed
+              <iframe
                 src={`/api/documents/preview/${previewDocument.id}`}
-                type="application/pdf"
                 className="w-full h-[70vh] border rounded"
                 title={previewDocument.originalName}
+                style={{ border: 'none' }}
               />
             )}
           </div>
@@ -229,13 +229,13 @@ export default function MyTasks() {
             <Button onClick={() => {
               if (previewDocument) {
                 // Use direct link approach for better browser compatibility
-                const link = document.createElement('a');
+                const link = window.document.createElement('a');
                 link.href = `/api/documents/download/${previewDocument.id}`;
                 link.download = previewDocument.originalName;
                 link.target = '_blank';
-                document.body.appendChild(link);
+                window.document.body.appendChild(link);
                 link.click();
-                document.body.removeChild(link);
+                window.document.body.removeChild(link);
               }
             }}>
               <Download className="h-4 w-4 mr-2" />
@@ -306,13 +306,13 @@ function TaskCard({
     try {
       console.log('Starting download for document:', document);
       // Use direct link approach for better browser compatibility
-      const link = document.createElement('a');
+      const link = window.document.createElement('a');
       link.href = `/api/documents/download/${document.id}`;
       link.download = document.originalName;
       link.target = '_blank';
-      document.body.appendChild(link);
+      window.document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      window.document.body.removeChild(link);
       console.log('Download initiated successfully');
     } catch (error) {
       console.error('Download failed:', error);
@@ -466,13 +466,13 @@ function TaskCard({
                           size="sm"
                           onClick={() => {
                             // Use direct link approach for download
-                            const link = document.createElement('a');
+                            const link = window.document.createElement('a');
                             link.href = `/api/documents/download/${document.id}`;
                             link.download = document.originalName;
                             link.target = '_blank';
-                            document.body.appendChild(link);
+                            window.document.body.appendChild(link);
                             link.click();
-                            document.body.removeChild(link);
+                            window.document.body.removeChild(link);
                           }}
                         >
                           <Download className="h-4 w-4 mr-1" />
