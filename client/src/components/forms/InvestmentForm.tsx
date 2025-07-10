@@ -43,10 +43,13 @@ export function InvestmentForm() {
 
   const createInvestment = useMutation({
     mutationFn: async (data: FormData) => {
+      console.log("Making API request with data:", data)
       const response = await apiRequest("POST", "/api/investments", data)
+      console.log("API response:", response)
       return response.json()
     },
     onSuccess: (investment) => {
+      console.log("Investment created successfully:", investment)
       queryClient.invalidateQueries({ queryKey: ["/api/investments"] })
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] })
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent-requests"] })
@@ -59,6 +62,7 @@ export function InvestmentForm() {
       setLocation("/")
     },
     onError: (error: any) => {
+      console.error("Investment creation error:", error)
       toast({
         title: "Error creating investment request",
         description: error.message || "Something went wrong",
@@ -84,6 +88,9 @@ export function InvestmentForm() {
   })
 
   const onSubmit = (data: FormData) => {
+    console.log("Form submission data:", data)
+    console.log("Form errors:", form.formState.errors)
+    console.log("Form is valid:", form.formState.isValid)
     createInvestment.mutate(data)
   }
 
