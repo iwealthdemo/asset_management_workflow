@@ -306,6 +306,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/documents/download/:documentId', authMiddleware, async (req, res) => {
+    try {
+      const { documentId } = req.params;
+      const document = await storage.getDocument(parseInt(documentId));
+      
+      if (!document) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+      
+      const path = require('path');
+      const fs = require('fs');
+      const filePath = path.join(process.cwd(), document.fileUrl);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: 'File not found on server' });
+      }
+      
+      res.setHeader('Content-Disposition', `attachment; filename="${document.originalName}"`);
+      res.setHeader('Content-Type', document.mimeType);
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Notification routes
   app.get('/api/notifications', authMiddleware, async (req, res) => {
     try {

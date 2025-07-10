@@ -2,14 +2,20 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ApprovalModal } from "@/components/modals/ApprovalModal";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { Clock, CheckSquare, AlertTriangle, Calendar, User } from "lucide-react";
+import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle } from "lucide-react";
 import { format } from "date-fns";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function MyTasks() {
-  const [selectedTask, setSelectedTask] = useState<any>(null);
-  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [expandedTask, setExpandedTask] = useState<number | null>(null);
+  const [comments, setComments] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["/api/tasks"],
@@ -55,9 +61,43 @@ export default function MyTasks() {
   };
 
   const handleTaskAction = (task: any) => {
-    setSelectedTask(task);
-    setIsApprovalModalOpen(true);
+    setExpandedTask(expandedTask === task.id ? null : task.id);
+    setComments("");
   };
+
+  const processApproval = useMutation({
+    mutationFn: async ({ taskId, action }: { taskId: number; action: 'approve' | 'reject' | 'changes_requested' }) => {
+      const task = tasks?.find((t: any) => t.id === taskId);
+      if (!task) throw new Error('Task not found');
+      
+      const response = await apiRequest("POST", "/api/approvals", {
+        requestType: task.requestType,
+        requestId: task.requestId,
+        action,
+        comments,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      
+      toast({
+        title: "Approval processed",
+        description: "The request has been processed successfully",
+      });
+      
+      setExpandedTask(null);
+      setComments("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error processing approval",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    },
+  });
 
   if (isLoading) {
     return (
@@ -96,7 +136,15 @@ export default function MyTasks() {
             <h2 className="text-lg font-semibold mb-4 text-red-600">Overdue Tasks</h2>
             <div className="space-y-4">
               {overdueTasks.map((task: any) => (
-                <TaskCard key={task.id} task={task} onAction={handleTaskAction} />
+                <TaskCard 
+                  key={task.id} 
+                  task={task} 
+                  onAction={handleTaskAction}
+                  isExpanded={expandedTask === task.id}
+                  onProcessApproval={processApproval}
+                  comments={comments}
+                  setComments={setComments}
+                />
               ))}
             </div>
           </div>
@@ -118,7 +166,15 @@ export default function MyTasks() {
               </Card>
             ) : (
               pendingTasks.map((task: any) => (
-                <TaskCard key={task.id} task={task} onAction={handleTaskAction} />
+                <TaskCard 
+                  key={task.id} 
+                  task={task} 
+                  onAction={handleTaskAction}
+                  isExpanded={expandedTask === task.id}
+                  onProcessApproval={processApproval}
+                  comments={comments}
+                  setComments={setComments}
+                />
               ))
             )}
           </div>
@@ -130,24 +186,99 @@ export default function MyTasks() {
             <h2 className="text-lg font-semibold mb-4 text-green-600">Completed Tasks</h2>
             <div className="space-y-4">
               {completedTasks.map((task: any) => (
-                <TaskCard key={task.id} task={task} onAction={handleTaskAction} />
+                <TaskCard 
+                  key={task.id} 
+                  task={task} 
+                  onAction={handleTaskAction}
+                  isExpanded={expandedTask === task.id}
+                  onProcessApproval={processApproval}
+                  comments={comments}
+                  setComments={setComments}
+                />
               ))}
             </div>
           </div>
         )}
       </div>
-
-      <ApprovalModal
-        isOpen={isApprovalModalOpen}
-        onClose={() => setIsApprovalModalOpen(false)}
-        task={selectedTask}
-      />
     </div>
   );
 }
 
-function TaskCard({ task, onAction }: { task: any; onAction: (task: any) => void }) {
+function TaskCard({ 
+  task, 
+  onAction, 
+  isExpanded, 
+  onProcessApproval,
+  comments,
+  setComments
+}: { 
+  task: any; 
+  onAction: (task: any) => void;
+  isExpanded: boolean;
+  onProcessApproval: any;
+  comments: string;
+  setComments: (comments: string) => void;
+}) {
   const Icon = getTaskIcon(task.taskType);
+  
+  const { data: requestData } = useQuery({
+    queryKey: [`/api/${task.requestType.replace('_', '-')}s/${task.requestId}`],
+    enabled: isExpanded,
+  });
+
+  const { data: approvalHistory } = useQuery({
+    queryKey: [`/api/approvals/${task.requestType}/${task.requestId}`],
+    enabled: isExpanded,
+  });
+
+  const { data: documents } = useQuery({
+    queryKey: [`/api/documents/${task.requestType}/${task.requestId}`],
+    enabled: isExpanded,
+  });
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.includes('pdf')) {
+      return <FileText className="h-5 w-5 text-red-500" />;
+    }
+    return <File className="h-5 w-5 text-gray-500" />;
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'rejected':
+        return <XCircle className="h-5 w-5 text-red-600" />;
+      case 'pending':
+        return <Clock className="h-5 w-5 text-yellow-600" />;
+      default:
+        return <User className="h-5 w-5 text-gray-600" />;
+    }
+  };
+
+  const handleDownload = async (document: any) => {
+    try {
+      const response = await fetch(`/api/documents/download/${document.id}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = document.originalName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
+  };
   
   return (
     <Card className={`hover:shadow-md transition-shadow ${
@@ -194,15 +325,183 @@ function TaskCard({ task, onAction }: { task: any; onAction: (task: any) => void
           
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => onAction(task)}>
-              View Details
+              {isExpanded ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
+              {isExpanded ? 'Hide Details' : 'View Details'}
             </Button>
-            {task.status === 'pending' && (
+            {task.status === 'pending' && !isExpanded && (
               <Button size="sm" onClick={() => onAction(task)}>
                 Take Action
               </Button>
             )}
           </div>
         </div>
+
+        {/* Expanded Details */}
+        {isExpanded && requestData && (
+          <div className="mt-6 space-y-6 pt-6 border-t">
+            {/* Request Details */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold mb-4">Request Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Request ID</p>
+                  <p className="text-lg font-semibold">{requestData.requestId}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">
+                    {task.requestType === 'investment' ? 'Target Company' : 'Amount'}
+                  </p>
+                  <p className="text-lg font-semibold">
+                    {task.requestType === 'investment' 
+                      ? requestData.targetCompany 
+                      : `$${requestData.amount}`}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Amount</p>
+                  <p className="text-lg font-semibold">${requestData.amount}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">
+                    {task.requestType === 'investment' ? 'Expected Return' : 'Payment Timeline'}
+                  </p>
+                  <p className="text-lg font-semibold">
+                    {task.requestType === 'investment' 
+                      ? `${requestData.expectedReturn}%` 
+                      : requestData.paymentTimeline}
+                  </p>
+                </div>
+              </div>
+              
+              {requestData.description && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-gray-600 mb-2">Description</p>
+                  <p className="text-gray-800">{requestData.description}</p>
+                </div>
+              )}
+
+              {task.requestType === 'investment' && requestData.riskLevel && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-gray-600 mb-2">Risk Level</p>
+                  <Badge className={
+                    requestData.riskLevel === 'high' ? 'bg-red-100 text-red-800' :
+                    requestData.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-green-100 text-green-800'
+                  }>
+                    {requestData.riskLevel} risk
+                  </Badge>
+                </div>
+              )}
+            </div>
+
+            {/* Documents */}
+            {documents && documents.length > 0 && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-4">Supporting Documents</h4>
+                <div className="space-y-2">
+                  {documents.map((document: any) => (
+                    <div key={document.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
+                      <div className="flex items-center space-x-3">
+                        {getFileIcon(document.mimeType)}
+                        <div>
+                          <p className="text-sm font-medium">{document.originalName}</p>
+                          <p className="text-xs text-gray-500">
+                            {(document.fileSize / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDownload(document)}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Download
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Approval History */}
+            {approvalHistory && approvalHistory.length > 0 && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-4">Approval History</h4>
+                <div className="space-y-3">
+                  {approvalHistory.map((approval: any) => (
+                    <div key={approval.id} className="flex items-center space-x-3 p-3 bg-white rounded-lg">
+                      {getStatusIcon(approval.status)}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">
+                            Stage {approval.stage} - {approval.status}
+                          </p>
+                          <Badge className={getStatusColor(approval.status)}>
+                            {approval.status}
+                          </Badge>
+                        </div>
+                        {approval.approvedAt && (
+                          <p className="text-xs text-gray-500">
+                            {format(new Date(approval.approvedAt), 'MMM dd, yyyy HH:mm')}
+                          </p>
+                        )}
+                        {approval.comments && (
+                          <p className="text-sm text-gray-600 mt-1">{approval.comments}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Comments and Actions */}
+            {task.status === 'pending' && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="comments">Comments (Optional)</Label>
+                    <Textarea
+                      id="comments"
+                      rows={3}
+                      placeholder="Add your comments or feedback..."
+                      value={comments}
+                      onChange={(e) => setComments(e.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end space-x-4">
+                    <Button
+                      variant="destructive"
+                      onClick={() => onProcessApproval.mutate({ taskId: task.id, action: 'reject' })}
+                      disabled={onProcessApproval.isPending}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Reject
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => onProcessApproval.mutate({ taskId: task.id, action: 'changes_requested' })}
+                      disabled={onProcessApproval.isPending}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Request Changes
+                    </Button>
+                    <Button
+                      onClick={() => onProcessApproval.mutate({ taskId: task.id, action: 'approve' })}
+                      disabled={onProcessApproval.isPending}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Approve
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

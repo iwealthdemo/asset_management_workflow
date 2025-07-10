@@ -46,6 +46,7 @@ export interface IStorage {
   // Document operations
   createDocument(document: InsertDocument): Promise<Document>;
   getDocumentsByRequest(requestType: string, requestId: number): Promise<Document[]>;
+  getDocument(id: number): Promise<Document | undefined>;
   
   // Notification operations
   createNotification(notification: InsertNotification): Promise<Notification>;
@@ -209,6 +210,11 @@ export class DatabaseStorage implements IStorage {
         eq(documents.requestId, requestId)
       ))
       .orderBy(desc(documents.createdAt));
+  }
+
+  async getDocument(id: number): Promise<Document | undefined> {
+    const [document] = await db.select().from(documents).where(eq(documents.id, id));
+    return document || undefined;
   }
 
   async createNotification(notification: InsertNotification): Promise<Notification> {
