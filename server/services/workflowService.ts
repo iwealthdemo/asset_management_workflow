@@ -142,19 +142,33 @@ export class WorkflowService {
 
     if (!stageConfig) return;
 
-    // For now, we'll create a general task. In a real system, you'd assign to specific users based on role
+    // Find users with the required role for this stage
+    const requiredRole = stageConfig.approverRole;
+    console.log(`Looking for users with role: ${requiredRole}`);
+    
+    // Get all users and find those with the required role
+    const allUsers = await storage.getAllUsers();
+    const roleUsers = allUsers.filter(user => user.role === requiredRole);
+    
+    console.log(`Found ${roleUsers.length} users with role ${requiredRole}`);
+    
+    // Create tasks for all users with the required role
     const dueDate = new Date();
     dueDate.setHours(dueDate.getHours() + stageConfig.slaHours);
 
-    await storage.createTask({
-      assigneeId: null, // Will be assigned based on role
-      requestType,
-      requestId,
-      taskType: 'approval',
-      title: `Approval Required - ${requestType.replace('_', ' ')}`,
-      description: `Please review and approve the ${requestType.replace('_', ' ')} request`,
-      dueDate,
-    });
+    for (const user of roleUsers) {
+      await storage.createTask({
+        assigneeId: user.id,
+        requestType,
+        requestId,
+        taskType: 'approval',
+        title: `Stage ${stage} Approval Required - ${requestType.replace('_', ' ')}`,
+        description: `Please review and approve the ${requestType.replace('_', ' ')} request. Role required: ${requiredRole}`,
+        dueDate,
+      });
+    }
+    
+    console.log(`Created approval tasks for ${requestType} request ${requestId}, stage ${stage}`);
   }
 }
 
