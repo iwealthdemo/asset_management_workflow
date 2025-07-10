@@ -168,6 +168,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route for modifying rejected requests
+  app.put('/api/investments/:id/modify', authMiddleware, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = req.body;
+      
+      const request = await investmentService.modifyInvestmentRequest(id, updateData, req.userId!);
+      res.json(request);
+    } catch (error) {
+      if (error instanceof Error) {
+        return res.status(400).json({ message: error.message });
+      }
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Route for submitting draft requests
+  app.post('/api/investments/:id/submit', authMiddleware, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      const request = await investmentService.submitDraftRequest(id, req.userId!);
+      res.json(request);
+    } catch (error) {
+      if (error instanceof Error) {
+        return res.status(400).json({ message: error.message });
+      }
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Cash request routes
   app.post('/api/cash-requests', authMiddleware, async (req, res) => {
     try {
@@ -404,6 +435,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(documents);
     } catch (error) {
       res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Approval routes
+  app.get('/api/approvals/:requestType/:requestId', authMiddleware, async (req, res) => {
+    try {
+      const { requestType, requestId } = req.params;
+      const requestIdNumber = parseInt(requestId);
+      
+      if (isNaN(requestIdNumber)) {
+        return res.status(400).json({ error: 'Invalid request ID' });
+      }
+      
+      const approvals = await storage.getApprovalsByRequest(requestType, requestIdNumber);
+      res.json(approvals);
+    } catch (error) {
+      console.error('Error fetching approvals:', error);
+      res.status(500).json({ error: 'Failed to fetch approvals' });
     }
   });
 

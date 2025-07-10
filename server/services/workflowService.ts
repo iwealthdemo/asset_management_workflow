@@ -47,10 +47,44 @@ export class WorkflowService {
         throw new Error('No pending approval found');
       }
 
+      // Get approver details to determine status text
+      const approver = await storage.getUser(approverId);
+      let statusText = action;
+      
+      if (action === 'approve') {
+        switch (approver?.role) {
+          case 'manager':
+            statusText = 'Manager approved';
+            break;
+          case 'committee_member':
+            statusText = 'Committee approved';
+            break;
+          case 'finance':
+            statusText = 'Finance approved';
+            break;
+          default:
+            statusText = 'approved';
+        }
+      } else if (action === 'reject') {
+        switch (approver?.role) {
+          case 'manager':
+            statusText = 'Manager rejected';
+            break;
+          case 'committee_member':
+            statusText = 'Committee rejected';
+            break;
+          case 'finance':
+            statusText = 'Finance rejected';
+            break;
+          default:
+            statusText = 'rejected';
+        }
+      }
+
       // Update approval record
       await storage.updateApproval(currentApproval.id, {
         approverId,
-        status: action,
+        status: statusText,
         comments,
         approvedAt: new Date(),
       });
@@ -73,7 +107,7 @@ export class WorkflowService {
       if (action === 'approve') {
         await this.moveToNextStage(requestType, requestId, currentApproval.stage);
       } else if (action === 'reject') {
-        await this.rejectRequest(requestType, requestId);
+        await this.rejectRequest(requestType, requestId, approver?.role);
       } else if (action === 'changes_requested') {
         await this.requestChanges(requestType, requestId);
       }
@@ -114,14 +148,30 @@ export class WorkflowService {
     }
   }
 
-  private async rejectRequest(requestType: string, requestId: number) {
-    if (requestType === 'investment') {
-      await storage.updateInvestmentRequest(requestId, { status: 'rejected' });
-    } else {
-      await storage.updateCashRequest(requestId, { status: 'rejected' });
+  private async rejectRequest(requestType: string, requestId: number, approverRole?: string) {
+    // Update request status to rejected with specific role information
+    let rejectionStatus = 'rejected';
+    if (approverRole) {
+      switch (approverRole) {
+        case 'manager':
+          rejectionStatus = 'Manager rejected';
+          break;
+        case 'committee_member':
+          rejectionStatus = 'Committee rejected';
+          break;
+        case 'finance':
+          rejectionStatus = 'Finance rejected';
+          break;
+      }
     }
 
-    // Notify requester
+    if (requestType === 'investment') {
+      await storage.updateInvestmentRequest(requestId, { status: rejectionStatus });
+    } else if (requestType === 'cash_request') {
+      await storage.updateCashRequest(requestId, { status: rejectionStatus });
+    }
+
+    // Send notification
     await notificationService.notifyRequestRejected(requestType, requestId);
   }
 
