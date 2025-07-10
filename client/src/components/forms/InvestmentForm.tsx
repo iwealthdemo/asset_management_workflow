@@ -17,8 +17,14 @@ import { z } from "zod"
 import { useLocation } from "wouter"
 
 const formSchema = insertInvestmentRequestSchema.extend({
-  expectedReturn: z.string().transform(val => parseFloat(val)),
-  amount: z.string().transform(val => parseFloat(val)),
+  expectedReturn: z.string().min(1, "Expected return is required").transform(val => parseFloat(val)),
+  amount: z.string().min(1, "Amount is required").transform(val => parseFloat(val)),
+}).omit({
+  requestId: true,
+  requesterId: true,
+  currentApprovalStage: true,
+  slaDeadline: true,
+  status: true,
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -244,6 +250,11 @@ export function InvestmentForm() {
         <Button 
           type="submit" 
           disabled={createInvestment.isPending}
+          onClick={(e) => {
+            console.log("Submit button clicked!");
+            console.log("Form state:", form.formState);
+            console.log("Form values:", form.getValues());
+          }}
         >
           {createInvestment.isPending ? "Submitting..." : "Submit for Approval"}
         </Button>
