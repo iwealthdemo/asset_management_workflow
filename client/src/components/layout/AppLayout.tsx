@@ -197,9 +197,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   );
 
   return (
-    <div className="flex h-screen bg-neutral-50">
+    <div className="flex h-screen bg-background animate-fade-in">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex w-72 bg-white shadow-lg">
+      <div className="hidden lg:flex w-72 bg-card shadow-lg card-shadow">
         <SidebarContent />
       </div>
 
@@ -213,7 +213,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
-        <header className="bg-white shadow-sm border-b">
+        <header className="bg-card shadow-sm border-b border-border animate-slide-up">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">

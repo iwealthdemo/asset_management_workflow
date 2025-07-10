@@ -36,15 +36,15 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-background gradient-bg flex items-center justify-center p-4 animate-fade-in">
+      <Card className="w-full max-w-md card-shadow-lg glass-effect animate-scale-in">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-primary rounded-lg flex items-center justify-center">
-              <BarChart3 className="h-8 w-8 text-white" />
+            <div className="w-16 h-16 bg-primary rounded-lg flex items-center justify-center card-shadow">
+              <BarChart3 className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Welcome to ABCBank</CardTitle>
+          <CardTitle className="text-2xl text-gradient">Welcome to ABCBank</CardTitle>
           <p className="text-muted-foreground">Investment Approval Portal</p>
         </CardHeader>
         <CardContent>
@@ -57,6 +57,7 @@ export default function Login() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
+                className="transition-all duration-300 focus:ring-2 focus:ring-primary"
                 required
               />
             </div>
@@ -68,6 +69,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
+                className="transition-all duration-300 focus:ring-2 focus:ring-primary"
                 required
               />
             </div>
@@ -80,10 +82,17 @@ export default function Login() {
             )}
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full btn-gradient py-3 text-lg font-semibold" 
               disabled={login.isPending}
             >
-              {login.isPending ? "Signing in..." : "Sign In"}
+              {login.isPending ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
+                  <span>Signing in...</span>
+                </div>
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </form>
         </CardContent>
