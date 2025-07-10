@@ -351,6 +351,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add preview endpoint
+  app.get('/api/documents/preview/:documentId', authMiddleware, async (req, res) => {
+    try {
+      const { documentId } = req.params;
+      console.log('Preview request for document ID:', documentId);
+      
+      const document = await storage.getDocument(parseInt(documentId));
+      console.log('Found document:', document);
+      
+      if (!document) {
+        console.log('Document not found in database');
+        return res.status(404).json({ message: 'Document not found' });
+      }
+      
+      const path = require('path');
+      const fs = require('fs');
+      const filePath = path.join(process.cwd(), document.fileUrl);
+      console.log('Checking file path:', filePath);
+      
+      if (!fs.existsSync(filePath)) {
+        console.log('File does not exist on disk:', filePath);
+        return res.status(404).json({ message: 'File not found on server' });
+      }
+      
+      console.log('File exists, preparing preview');
+      res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Length', document.fileSize.toString());
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.on('error', (err) => {
+        console.error('File stream error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ message: 'Error reading file' });
+        }
+      });
+      
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error('Preview error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    }
+  });
+
   // Notification routes
   app.get('/api/notifications', authMiddleware, async (req, res) => {
     try {

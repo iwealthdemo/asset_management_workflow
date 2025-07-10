@@ -4,8 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useState } from "react";
-import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle } from "lucide-react";
+import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -14,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function MyTasks() {
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
   const [comments, setComments] = useState("");
+  const [previewDocument, setPreviewDocument] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -200,6 +202,33 @@ export default function MyTasks() {
           </div>
         )}
       </div>
+
+      {/* Document Preview Dialog */}
+      <Dialog open={!!previewDocument} onOpenChange={() => setPreviewDocument(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>{previewDocument?.originalName}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {previewDocument && (
+              <iframe
+                src={`/api/documents/preview/${previewDocument.id}`}
+                className="w-full h-[70vh] border-0"
+                title={previewDocument.originalName}
+              />
+            )}
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setPreviewDocument(null)}>
+              Close
+            </Button>
+            <Button onClick={() => handleDownload(previewDocument)}>
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -278,6 +307,10 @@ function TaskCard({
     } catch (error) {
       console.error('Download failed:', error);
     }
+  };
+
+  const handlePreview = (document: any) => {
+    setPreviewDocument(document);
   };
   
   return (
@@ -410,14 +443,24 @@ function TaskCard({
                           </p>
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleDownload(document)}
-                      >
-                        <Download className="h-4 w-4 mr-1" />
-                        Download
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handlePreview(document)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Preview
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDownload(document)}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

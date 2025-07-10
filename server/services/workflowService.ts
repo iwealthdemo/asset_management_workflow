@@ -142,6 +142,14 @@ export class WorkflowService {
 
     if (!stageConfig) return;
 
+    // Get request details to create better task description
+    let requestDetails = null;
+    if (requestType === 'investment') {
+      requestDetails = await storage.getInvestmentRequest(requestId);
+    } else {
+      requestDetails = await storage.getCashRequest(requestId);
+    }
+
     // Find users with the required role for this stage
     const requiredRole = stageConfig.approverRole;
     console.log(`Looking for users with role: ${requiredRole}`);
@@ -151,6 +159,14 @@ export class WorkflowService {
     const roleUsers = allUsers.filter(user => user.role === requiredRole);
     
     console.log(`Found ${roleUsers.length} users with role ${requiredRole}`);
+    
+    // Create descriptive task description
+    let taskDescription = `Please review and approve the ${requestType.replace('_', ' ')} request.`;
+    if (requestDetails && requestType === 'investment') {
+      taskDescription = `${requestDetails.requestId} - ${requestDetails.investmentType} - ${requestDetails.targetCompany} - $${requestDetails.amount} - ${requestDetails.status}`;
+    } else if (requestDetails && requestType === 'cash_request') {
+      taskDescription = `${requestDetails.requestId} - Cash Request - $${requestDetails.amount} - ${requestDetails.status}`;
+    }
     
     // Create tasks for all users with the required role
     const dueDate = new Date();
@@ -163,7 +179,7 @@ export class WorkflowService {
         requestId,
         taskType: 'approval',
         title: `Stage ${stage} Approval Required - ${requestType.replace('_', ' ')}`,
-        description: `Please review and approve the ${requestType.replace('_', ' ')} request. Role required: ${requiredRole}`,
+        description: taskDescription,
         dueDate,
       });
     }
