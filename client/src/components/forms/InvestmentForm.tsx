@@ -59,7 +59,32 @@ export function InvestmentForm() {
       console.log("Converted API data:", apiData)
       const response = await apiRequest("POST", "/api/investments", apiData)
       console.log("API response:", response)
-      return response.json()
+      const investment = await response.json()
+      
+      // Upload files if any
+      if (uploadedFiles.length > 0) {
+        console.log("Uploading files:", uploadedFiles)
+        const formData = new FormData()
+        uploadedFiles.forEach((file) => {
+          formData.append('documents', file)
+        })
+        formData.append('requestType', 'investment')
+        formData.append('requestId', investment.id.toString())
+        
+        const uploadResponse = await fetch('/api/documents/upload', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        })
+        
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload documents')
+        }
+        
+        console.log("Files uploaded successfully")
+      }
+      
+      return investment
     },
     onSuccess: (investment) => {
       console.log("Investment created successfully:", investment)
