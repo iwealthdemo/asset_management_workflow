@@ -214,11 +214,20 @@ export default function MyTasks() {
           </DialogHeader>
           <div className="flex-1 overflow-hidden">
             {previewDocument && (
-              <iframe
-                src={`/api/documents/preview/${previewDocument.id}`}
+              <object
+                data={`/api/documents/preview/${previewDocument.id}`}
+                type="application/pdf"
                 className="w-full h-[70vh] border-0"
                 title={previewDocument.originalName}
-              />
+              >
+                <div className="flex items-center justify-center h-[70vh] bg-gray-50 rounded border">
+                  <div className="text-center">
+                    <FileText className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+                    <p className="text-gray-600">Preview not available</p>
+                    <p className="text-sm text-gray-500">Use the download button to view the file</p>
+                  </div>
+                </div>
+              </object>
             )}
           </div>
           <div className="flex justify-end gap-2 pt-4">
@@ -227,28 +236,14 @@ export default function MyTasks() {
             </Button>
             <Button onClick={() => {
               if (previewDocument) {
-                // Create download functionality within dialog scope
-                fetch(`/api/documents/download/${previewDocument.id}`, {
-                  credentials: 'include'
-                })
-                .then(response => {
-                  if (!response.ok) throw new Error('Download failed');
-                  return response.blob();
-                })
-                .then(blob => {
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = previewDocument.originalName;
-                  document.body.appendChild(a);
-                  a.click();
-                  window.URL.revokeObjectURL(url);
-                  document.body.removeChild(a);
-                })
-                .catch(error => {
-                  console.error('Download failed:', error);
-                  alert('Download failed. Please try again.');
-                });
+                // Use direct link approach for better browser compatibility
+                const link = document.createElement('a');
+                link.href = `/api/documents/download/${previewDocument.id}`;
+                link.download = previewDocument.originalName;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
               }
             }}>
               <Download className="h-4 w-4 mr-2" />
@@ -318,34 +313,17 @@ function TaskCard({
   const handleDownload = async (document: any) => {
     try {
       console.log('Starting download for document:', document);
-      const response = await fetch(`/api/documents/download/${document.id}`, {
-        credentials: 'include'
-      });
-      
-      console.log('Download response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Download failed with error:', errorText);
-        throw new Error(`Failed to download file: ${response.status} - ${errorText}`);
-      }
-      
-      const blob = await response.blob();
-      console.log('Downloaded blob size:', blob.size);
-      
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = document.originalName;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      console.log('Download completed successfully');
+      // Use direct link approach for better browser compatibility
+      const link = document.createElement('a');
+      link.href = `/api/documents/download/${document.id}`;
+      link.download = document.originalName;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      console.log('Download initiated successfully');
     } catch (error) {
       console.error('Download failed:', error);
-      // Show user-friendly error message
       alert('Download failed. Please try again or contact support.');
     }
   };
