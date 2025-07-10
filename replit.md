@@ -128,6 +128,9 @@ The application uses a comprehensive CSS custom properties-based theming system 
 - July 08, 2025. Initial setup
 - July 08, 2025. Implemented flexible theming system with light, dark, and corporate themes
 - July 08, 2025. Updated branding from Tawuniya to ABCBank throughout application
+- July 10, 2025. Fixed file download and preview functionality - resolved route ordering conflict and ES module import issues
+- July 10, 2025. Updated task description format to show "request id - asset type - target company - amount - status"
+- July 10, 2025. Enhanced document management with working preview dialog and download capabilities
 
 ## User Preferences
 

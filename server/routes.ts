@@ -9,6 +9,8 @@ import { authService } from "./services/authService";
 import { fileUpload } from "./utils/fileUpload";
 import { insertInvestmentRequestSchema, insertCashRequestSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
+import path from "path";
+import fs from "fs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
@@ -310,8 +312,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Document not found' });
       }
       
-      const path = require('path');
-      const fs = require('fs');
       const filePath = path.join(process.cwd(), document.fileUrl);
       console.log('Checking file path:', filePath);
       
@@ -361,8 +361,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Document not found' });
       }
       
-      const path = require('path');
-      const fs = require('fs');
       const filePath = path.join(process.cwd(), document.fileUrl);
       console.log('Checking file path:', filePath);
       
