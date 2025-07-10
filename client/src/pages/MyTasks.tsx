@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function MyTasks() {
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
   const [comments, setComments] = useState("");
-  const [previewDocument, setPreviewDocument] = useState<any>(null);
+  // Remove previewDocument state as we're using new tab approach
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -146,7 +146,7 @@ export default function MyTasks() {
                   onProcessApproval={processApproval}
                   comments={comments}
                   setComments={setComments}
-                  onPreview={setPreviewDocument}
+                  onPreview={() => {}}
                 />
               ))}
             </div>
@@ -177,7 +177,7 @@ export default function MyTasks() {
                   onProcessApproval={processApproval}
                   comments={comments}
                   setComments={setComments}
-                  onPreview={setPreviewDocument}
+                  onPreview={() => {}}
                 />
               ))
             )}
@@ -198,7 +198,7 @@ export default function MyTasks() {
                   onProcessApproval={processApproval}
                   comments={comments}
                   setComments={setComments}
-                  onPreview={setPreviewDocument}
+                  onPreview={() => {}}
                 />
               ))}
             </div>
@@ -206,44 +206,7 @@ export default function MyTasks() {
         )}
       </div>
 
-      {/* Document Preview Dialog */}
-      <Dialog open={!!previewDocument} onOpenChange={() => setPreviewDocument(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>{previewDocument?.originalName}</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-hidden">
-            {previewDocument && (
-              <iframe
-                src={`/api/documents/preview/${previewDocument.id}`}
-                className="w-full h-[70vh] border rounded"
-                title={previewDocument.originalName}
-                style={{ border: 'none' }}
-              />
-            )}
-          </div>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setPreviewDocument(null)}>
-              Close
-            </Button>
-            <Button onClick={() => {
-              if (previewDocument) {
-                // Use direct link approach for better browser compatibility
-                const link = window.document.createElement('a');
-                link.href = `/api/documents/download/${previewDocument.id}`;
-                link.download = previewDocument.originalName;
-                link.target = '_blank';
-                window.document.body.appendChild(link);
-                link.click();
-                window.document.body.removeChild(link);
-              }
-            }}>
-              <Download className="h-4 w-4 mr-2" />
-              Download
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Preview now opens in new tab, no dialog needed */}
     </div>
   );
 }
@@ -456,7 +419,10 @@ function TaskCard({
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => onPreview(document)}
+                          onClick={() => {
+                            // Open preview in new tab to avoid Chrome blocking
+                            window.open(`/api/documents/preview/${document.id}`, '_blank');
+                          }}
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           Preview
