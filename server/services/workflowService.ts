@@ -105,6 +105,13 @@ export class WorkflowService {
       }
 
       if (action === 'approve') {
+        // Update request status with approval status
+        if (requestType === 'investment') {
+          await storage.updateInvestmentRequest(requestId, { status: statusText });
+        } else if (requestType === 'cash_request') {
+          await storage.updateCashRequest(requestId, { status: statusText });
+        }
+        
         await this.moveToNextStage(requestType, requestId, currentApproval.stage);
       } else if (action === 'reject') {
         await this.rejectRequest(requestType, requestId, approver?.role);
