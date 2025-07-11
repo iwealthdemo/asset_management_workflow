@@ -131,6 +131,10 @@ The application uses a comprehensive CSS custom properties-based theming system 
 - July 10, 2025. Fixed file download and preview functionality - resolved route ordering conflict and ES module import issues
 - July 10, 2025. Updated task description format to show "request id - asset type - target company - amount - status"
 - July 10, 2025. Enhanced document management with working preview dialog and download capabilities
+- July 11, 2025. Enhanced header to display user's name and role below avatar icon
+- July 11, 2025. Implemented role-based access control for analysts - they can only see their own proposals
+- July 11, 2025. Created second analyst user (analyst2/admin123) for testing multi-user scenarios
+- July 11, 2025. Fixed database filtering logic to properly restrict analyst access to their own investment requests
 
 ## User Preferences
 

@@ -129,7 +129,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getInvestmentRequests(filters?: { userId?: number; status?: string }): Promise<InvestmentRequest[]> {
-    const results = await db.select().from(investmentRequests).orderBy(desc(investmentRequests.createdAt));
+    let query = db.select().from(investmentRequests);
+    
+    const conditions: any[] = [];
+    
+    if (filters?.userId) {
+      conditions.push(eq(investmentRequests.requesterId, filters.userId));
+    }
+    
+    if (filters?.status) {
+      conditions.push(eq(investmentRequests.status, filters.status));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
+    }
+    
+    const results = await query.orderBy(desc(investmentRequests.createdAt));
     return results;
   }
 
@@ -154,7 +170,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCashRequests(filters?: { userId?: number; status?: string }): Promise<CashRequest[]> {
-    const results = await db.select().from(cashRequests).orderBy(desc(cashRequests.createdAt));
+    let query = db.select().from(cashRequests);
+    
+    const conditions: any[] = [];
+    
+    if (filters?.userId) {
+      conditions.push(eq(cashRequests.requesterId, filters.userId));
+    }
+    
+    if (filters?.status) {
+      conditions.push(eq(cashRequests.status, filters.status));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
+    }
+    
+    const results = await query.orderBy(desc(cashRequests.createdAt));
     return results;
   }
 
