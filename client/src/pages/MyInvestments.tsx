@@ -19,19 +19,19 @@ export default function MyInvestments() {
 
   // Fetch detailed investment data when viewing
   const { data: investmentDetails, isLoading: isInvestmentLoading } = useQuery({
-    queryKey: ["/api/investments", selectedInvestment?.id],
+    queryKey: [`/api/investments/${selectedInvestment?.id}`],
     enabled: !!selectedInvestment && isViewDialogOpen,
   });
 
   // Fetch approval history
   const { data: approvalHistory } = useQuery({
-    queryKey: ["/api/approvals/investment", selectedInvestment?.id],
+    queryKey: [`/api/approvals/investment/${selectedInvestment?.id}`],
     enabled: !!selectedInvestment && isViewDialogOpen,
   });
 
   // Fetch documents
   const { data: documents } = useQuery({
-    queryKey: ["/api/documents/investment", selectedInvestment?.id],
+    queryKey: [`/api/documents/investment/${selectedInvestment?.id}`],
     enabled: !!selectedInvestment && isViewDialogOpen,
   });
 
