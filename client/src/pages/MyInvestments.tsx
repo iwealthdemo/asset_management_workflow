@@ -55,6 +55,21 @@ export default function MyInvestments() {
     }
   };
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="w-4 h-4" />;
+      case 'approved':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'rejected':
+        return <AlertTriangle className="w-4 h-4" />;
+      case 'changes_requested':
+        return <Eye className="w-4 h-4" />;
+      default:
+        return <Clock className="w-4 h-4" />;
+    }
+  };
+
   const getRiskColor = (risk: string) => {
     switch (risk) {
       case 'high':
