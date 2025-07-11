@@ -265,13 +265,21 @@ export function AppLayout({ children }: AppLayoutProps) {
                 {/* User Profile Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-accent">
+                    <Button variant="ghost" className="relative flex flex-col items-center p-2 h-auto rounded-lg hover:bg-accent">
                       <Avatar className="h-10 w-10">
                         <AvatarImage src="" alt={user?.firstName || "User"} />
                         <AvatarFallback className="bg-primary text-primary-foreground font-medium">
                           {user?.firstName?.[0]}{user?.lastName?.[0]}
                         </AvatarFallback>
                       </Avatar>
+                      <div className="flex flex-col items-center mt-1">
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                          {user?.firstName} {user?.lastName}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                          {user?.role}
+                        </span>
+                      </div>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>

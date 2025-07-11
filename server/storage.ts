@@ -67,7 +67,7 @@ export interface IStorage {
   }>;
   
   // Recent requests
-  getRecentRequests(limit?: number): Promise<Array<{
+  getRecentRequests(limit?: number, userId?: number): Promise<Array<{
     id: number;
     requestId: string;
     type: 'investment' | 'cash_request';
@@ -278,7 +278,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getRecentRequests(limit = 10): Promise<Array<{
+  async getRecentRequests(limit = 10, userId?: number): Promise<Array<{
     id: number;
     requestId: string;
     type: 'investment' | 'cash_request';
@@ -288,7 +288,7 @@ export class DatabaseStorage implements IStorage {
     requester: { firstName: string; lastName: string };
   }>> {
     // Get investment requests
-    const investmentResults = await db.select({
+    const investmentQuery = db.select({
       id: investmentRequests.id,
       requestId: investmentRequests.requestId,
       type: sql<'investment'>`'investment'`,
@@ -303,8 +303,13 @@ export class DatabaseStorage implements IStorage {
     .orderBy(desc(investmentRequests.createdAt))
     .limit(limit);
 
+    // Add userId filter if provided
+    const investmentResults = userId 
+      ? await investmentQuery.where(eq(investmentRequests.requesterId, userId))
+      : await investmentQuery;
+
     // Get cash requests
-    const cashResults = await db.select({
+    const cashQuery = db.select({
       id: cashRequests.id,
       requestId: cashRequests.requestId,
       type: sql<'cash_request'>`'cash_request'`,
@@ -318,6 +323,11 @@ export class DatabaseStorage implements IStorage {
     .innerJoin(users, eq(cashRequests.requesterId, users.id))
     .orderBy(desc(cashRequests.createdAt))
     .limit(limit);
+
+    // Add userId filter if provided
+    const cashResults = userId 
+      ? await cashQuery.where(eq(cashRequests.requesterId, userId))
+      : await cashQuery;
 
     // Combine and sort results
     const allResults = [...investmentResults, ...cashResults]

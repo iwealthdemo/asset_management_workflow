@@ -84,7 +84,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/dashboard/recent-requests', authMiddleware, async (req, res) => {
     try {
-      const requests = await storage.getRecentRequests(10);
+      // Get current user to check role
+      const currentUser = await storage.getUser(req.userId!);
+      
+      // Analysts can only see their own requests
+      const userId = currentUser?.role === 'analyst' ? req.userId : undefined;
+      
+      const requests = await storage.getRecentRequests(10, userId);
       res.json(requests);
     } catch (error) {
       res.status(500).json({ message: 'Internal server error' });
@@ -132,7 +138,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filters: any = {};
       
       if (status) filters.status = status as string;
-      if (my === 'true') filters.userId = req.userId;
+      
+      // Get current user to check role
+      const currentUser = await storage.getUser(req.userId!);
+      
+      // Analysts can only see their own proposals
+      if (currentUser?.role === 'analyst') {
+        filters.userId = req.userId;
+      } else if (my === 'true') {
+        filters.userId = req.userId;
+      }
       
       const requests = await storage.getInvestmentRequests(filters);
       res.json(requests);
