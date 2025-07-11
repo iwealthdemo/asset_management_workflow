@@ -135,36 +135,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/investments', authMiddleware, async (req, res) => {
     try {
       const { status, my } = req.query;
-      const filters: any = {};
-      
-      if (status) filters.status = status as string;
-      
-      // Get current user to check role
       const currentUser = await storage.getUser(req.userId!);
       
-      // Analysts can only see their own proposals
-      if (currentUser?.role === 'analyst') {
-        filters.userId = req.userId;
-      } else if (my === 'true') {
-        filters.userId = req.userId;
+      if (!currentUser) {
+        return res.status(401).json({ message: 'User not found' });
       }
       
-      let requests = await storage.getInvestmentRequests(filters);
+      let requests: any[] = [];
       
-      // For non-analysts and non-admins, filter out rejected proposals unless they are the requester
-      if (currentUser?.role !== 'analyst' && currentUser?.role !== 'admin') {
-        const rejectedStatuses = ['Manager rejected', 'Committee rejected', 'Finance rejected'];
-        requests = requests.filter(request => {
-          // If it's a rejected proposal, only show it to the original requester
-          if (rejectedStatuses.includes(request.status)) {
-            return request.requesterId === req.userId;
+      if (currentUser.role === 'analyst') {
+        // Analysts see all proposals initiated by them irrespective of status
+        const filters: any = { userId: req.userId };
+        if (status) filters.status = status as string;
+        requests = await storage.getInvestmentRequests(filters);
+      } else if (currentUser.role === 'admin') {
+        // Admins see all proposals
+        const filters: any = {};
+        if (status) filters.status = status as string;
+        requests = await storage.getInvestmentRequests(filters);
+      } else if (['manager', 'committee_member', 'finance'].includes(currentUser.role)) {
+        // Manager/Committee/Finance see only proposals they have acted on
+        const approvals = await storage.getApprovalsByUser(req.userId!);
+        const requestIds = approvals.map(approval => approval.requestId);
+        
+        if (requestIds.length > 0) {
+          const allRequests = await storage.getInvestmentRequests({});
+          requests = allRequests.filter(request => requestIds.includes(request.id));
+          
+          if (status) {
+            requests = requests.filter(request => request.status === status);
           }
-          return true;
-        });
+        }
       }
       
       res.json(requests);
     } catch (error) {
+      console.error('Error fetching investments:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });

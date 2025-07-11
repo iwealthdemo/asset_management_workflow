@@ -36,6 +36,7 @@ export interface IStorage {
   createApproval(approval: InsertApproval): Promise<Approval>;
   updateApproval(id: number, approval: Partial<InsertApproval>): Promise<Approval>;
   getApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]>;
+  getApprovalsByUser(userId: number): Promise<Approval[]>;
   
   // Task operations
   createTask(task: InsertTask): Promise<Task>;
@@ -207,6 +208,12 @@ export class DatabaseStorage implements IStorage {
         eq(approvals.requestId, requestId)
       ))
       .orderBy(approvals.stage);
+  }
+
+  async getApprovalsByUser(userId: number): Promise<Approval[]> {
+    return await db.select().from(approvals)
+      .where(eq(approvals.approverId, userId))
+      .orderBy(desc(approvals.createdAt));
   }
 
   async createTask(task: InsertTask): Promise<Task> {
