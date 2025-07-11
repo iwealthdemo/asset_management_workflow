@@ -173,10 +173,25 @@ export class WorkflowService {
     }
 
     if (requestType === 'investment') {
-      await storage.updateInvestmentRequest(requestId, { status: rejectionStatus });
+      await storage.updateInvestmentRequest(requestId, { 
+        status: rejectionStatus, 
+        currentApprovalStage: 0 // Reset to analyst level
+      });
     } else if (requestType === 'cash_request') {
-      await storage.updateCashRequest(requestId, { status: rejectionStatus });
+      await storage.updateCashRequest(requestId, { 
+        status: rejectionStatus, 
+        currentApprovalStage: 0 // Reset to analyst level
+      });
     }
+
+    // Create a new approval record at stage 0 for the analyst to modify
+    await storage.createApproval({
+      requestType,
+      requestId,
+      stage: 0,
+      approverId: null,
+      status: 'pending',
+    });
 
     // Send notification
     await notificationService.notifyRequestRejected(requestType, requestId);

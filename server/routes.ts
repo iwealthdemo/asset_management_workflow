@@ -149,7 +149,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filters.userId = req.userId;
       }
       
-      const requests = await storage.getInvestmentRequests(filters);
+      let requests = await storage.getInvestmentRequests(filters);
+      
+      // For non-analysts, filter out rejected proposals unless they are the requester
+      if (currentUser?.role !== 'analyst') {
+        const rejectedStatuses = ['Manager rejected', 'Committee rejected', 'Finance rejected'];
+        requests = requests.filter(request => {
+          // If it's a rejected proposal, only show it to the original requester
+          if (rejectedStatuses.includes(request.status)) {
+            return request.requesterId === req.userId;
+          }
+          return true;
+        });
+      }
+      
       res.json(requests);
     } catch (error) {
       res.status(500).json({ message: 'Internal server error' });
