@@ -135,6 +135,8 @@ The application uses a comprehensive CSS custom properties-based theming system 
 - July 11, 2025. Implemented role-based access control for analysts - they can only see their own proposals
 - July 11, 2025. Created second analyst user (analyst2/admin123) for testing multi-user scenarios
 - July 11, 2025. Fixed database filtering logic to properly restrict analyst access to their own investment requests
+- July 11, 2025. Fixed rejection workflow to properly route all rejected proposals back to originating analyst
+- July 11, 2025. Enhanced filtering logic to ensure rejected proposals are visible to analysts and admins only
 
 ## User Preferences
 

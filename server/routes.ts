@@ -151,8 +151,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let requests = await storage.getInvestmentRequests(filters);
       
-      // For non-analysts, filter out rejected proposals unless they are the requester
-      if (currentUser?.role !== 'analyst') {
+      // For non-analysts and non-admins, filter out rejected proposals unless they are the requester
+      if (currentUser?.role !== 'analyst' && currentUser?.role !== 'admin') {
         const rejectedStatuses = ['Manager rejected', 'Committee rejected', 'Finance rejected'];
         requests = requests.filter(request => {
           // If it's a rejected proposal, only show it to the original requester
