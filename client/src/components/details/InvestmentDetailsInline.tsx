@@ -205,7 +205,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                 )}
                 
                 {/* Draft Actions */}
-                {investmentDetails.status === 'draft' && (
+                {investmentDetails.status.toLowerCase() === 'draft' && (
                   <div className="mt-4 flex gap-2">
                     <Button 
                       variant="outline" 

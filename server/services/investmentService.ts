@@ -8,15 +8,20 @@ export class InvestmentService {
       // Generate request ID
       const requestId = await this.generateRequestId('INV');
       
+      // Determine status - use provided status or default to 'New'
+      const status = requestData.status || 'New';
+      
       // Create the request with generated fields
       const request = await storage.createInvestmentRequest({
         ...requestData,
         requestId,
-        status: 'New',
+        status,
       });
 
-      // Start the approval workflow
-      await workflowService.startApprovalWorkflow('investment', request.id);
+      // Only start approval workflow if status is not 'draft'
+      if (status.toLowerCase() !== 'draft') {
+        await workflowService.startApprovalWorkflow('investment', request.id);
+      }
 
       return request;
     } catch (error) {
@@ -72,7 +77,7 @@ export class InvestmentService {
         throw new Error('Unauthorized to submit this request');
       }
       
-      if (existingRequest.status !== 'Draft') {
+      if (existingRequest.status.toLowerCase() !== 'draft') {
         throw new Error('Only draft requests can be submitted');
       }
       
