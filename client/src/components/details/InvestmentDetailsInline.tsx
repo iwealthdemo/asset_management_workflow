@@ -2,10 +2,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, AlertTriangle, Clock, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle, AlertTriangle, Clock, Eye, ChevronDown, ChevronUp, Edit, Send } from "lucide-react";
 import { format } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface InvestmentDetailsInlineProps {
   investment: any;
@@ -14,6 +16,9 @@ interface InvestmentDetailsInlineProps {
 }
 
 export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: InvestmentDetailsInlineProps) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   // Fetch detailed investment data when expanded
   const { data: investmentDetails, isLoading: isInvestmentLoading } = useQuery({
     queryKey: [`/api/investments/${investment?.id}`],
@@ -31,6 +36,43 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
     queryKey: [`/api/documents/investment/${investment?.id}`],
     enabled: !!investment?.id && isExpanded,
   });
+
+  // Submit draft mutation
+  const submitDraftMutation = useMutation({
+    mutationFn: async (investmentId: number) => {
+      return apiRequest(`/api/investments/${investmentId}/submit`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Draft submitted for approval successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit draft",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmitDraft = () => {
+    if (investmentDetails?.id) {
+      submitDraftMutation.mutate(investmentDetails.id);
+    }
+  };
+
+  const handleEditDraft = () => {
+    // TODO: Implement edit functionality
+    toast({
+      title: "Edit Draft",
+      description: "Edit functionality will be implemented",
+    });
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -159,6 +201,30 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                   <div className="mt-4">
                     <p className="text-sm font-medium text-gray-600 mb-2">Description</p>
                     <p className="text-gray-800">{investmentDetails.description}</p>
+                  </div>
+                )}
+                
+                {/* Draft Actions */}
+                {investmentDetails.status === 'draft' && (
+                  <div className="mt-4 flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleEditDraft}
+                      className="flex items-center gap-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit Draft
+                    </Button>
+                    <Button 
+                      size="sm"
+                      onClick={handleSubmitDraft}
+                      disabled={submitDraftMutation.isPending}
+                      className="flex items-center gap-2"
+                    >
+                      <Send className="h-4 w-4" />
+                      {submitDraftMutation.isPending ? 'Submitting...' : 'Submit for Approval'}
+                    </Button>
                   </div>
                 )}
               </CardContent>
