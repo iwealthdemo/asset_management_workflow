@@ -1,43 +1,24 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Card, CardContent } from "@/components/ui/card"
 import { RecentRequest } from "@/lib/types"
 import { Briefcase, DollarSign, Clock, CheckCircle, AlertTriangle, Eye } from "lucide-react"
 import { format } from "date-fns"
-import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
+import { InvestmentDetailsInline } from "@/components/details/InvestmentDetailsInline"
 
 interface RequestsTableProps {
   requests: RecentRequest[]
 }
 
 export function RequestsTable({ requests }: RequestsTableProps) {
-  const [selectedRequest, setSelectedRequest] = useState<RecentRequest | null>(null)
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [expandedRequest, setExpandedRequest] = useState<number | null>(null)
 
-  // Fetch detailed request data when viewing
-  const { data: requestDetails, isLoading: isRequestLoading } = useQuery({
-    queryKey: [`/api/${selectedRequest?.type === 'investment' ? 'investments' : 'cash-requests'}`, selectedRequest?.id],
-    enabled: !!selectedRequest && isViewDialogOpen,
-  })
-
-  // Fetch approval history
-  const { data: approvalHistory } = useQuery({
-    queryKey: [`/api/approvals/${selectedRequest?.type}`, selectedRequest?.id],
-    enabled: !!selectedRequest && isViewDialogOpen,
-  })
-
-  // Fetch documents
-  const { data: documents } = useQuery({
-    queryKey: [`/api/documents/${selectedRequest?.type}`, selectedRequest?.id],
-    enabled: !!selectedRequest && isViewDialogOpen,
-  })
-
-  const handleViewRequest = (request: RecentRequest) => {
-    setSelectedRequest(request)
-    setIsViewDialogOpen(true)
+  const handleToggleDetails = (requestId: number) => {
+    setExpandedRequest(expandedRequest === requestId ? null : requestId)
   }
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'Manager approved':
@@ -76,6 +57,8 @@ export function RequestsTable({ requests }: RequestsTableProps) {
       case 'Finance rejected':
       case 'rejected':
         return 'bg-red-100 text-red-800'
+      case 'changes_requested':
+        return 'bg-orange-100 text-orange-800'
       case 'pending':
         return 'bg-yellow-100 text-yellow-800'
       case 'overdue':
@@ -86,11 +69,9 @@ export function RequestsTable({ requests }: RequestsTableProps) {
   }
 
   const getTypeIcon = (type: string) => {
-    return type === 'investment' ? (
-      <Briefcase className="h-4 w-4" />
-    ) : (
-      <DollarSign className="h-4 w-4" />
-    )
+    return type === 'investment' ? 
+      <Briefcase className="h-5 w-5 text-blue-600" /> : 
+      <DollarSign className="h-5 w-5 text-green-600" />
   }
 
   const getTypeColor = (type: string) => {
@@ -100,12 +81,11 @@ export function RequestsTable({ requests }: RequestsTableProps) {
   }
 
   const getSLAProgress = (status: string) => {
-    // Mock SLA progress based on status
     switch (status) {
       case 'approved':
         return 100
       case 'pending':
-        return Math.floor(Math.random() * 50) + 25 // 25-75%
+        return Math.floor(Math.random() * 50) + 25
       case 'overdue':
         return 100
       default:
@@ -145,252 +125,76 @@ export function RequestsTable({ requests }: RequestsTableProps) {
   }
 
   return (
-    <>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Request ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Type
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Amount
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                SLA
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {requests.map((request) => {
-              const slaProgress = getSLAProgress(request.status)
-              const slaColor = getSLAColor(request.status, slaProgress)
-              const slaText = getSLAText(request.status)
+    <div className="space-y-4">
+      {requests.map((request) => {
+        const slaProgress = getSLAProgress(request.status)
+        const slaColor = getSLAColor(request.status, slaProgress)
+        const slaText = getSLAText(request.status)
 
-              return (
-                <tr key={request.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary font-medium">
-                    {request.requestId}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge className={getTypeColor(request.type)}>
+        return (
+          <Card key={request.id} className="hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex items-center gap-2">
                       {getTypeIcon(request.type)}
-                      <span className="ml-1 capitalize">
-                        {request.type === 'cash_request' ? 'Cash Request' : 'Investment'}
-                      </span>
+                      <h3 className="font-semibold text-lg">{request.requestId}</h3>
+                    </div>
+                    <Badge className={getTypeColor(request.type)}>
+                      {request.type === 'cash_request' ? 'Cash Request' : 'Investment'}
                     </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    ${parseFloat(request.amount).toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
                     <Badge className={getStatusColor(request.status)}>
                       {getStatusIcon(request.status)}
                       <span className="ml-1 capitalize">{request.status}</span>
                     </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-full bg-gray-200 rounded-full h-2 max-w-[80px]">
-                        <div 
-                          className={`h-2 rounded-full ${slaColor}`} 
-                          style={{ width: `${slaProgress}%` }}
-                        ></div>
-                      </div>
-                      <span className={`ml-2 text-xs ${
-                        request.status === 'overdue' ? 'text-red-600' :
-                        request.status === 'approved' ? 'text-green-600' :
-                        'text-gray-600'
-                      }`}>
-                        {slaText}
-                      </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-green-600" />
+                      <span className="text-sm text-gray-600">Amount:</span>
+                      <span className="font-semibold">${parseFloat(request.amount).toLocaleString()}</span>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleViewRequest(request)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                    {request.status === 'pending' && (
-                      <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700">
-                        Approve
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* View Request Dialog */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedRequest?.type === 'investment' ? 'Investment Request' : 'Cash Request'} Details
-            </DialogTitle>
-          </DialogHeader>
-          
-          {isRequestLoading ? (
-            <div className="flex items-center justify-center p-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : requestDetails ? (
-            <div className="space-y-6">
-              {/* Request Details */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-4">Request Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Request ID</p>
-                    <p className="text-lg font-semibold">{requestDetails.requestId}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Status</p>
-                    <Badge className={getStatusColor(requestDetails.status)}>
-                      {getStatusIcon(requestDetails.status)}
-                      <span className="ml-1">{requestDetails.status}</span>
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Amount</p>
-                    <p className="text-lg font-semibold">${requestDetails.amount}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      {selectedRequest?.type === 'investment' ? 'Expected Return' : 'Purpose'}
-                    </p>
-                    <p className="text-lg font-semibold">
-                      {selectedRequest?.type === 'investment' 
-                        ? `${requestDetails.expectedReturn}%` 
-                        : requestDetails.purpose}
-                    </p>
-                  </div>
-                  {selectedRequest?.type === 'investment' && (
-                    <>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Target Company</p>
-                        <p className="text-lg font-semibold">{requestDetails.targetCompany}</p>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-gray-600" />
+                      <span className="text-sm text-gray-600">Created:</span>
+                      <span className="font-semibold">{format(new Date(request.createdAt), 'MMM dd, yyyy')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">SLA:</span>
+                      <div className="flex items-center">
+                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full ${slaColor}`} 
+                            style={{ width: `${slaProgress}%` }}
+                          ></div>
+                        </div>
+                        <span className={`ml-2 text-xs ${
+                          request.status === 'overdue' ? 'text-red-600' :
+                          request.status === 'approved' ? 'text-green-600' :
+                          'text-gray-600'
+                        }`}>
+                          {slaText}
+                        </span>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Investment Type</p>
-                        <p className="text-lg font-semibold">{requestDetails.investmentType}</p>
-                      </div>
-                    </>
-                  )}
+                    </div>
+                  </div>
                 </div>
-                
-                {requestDetails.description && (
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-600 mb-2">Description</p>
-                    <p className="text-gray-800">{requestDetails.description}</p>
-                  </div>
-                )}
               </div>
-
-              {/* Approval History */}
-              {approvalHistory && approvalHistory.length > 0 && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold mb-4">Approval History</h4>
-                  <div className="space-y-3">
-                    {approvalHistory.map((approval: any) => (
-                      <div key={approval.id} className="flex items-center space-x-3 p-3 bg-white rounded-lg">
-                        {getStatusIcon(approval.status)}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium">
-                              Stage {approval.stage} - {approval.status}
-                            </p>
-                            <Badge className={getStatusColor(approval.status)}>
-                              {approval.status}
-                            </Badge>
-                          </div>
-                          {approval.approvedAt && (
-                            <p className="text-xs text-gray-500">
-                              {format(new Date(approval.approvedAt), 'MMM dd, yyyy HH:mm')}
-                            </p>
-                          )}
-                          {approval.comments && (
-                            <p className="text-sm text-gray-600 mt-1">{approval.comments}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              
+              {/* Only show inline details for investment requests */}
+              {request.type === 'investment' && (
+                <InvestmentDetailsInline
+                  investment={request}
+                  isExpanded={expandedRequest === request.id}
+                  onToggle={() => handleToggleDetails(request.id)}
+                />
               )}
-
-              {/* Documents */}
-              {documents && documents.length > 0 && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold mb-4">Supporting Documents</h4>
-                  <div className="space-y-2">
-                    {documents.map((document: any) => (
-                      <div key={document.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-                        <div className="flex items-center space-x-3">
-                          <div className="h-5 w-5 text-gray-500">
-                            {document.mimeType?.includes('pdf') ? '📄' : '📎'}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">{document.originalName}</p>
-                            <p className="text-xs text-gray-500">
-                              {(document.fileSize / 1024 / 1024).toFixed(2)} MB
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => window.open(`/api/documents/preview/${document.id}`, '_blank')}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Preview
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              const link = window.document.createElement('a');
-                              link.href = `/api/documents/download/${document.id}`;
-                              link.download = document.originalName;
-                              link.target = '_blank';
-                              window.document.body.appendChild(link);
-                              link.click();
-                              window.document.body.removeChild(link);
-                            }}
-                          >
-                            Download
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-600">Failed to load request details</p>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+            </CardContent>
+          </Card>
+        )
+      })}
+    </div>
   )
 }
