@@ -115,7 +115,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         requestId: true,
         currentApprovalStage: true,
         slaDeadline: true,
-        status: true,
       });
       
       const validatedData = validationSchema.parse(requestData);
