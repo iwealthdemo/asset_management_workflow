@@ -137,6 +137,7 @@ The application uses a comprehensive CSS custom properties-based theming system 
 - July 11, 2025. Fixed database filtering logic to properly restrict analyst access to their own investment requests
 - July 11, 2025. Fixed rejection workflow to properly route all rejected proposals back to originating analyst
 - July 11, 2025. Enhanced filtering logic to ensure rejected proposals are visible to analysts and admins only
+- July 13, 2025. Fixed mobile hamburger menu - now properly closes when navigation items are clicked by connecting to controlled Sheet state
 
 ## User Preferences
 

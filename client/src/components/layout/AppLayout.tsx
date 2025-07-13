@@ -217,16 +217,14 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="lg:hidden">
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-72 p-0">
-                    <SidebarContent />
-                  </SheetContent>
-                </Sheet>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="lg:hidden"
+                  onClick={() => setIsMobileMenuOpen(true)}
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
                 <h2 className="text-2xl font-semibold text-gray-900">
                   {location === '/' ? 'Dashboard' : 
                    location === '/new-investment' ? 'New Investment' :
