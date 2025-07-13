@@ -201,6 +201,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route for submitting draft for approval
+  app.post('/api/investments/:id/submit', authMiddleware, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.userId!;
+      
+      const request = await investmentService.submitDraftRequest(id, userId);
+      res.json(request);
+    } catch (error) {
+      console.error('Error submitting draft:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Internal server error' });
+    }
+  });
+
   // Route for modifying rejected requests
   app.put('/api/investments/:id/modify', authMiddleware, async (req, res) => {
     try {
