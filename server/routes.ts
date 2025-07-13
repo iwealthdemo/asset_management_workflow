@@ -231,20 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Route for submitting draft requests
-  app.post('/api/investments/:id/submit', authMiddleware, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      
-      const request = await investmentService.submitDraftRequest(id, req.userId!);
-      res.json(request);
-    } catch (error) {
-      if (error instanceof Error) {
-        return res.status(400).json({ message: error.message });
-      }
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
+
 
   // Cash request routes
   app.post('/api/cash-requests', authMiddleware, async (req, res) => {
