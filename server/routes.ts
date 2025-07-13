@@ -189,6 +189,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route for submitting draft for approval - placed before the generic PUT route
+  app.post('/api/investments/:id/submit', authMiddleware, async (req, res) => {
+    try {
+      console.log('Submit route called with ID:', req.params.id);
+      const id = parseInt(req.params.id);
+      const userId = req.userId!;
+      
+      console.log('Submitting draft request for ID:', id, 'by user:', userId);
+      const request = await investmentService.submitDraftRequest(id, userId);
+      console.log('Draft submitted successfully:', request);
+      res.json(request);
+    } catch (error) {
+      console.error('Error submitting draft:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Internal server error' });
+    }
+  });
+
   app.put('/api/investments/:id', authMiddleware, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -198,20 +215,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(request);
     } catch (error) {
       res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-
-  // Route for submitting draft for approval
-  app.post('/api/investments/:id/submit', authMiddleware, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const userId = req.userId!;
-      
-      const request = await investmentService.submitDraftRequest(id, userId);
-      res.json(request);
-    } catch (error) {
-      console.error('Error submitting draft:', error);
-      res.status(500).json({ message: error instanceof Error ? error.message : 'Internal server error' });
     }
   });
 
