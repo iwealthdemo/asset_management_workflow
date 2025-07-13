@@ -72,10 +72,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   // Edit draft mutation
   const editDraftMutation = useMutation({
     mutationFn: async (data: z.infer<typeof editFormSchema>) => {
-      return apiRequest(`/api/investments/${investmentDetails?.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
+      return apiRequest('PUT', `/api/investments/${investmentDetails?.id}`, data);
     },
     onSuccess: () => {
       toast({
@@ -98,9 +95,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   // Submit draft mutation
   const submitDraftMutation = useMutation({
     mutationFn: async (investmentId: number) => {
-      return apiRequest(`/api/investments/${investmentId}/submit`, {
-        method: 'POST',
-      });
+      return apiRequest('POST', `/api/investments/${investmentId}/submit`);
     },
     onSuccess: () => {
       toast({
