@@ -325,6 +325,11 @@ export class DatabaseStorage implements IStorage {
     status: string;
     createdAt: Date;
     requester: { firstName: string; lastName: string };
+    investmentType?: string;
+    targetCompany?: string;
+    expectedReturn?: string;
+    riskLevel?: string;
+    description?: string;
   }>> {
     // Get investment requests
     const investmentQuery = db.select({
@@ -336,6 +341,11 @@ export class DatabaseStorage implements IStorage {
       createdAt: investmentRequests.createdAt,
       requesterFirstName: users.firstName,
       requesterLastName: users.lastName,
+      investmentType: investmentRequests.assetType,
+      targetCompany: investmentRequests.targetCompany,
+      expectedReturn: investmentRequests.expectedReturn,
+      riskLevel: investmentRequests.riskLevel,
+      description: investmentRequests.investmentRationale,
     })
     .from(investmentRequests)
     .innerJoin(users, eq(investmentRequests.requesterId, users.id))
@@ -357,6 +367,11 @@ export class DatabaseStorage implements IStorage {
       createdAt: cashRequests.createdAt,
       requesterFirstName: users.firstName,
       requesterLastName: users.lastName,
+      investmentType: sql<string | null>`null`,
+      targetCompany: sql<string | null>`null`,
+      expectedReturn: sql<string | null>`null`,
+      riskLevel: sql<string | null>`null`,
+      description: sql<string | null>`null`,
     })
     .from(cashRequests)
     .innerJoin(users, eq(cashRequests.requesterId, users.id))
@@ -384,6 +399,11 @@ export class DatabaseStorage implements IStorage {
         firstName: row.requesterFirstName,
         lastName: row.requesterLastName,
       },
+      investmentType: row.investmentType,
+      targetCompany: row.targetCompany,
+      expectedReturn: row.expectedReturn,
+      riskLevel: row.riskLevel,
+      description: row.description,
     }));
   }
 }

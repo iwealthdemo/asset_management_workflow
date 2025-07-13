@@ -180,6 +180,53 @@ export function RequestsTable({ requests }: RequestsTableProps) {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Enhanced Investment Details */}
+                  {request.type === 'investment' && (
+                    <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-3">
+                        {request.investmentType && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Type:</span>
+                            <span className="font-medium">{request.investmentType}</span>
+                          </div>
+                        )}
+                        {request.targetCompany && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Target:</span>
+                            <span className="font-medium">{request.targetCompany}</span>
+                          </div>
+                        )}
+                        {request.expectedReturn && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Expected Return:</span>
+                            <span className="font-medium">{request.expectedReturn}</span>
+                          </div>
+                        )}
+                        {request.riskLevel && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Risk:</span>
+                            <Badge className={
+                              request.riskLevel === 'high' ? 'bg-red-100 text-red-800' :
+                              request.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-green-100 text-green-800'
+                            }>
+                              {request.riskLevel}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                      {request.description && (
+                        <div className="mt-3">
+                          <p className="text-sm text-gray-700 line-clamp-2">
+                            {request.description.length > 150 
+                              ? `${request.description.substring(0, 150)}...` 
+                              : request.description}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
               

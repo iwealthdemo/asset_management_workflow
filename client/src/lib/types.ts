@@ -16,6 +16,11 @@ export interface RecentRequest {
     firstName: string;
     lastName: string;
   };
+  investmentType?: string;
+  targetCompany?: string;
+  expectedReturn?: string;
+  riskLevel?: string;
+  description?: string;
 }
 
 export interface TaskItem {
