@@ -31,7 +31,8 @@ import {
   Settings,
   Menu,
   LogOut,
-  Brain
+  Brain,
+  Database
 } from "lucide-react";
 
 interface AppLayoutProps {
@@ -70,6 +71,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { href: "/my-tasks", label: "My Tasks", icon: CheckSquare, badge: taskCount },
     { href: "/investments", label: "My Investments", icon: Briefcase },
     { href: "/document-analytics", label: "Document Analytics", icon: Brain },
+    { href: "/vector-store", label: "Vector Store", icon: Database },
     { href: "/templates", label: "Templates", icon: FileText },
     { href: "/sla-monitoring", label: "SLA Monitoring", icon: BarChart3 },
   ];

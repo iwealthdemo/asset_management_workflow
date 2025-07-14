@@ -7,6 +7,7 @@ import { workflowService } from "./services/workflowService";
 import { notificationService } from "./services/notificationService";
 import { authService } from "./services/authService";
 import { documentAnalysisService } from "./services/documentAnalysisService";
+import { vectorStoreService } from "./services/vectorStoreService";
 import { fileUpload } from "./utils/fileUpload";
 import { db } from "./db";
 import { insertInvestmentRequestSchema, insertCashRequestSchema, insertUserSchema, documents } from "@shared/schema";
@@ -677,6 +678,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(template);
     } catch (error) {
       res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Vector Store routes
+  app.post('/api/vector-store/upload/:documentId', authMiddleware, async (req, res) => {
+    try {
+      const documentId = parseInt(req.params.documentId);
+      const document = await storage.getDocument(documentId);
+      
+      if (!document) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+      
+      const filePath = path.join(process.cwd(), 'uploads', document.fileName);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: 'File not found on disk' });
+      }
+      
+      const result = await vectorStoreService.uploadDocumentToVectorStore(documentId, filePath);
+      res.json({ 
+        message: 'Document uploaded to vector store successfully',
+        vectorStoreDocument: result 
+      });
+    } catch (error) {
+      console.error('Vector store upload error:', error);
+      res.status(500).json({ message: error.message || 'Failed to upload to vector store' });
+    }
+  });
+
+  app.post('/api/vector-store/batch-upload', authMiddleware, async (req, res) => {
+    try {
+      const { documentIds } = req.body;
+      
+      if (!Array.isArray(documentIds)) {
+        return res.status(400).json({ message: 'documentIds must be an array' });
+      }
+      
+      const results = await vectorStoreService.batchUploadDocuments(documentIds);
+      res.json({ 
+        message: `Uploaded ${results.length} documents to vector store`,
+        vectorStoreDocuments: results 
+      });
+    } catch (error) {
+      console.error('Vector store batch upload error:', error);
+      res.status(500).json({ message: error.message || 'Failed to batch upload to vector store' });
+    }
+  });
+
+  app.post('/api/vector-store/query', authMiddleware, async (req, res) => {
+    try {
+      const { query, vectorStoreId, fileId, limit } = req.body;
+      
+      if (!query) {
+        return res.status(400).json({ message: 'Query is required' });
+      }
+      
+      const results = await vectorStoreService.queryVectorStore({
+        query,
+        vectorStoreId,
+        fileId,
+        limit
+      });
+      
+      res.json({ 
+        message: 'Query executed successfully',
+        results 
+      });
+    } catch (error) {
+      console.error('Vector store query error:', error);
+      res.status(500).json({ message: error.message || 'Failed to query vector store' });
+    }
+  });
+
+  app.post('/api/vector-store/query-document/:fileId', authMiddleware, async (req, res) => {
+    try {
+      const { fileId } = req.params;
+      const { query } = req.body;
+      
+      if (!query) {
+        return res.status(400).json({ message: 'Query is required' });
+      }
+      
+      const results = await vectorStoreService.querySpecificDocument(fileId, query);
+      res.json({ 
+        message: 'Document query executed successfully',
+        results 
+      });
+    } catch (error) {
+      console.error('Document query error:', error);
+      res.status(500).json({ message: error.message || 'Failed to query document' });
+    }
+  });
+
+  app.get('/api/vector-store/info/:vectorStoreId?', authMiddleware, async (req, res) => {
+    try {
+      const { vectorStoreId } = req.params;
+      const info = await vectorStoreService.getVectorStoreInfo(vectorStoreId);
+      res.json(info);
+    } catch (error) {
+      console.error('Vector store info error:', error);
+      res.status(500).json({ message: error.message || 'Failed to get vector store info' });
+    }
+  });
+
+  app.get('/api/vector-store/files/:vectorStoreId?', authMiddleware, async (req, res) => {
+    try {
+      const { vectorStoreId } = req.params;
+      const files = await vectorStoreService.listVectorStoreFiles(vectorStoreId);
+      res.json(files);
+    } catch (error) {
+      console.error('Vector store files error:', error);
+      res.status(500).json({ message: error.message || 'Failed to list vector store files' });
+    }
+  });
+
+  app.delete('/api/vector-store/file/:fileId', authMiddleware, async (req, res) => {
+    try {
+      const { fileId } = req.params;
+      const { vectorStoreId } = req.body;
+      
+      await vectorStoreService.deleteDocumentFromVectorStore(fileId, vectorStoreId);
+      res.json({ message: 'Document deleted from vector store successfully' });
+    } catch (error) {
+      console.error('Vector store delete error:', error);
+      res.status(500).json({ message: error.message || 'Failed to delete document from vector store' });
     }
   });
 
