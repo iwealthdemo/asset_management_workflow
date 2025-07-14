@@ -256,7 +256,7 @@ export function InvestmentForm() {
           <FileUpload
             multiple={true}
             accept=".pdf,.doc,.docx,.xls,.xlsx"
-            maxSize={10 * 1024 * 1024}
+            maxSize={50 * 1024 * 1024}
             onFilesChange={setUploadedFiles}
           />
         </CardContent>

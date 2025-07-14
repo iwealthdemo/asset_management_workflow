@@ -172,7 +172,7 @@ export function CashRequestForm({ onSuccess }: CashRequestFormProps) {
           <FileUpload
             multiple={true}
             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-            maxSize={10 * 1024 * 1024}
+            maxSize={50 * 1024 * 1024}
             onFilesChange={setUploadedFiles}
           />
         </div>
