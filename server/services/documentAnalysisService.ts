@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
 import { storage } from '../storage';
+import { fromPath } from 'pdf2pic';
 
 /*
 <important_code_snippet_instructions>
@@ -17,6 +19,10 @@ const DEFAULT_MODEL_STR = "claude-sonnet-4-20250514";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export interface DocumentAnalysis {
@@ -125,6 +131,82 @@ export class DocumentAnalysisService {
     return response.content[0].text;
   }
 
+  private async summarizeLongDocument(content: string): Promise<string> {
+    const chunkSize = 80000; // Conservative chunk size
+    const chunks: string[] = [];
+    
+    // Split content into chunks
+    for (let i = 0; i < content.length; i += chunkSize) {
+      chunks.push(content.substring(i, i + chunkSize));
+    }
+    
+    console.log(`Processing ${chunks.length} chunks for long document...`);
+    
+    // Use OpenAI GPT-4 for better handling of long documents
+    const summaries: string[] = [];
+    
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      console.log(`Processing chunk ${i + 1}/${chunks.length}...`);
+      
+      try {
+        // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert document analyst. Summarize the following document chunk, focusing on key financial information, dates, parties, and important details. Keep the summary concise but comprehensive."
+            },
+            {
+              role: "user",
+              content: `Summarize this document chunk (${i + 1}/${chunks.length}):\n\n${chunk}`
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.3
+        });
+        
+        summaries.push(response.choices[0].message.content || '');
+      } catch (error) {
+        console.error(`Error processing chunk ${i + 1}:`, error);
+        summaries.push(`[Error processing chunk ${i + 1}]`);
+      }
+    }
+    
+    // Combine all summaries
+    const combinedSummary = summaries.join('\n\n');
+    
+    // Final summarization if still too long
+    if (combinedSummary.length > 50000) {
+      console.log('Final summarization needed...');
+      try {
+        const finalResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "Consolidate these document summaries into a single, comprehensive summary under 500 words. Focus on the most important financial information, key parties, dates, and critical details."
+            },
+            {
+              role: "user",
+              content: combinedSummary
+            }
+          ],
+          max_tokens: 800,
+          temperature: 0.3
+        });
+        
+        return finalResponse.choices[0].message.content || combinedSummary;
+      } catch (error) {
+        console.error('Final summarization failed:', error);
+        return combinedSummary.substring(0, 50000);
+      }
+    }
+    
+    return combinedSummary;
+  }
+
   private async extractTextFromDocument(filePath: string): Promise<string> {
     const fileExtension = path.extname(filePath).toLowerCase();
     
@@ -133,55 +215,131 @@ export class DocumentAnalysisService {
     }
     
     if (fileExtension === '.pdf') {
-      // For now, return file info - in production, use pdf-parse or similar
-      return `PDF Document: ${path.basename(filePath)}. Content extraction would require pdf-parse library.`;
+      try {
+        // Try to convert PDF to images with timeout
+        const convert = fromPath(filePath, {
+          density: 100,
+          saveFilename: "page",
+          savePath: "/tmp",
+          format: "png",
+          width: 1200,
+          height: 1600
+        });
+        
+        // Add timeout to prevent hanging
+        const pageImages = await Promise.race([
+          convert.bulk(-1),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('PDF conversion timeout')), 30000)
+          )
+        ]) as any[];
+        
+        // Use Claude's vision API to extract text from PDF images (limit to 3 pages for efficiency)
+        let extractedText = '';
+        const maxPages = Math.min(pageImages.length, 3);
+        
+        for (let i = 0; i < maxPages; i++) {
+          const imagePath = pageImages[i].path;
+          const imageBuffer = fs.readFileSync(imagePath);
+          const base64Image = imageBuffer.toString('base64');
+          
+          const response = await anthropic.messages.create({
+            model: DEFAULT_MODEL_STR,
+            max_tokens: 1500,
+            messages: [{
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `Extract all text from this PDF page ${i + 1}. Focus on key information like company names, financial data, dates, and main content. Provide clean, structured text.`
+                },
+                {
+                  type: "image",
+                  source: {
+                    type: "base64",
+                    media_type: "image/png",
+                    data: base64Image
+                  }
+                }
+              ]
+            }]
+          });
+          
+          extractedText += `\n\n--- Page ${i + 1} ---\n${response.content[0].text}`;
+          
+          // Clean up temp image file
+          try {
+            fs.unlinkSync(imagePath);
+          } catch (e) {
+            console.warn('Failed to cleanup temp image:', e);
+          }
+        }
+        
+        // Clean and normalize the extracted text
+        const normalizedText = extractedText
+          .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+          .replace(/\n+/g, '\n') // Replace multiple newlines with single newline
+          .trim();
+        
+        if (!normalizedText || normalizedText.length < 50) {
+          throw new Error('PDF appears to be empty or contains minimal text');
+        }
+        
+        return normalizedText;
+      } catch (error) {
+        console.error('PDF extraction failed:', error);
+        // Fallback to basic file info if extraction fails
+        return `PDF Document: ${path.basename(filePath)}. This PDF document could not be processed for text extraction. The document appears to be related to ${path.basename(filePath).replace(/[^a-zA-Z0-9\s]/g, ' ').trim()}. Manual review may be required to extract content from this document.`;
+      }
     }
     
     // For other document types, return placeholder
-    return `Document: ${path.basename(filePath)}. Content extraction would require appropriate library.`;
+    return `Document: ${path.basename(filePath)}. Content extraction would require appropriate library for ${fileExtension} files.`;
   }
 
   private async performAnalysis(content: string, fileName: string): Promise<DocumentAnalysis> {
+    // Handle long documents by chunking if needed
+    const maxTokens = 90000; // Conservative limit for Claude 4.0
+    let processedContent = content;
+    
+    if (content.length > maxTokens) {
+      console.log(`Document is ${content.length} characters, summarizing in chunks...`);
+      processedContent = await this.summarizeLongDocument(content);
+    }
+    
     const analysisPrompt = `
     You are an expert financial document analyst. Analyze the following document content and provide a comprehensive analysis.
 
-    Document: ${fileName}
-    Content: ${content}
+    Document Filename: ${fileName}
+    Content Length: ${processedContent.length} characters
 
-    Please provide your analysis in the following JSON format:
+    Please analyze the document and provide a detailed JSON response with the following structure:
     {
-      "documentType": "type of document (e.g., financial_statement, contract, proposal, etc.)",
-      "classification": "specific classification (e.g., balance_sheet, income_statement, investment_proposal, etc.)",
-      "confidence": 0.95,
+      "documentType": "string (e.g., financial_statement, contract, proposal, etc.)",
+      "classification": "string (specific subtype of document)",
+      "confidence": number (0-1, confidence in classification),
       "keyInformation": {
-        "amounts": ["$1,000,000", "$500,000"],
-        "dates": ["2024-12-31", "2025-01-15"],
-        "parties": ["Company A", "Company B"],
-        "riskFactors": ["market volatility", "regulatory changes"],
-        "companyName": "ABC Corporation",
-        "financialMetrics": {
-          "revenue": "$10M",
-          "profit": "$2M",
-          "debt": "$5M"
-        }
+        "amounts": ["array of monetary amounts found"],
+        "dates": ["array of important dates"],
+        "parties": ["array of companies/individuals involved"],
+        "riskFactors": ["array of identified risks"],
+        "companyName": "string (primary company name)",
+        "financialMetrics": {"key": "value pairs of financial data"}
       },
-      "summary": "Brief summary of the document's key points and purpose",
+      "summary": "string (500 words maximum - comprehensive summary of document purpose, key findings, and implications)",
       "riskAssessment": {
-        "level": "medium",
-        "factors": ["identified risk factors"],
-        "score": 65
+        "level": "low|medium|high",
+        "factors": ["array of specific risk factors identified"],
+        "score": number (0-100, overall risk score)
       },
-      "recommendations": ["actionable recommendations based on document analysis"],
+      "recommendations": ["array of specific actionable recommendations based on the analysis"],
       "extractedText": "cleaned and structured version of the extracted text"
     }
 
-    Focus on:
-    1. Accurate document classification
-    2. Extraction of all financial data
-    3. Identification of key parties and entities
-    4. Risk assessment based on content
-    5. Actionable recommendations for investment decisions
-    `;
+    Document Content:
+    ${processedContent}
+
+    Provide only the JSON response, no additional text.`;
 
     const response = await anthropic.messages.create({
       model: DEFAULT_MODEL_STR,
@@ -223,12 +381,12 @@ export class DocumentAnalysisService {
         keyInformation: analysisResult.keyInformation || {},
         summary: analysisResult.summary || 'No summary available',
         riskAssessment: analysisResult.riskAssessment || {
-          level: 'medium',
+          level: 'medium' as const,
           factors: [],
           score: 50
         },
         recommendations: analysisResult.recommendations || [],
-        extractedText: analysisResult.extractedText || content
+        extractedText: analysisResult.extractedText || processedContent
       };
     } catch (error) {
       console.error('Failed to parse analysis result:', error);
