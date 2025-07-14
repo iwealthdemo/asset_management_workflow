@@ -24,12 +24,13 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
     'image/jpeg',
     'image/jpg',
     'image/png',
+    'text/plain' // Allow text files for testing
   ];
 
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only PDF, DOC, DOCX, XLS, XLSX, and images are allowed.'));
+    cb(new Error('Invalid file type. Only PDF, DOC, DOCX, XLS, XLSX, TXT, and images are allowed.'));
   }
 };
 

@@ -6,6 +6,7 @@ import { investmentService } from "./services/investmentService";
 import { workflowService } from "./services/workflowService";
 import { notificationService } from "./services/notificationService";
 import { authService } from "./services/authService";
+import { documentAnalysisService } from "./services/documentAnalysisService";
 import { fileUpload } from "./utils/fileUpload";
 import { insertInvestmentRequestSchema, insertCashRequestSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
@@ -362,6 +363,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           requestId: parseInt(requestId),
         });
         documents.push(document);
+        
+        // Trigger document analysis in the background
+        setTimeout(async () => {
+          try {
+            await documentAnalysisService.analyzeDocument(document.id, file.path);
+          } catch (error) {
+            console.error(`Document analysis failed for ${document.id}:`, error);
+          }
+        }, 100); // Small delay to ensure response is sent first
       }
       
       res.json(documents);
@@ -474,6 +484,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { requestType, requestId } = req.params;
       const documents = await storage.getDocumentsByRequest(requestType, parseInt(requestId));
       res.json(documents);
+    } catch (error) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Document analysis routes
+  app.post('/api/documents/:documentId/analyze', authMiddleware, async (req, res) => {
+    try {
+      const { documentId } = req.params;
+      const document = await storage.getDocument(parseInt(documentId));
+      
+      if (!document) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+      
+      await storage.updateDocument(parseInt(documentId), {
+        analysisStatus: 'processing'
+      });
+      
+      const filePath = path.join(process.cwd(), document.fileUrl);
+      const analysis = await documentAnalysisService.analyzeDocument(parseInt(documentId), filePath);
+      
+      res.json({ 
+        message: 'Document analysis completed', 
+        analysis 
+      });
+    } catch (error) {
+      console.error('Document analysis error:', error);
+      res.status(500).json({ message: 'Document analysis failed' });
+    }
+  });
+
+  app.get('/api/documents/:documentId/analysis', authMiddleware, async (req, res) => {
+    try {
+      const { documentId } = req.params;
+      const analysis = await storage.getDocumentAnalysis(parseInt(documentId));
+      
+      if (!analysis) {
+        return res.status(404).json({ message: 'Analysis not found' });
+      }
+      
+      res.json(analysis);
+    } catch (error) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/documents/insights/:requestType/:requestId', authMiddleware, async (req, res) => {
+    try {
+      const { requestType, requestId } = req.params;
+      const insights = await documentAnalysisService.getDocumentInsights(
+        requestType, 
+        parseInt(requestId)
+      );
+      
+      res.json(insights);
+    } catch (error) {
+      console.error('Document insights error:', error);
+      res.status(500).json({ message: 'Failed to get document insights' });
+    }
+  });
+
+  // Analyze document manually
+  app.post('/api/documents/:documentId/analyze', authMiddleware, async (req, res) => {
+    try {
+      const { documentId } = req.params;
+      const document = await storage.getDocument(parseInt(documentId));
+      
+      if (!document) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+      
+      // Update status to processing
+      await storage.updateDocument(parseInt(documentId), {
+        analysisStatus: 'processing'
+      });
+      
+      // Start analysis asynchronously
+      setTimeout(async () => {
+        try {
+          const filePath = path.join(process.cwd(), 'uploads', document.fileName);
+          const analysis = await documentAnalysisService.analyzeDocument(parseInt(documentId), filePath);
+          console.log('Document analysis completed for', documentId);
+        } catch (error) {
+          console.error('Document analysis failed for', documentId, ':', error);
+          await storage.updateDocument(parseInt(documentId), {
+            analysisStatus: 'failed'
+          });
+        }
+      }, 1000);
+      
+      res.json({ 
+        message: 'Analysis started', 
+        status: 'processing',
+        documentId: parseInt(documentId)
+      });
+    } catch (error) {
+      console.error('Error starting document analysis:', error);
+      res.status(500).json({ message: 'Failed to start document analysis' });
+    }
+  });
+
+  app.post('/api/documents/batch-analyze', authMiddleware, async (req, res) => {
+    try {
+      const { documentIds } = req.body;
+      
+      if (!Array.isArray(documentIds) || documentIds.length === 0) {
+        return res.status(400).json({ message: 'Invalid document IDs' });
+      }
+      
+      const results = await documentAnalysisService.batchAnalyzeDocuments(documentIds);
+      res.json({ 
+        message: 'Batch analysis completed', 
+        results,
+        total: results.length 
+      });
+    } catch (error) {
+      console.error('Batch analysis error:', error);
+      res.status(500).json({ message: 'Batch analysis failed' });
+    }
+  });
+
+  app.get('/api/documents/pending-analysis', authMiddleware, async (req, res) => {
+    try {
+      const pendingDocuments = await storage.getDocumentsByAnalysisStatus('pending');
+      res.json(pendingDocuments);
     } catch (error) {
       res.status(500).json({ message: 'Internal server error' });
     }

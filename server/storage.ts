@@ -46,8 +46,11 @@ export interface IStorage {
   
   // Document operations
   createDocument(document: InsertDocument): Promise<Document>;
+  updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document>;
   getDocumentsByRequest(requestType: string, requestId: number): Promise<Document[]>;
   getDocument(id: number): Promise<Document | undefined>;
+  getDocumentsByAnalysisStatus(status: string): Promise<Document[]>;
+  getDocumentAnalysis(id: number): Promise<any>;
   
   // Notification operations
   createNotification(notification: InsertNotification): Promise<Notification>;
@@ -254,6 +257,31 @@ export class DatabaseStorage implements IStorage {
   async getDocument(id: number): Promise<Document | undefined> {
     const [document] = await db.select().from(documents).where(eq(documents.id, id));
     return document || undefined;
+  }
+
+  async updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document> {
+    const [updated] = await db.update(documents).set(document).where(eq(documents.id, id)).returning();
+    return updated;
+  }
+
+  async getDocumentsByAnalysisStatus(status: string): Promise<Document[]> {
+    return await db.select().from(documents)
+      .where(eq(documents.analysisStatus, status))
+      .orderBy(desc(documents.createdAt));
+  }
+
+  async getDocumentAnalysis(id: number): Promise<any> {
+    const document = await this.getDocument(id);
+    if (!document || !document.analysisResult) {
+      return null;
+    }
+    
+    try {
+      return JSON.parse(document.analysisResult);
+    } catch (error) {
+      console.error('Failed to parse document analysis:', error);
+      return null;
+    }
   }
 
   async createNotification(notification: InsertNotification): Promise<Notification> {

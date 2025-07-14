@@ -138,6 +138,10 @@ The application uses a comprehensive CSS custom properties-based theming system 
 - July 11, 2025. Fixed rejection workflow to properly route all rejected proposals back to originating analyst
 - July 11, 2025. Enhanced filtering logic to ensure rejected proposals are visible to analysts and admins only
 - July 13, 2025. Fixed mobile hamburger menu - now properly closes when navigation items are clicked by connecting to controlled Sheet state
+- July 14, 2025. Implemented automated document analysis and classification system using Anthropic Claude API
+- July 14, 2025. Added comprehensive document analysis features including AI-powered classification, risk assessment, key information extraction, and intelligent recommendations
+- July 14, 2025. Enhanced document management with analysis status tracking, confidence scoring, and batch processing capabilities
+- July 14, 2025. Integrated document analysis into investment proposal workflow with real-time insights and automated processing
 
 ## User Preferences
 

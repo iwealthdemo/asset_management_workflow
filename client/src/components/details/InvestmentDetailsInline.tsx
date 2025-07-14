@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, AlertTriangle, Clock, Eye, ChevronDown, ChevronUp, Edit, Send } from "lucide-react";
+import { CheckCircle, AlertTriangle, Clock, Eye, ChevronDown, ChevronUp, Edit, Send, FileText, Brain } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -16,6 +16,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import DocumentAnalysisCard from "@/components/documents/DocumentAnalysisCard";
+import DocumentInsights from "@/components/documents/DocumentInsights";
 
 // Edit form schema
 const editFormSchema = z.object({
@@ -459,56 +461,45 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
               </Card>
             )}
 
-            {/* Documents */}
-            {documents && documents.length > 0 && (
-              <Card>
-                <CardContent className="pt-6">
-                  <h4 className="font-semibold mb-4">Supporting Documents</h4>
-                  <div className="space-y-2">
-                    {documents.map((document: any) => (
-                      <div key={document.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className="h-5 w-5 text-gray-500">
-                            {document.mimeType?.includes('pdf') ? '📄' : '📎'}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">{document.originalName}</p>
-                            <p className="text-xs text-gray-500">
-                              {(document.fileSize / 1024 / 1024).toFixed(2)} MB
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => window.open(`/api/documents/preview/${document.id}`, '_blank')}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Preview
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              const link = window.document.createElement('a');
-                              link.href = `/api/documents/download/${document.id}`;
-                              link.download = document.originalName;
-                              link.target = '_blank';
-                              window.document.body.appendChild(link);
-                              link.click();
-                              window.document.body.removeChild(link);
-                            }}
-                          >
-                            Download
-                          </Button>
-                        </div>
-                      </div>
+            {/* Documents and AI Analysis */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Documents & AI Analysis ({documents?.length || 0})
+              </h3>
+              
+              {/* Document Insights */}
+              <DocumentInsights 
+                requestType="investment" 
+                requestId={investmentDetails?.id || 0} 
+              />
+              
+              {/* Individual Document Analysis */}
+              {documents && documents.length > 0 ? (
+                <div className="space-y-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Brain className="h-4 w-4" />
+                    Document Analysis
+                  </h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    {documents.map((doc: any) => (
+                      <DocumentAnalysisCard 
+                        key={doc.id} 
+                        document={doc} 
+                        requestType="investment" 
+                        requestId={investmentDetails?.id || 0} 
+                      />
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No documents uploaded yet.</p>
+                  <p className="text-sm">Upload documents to get AI-powered insights and analysis.</p>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <div className="text-center py-8">

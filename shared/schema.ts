@@ -101,7 +101,16 @@ export const documents = pgTable("documents", {
   uploaderId: integer("uploader_id").references(() => users.id),
   requestType: text("request_type").notNull(), // investment, cash_request
   requestId: integer("request_id").notNull(),
+  // Document analysis fields
+  analysisStatus: text("analysis_status").default("pending"), // pending, processing, completed, failed
+  analysisResult: text("analysis_result"), // JSON string with analysis results
+  classification: text("classification"), // document type classification
+  extractedText: text("extracted_text"), // extracted text content
+  keyInformation: text("key_information"), // JSON string with key extracted info
+  riskLevel: text("risk_level"), // low, medium, high
+  confidence: decimal("confidence", { precision: 5, scale: 2 }), // analysis confidence score
   createdAt: timestamp("created_at").defaultNow(),
+  analyzedAt: timestamp("analyzed_at"),
 });
 
 // Notifications table
