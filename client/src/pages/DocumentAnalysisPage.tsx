@@ -85,8 +85,8 @@ const DocumentAnalysisPage = () => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
       case 'processing': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-      case 'failed': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+      case 'failed': return 'bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -96,10 +96,10 @@ const DocumentAnalysisPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Brain className="h-8 w-8 text-blue-600" />
+            <Brain className="h-8 w-8 text-primary" />
             Document Analysis Center
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-muted-foreground mt-2">
             AI-powered document analysis and classification system
           </p>
         </div>
@@ -111,10 +111,10 @@ const DocumentAnalysisPage = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Documents</p>
+                <p className="text-sm text-muted-foreground">Total Documents</p>
                 <p className="text-2xl font-bold">{analysisStats.total}</p>
               </div>
-              <FileText className="h-8 w-8 text-blue-600" />
+              <FileText className="h-8 w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -123,10 +123,10 @@ const DocumentAnalysisPage = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
-                <p className="text-2xl font-bold text-green-600">{analysisStats.completed}</p>
+                <p className="text-sm text-muted-foreground">Completed</p>
+                <p className="text-2xl font-bold text-success">{analysisStats.completed}</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-8 w-8 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -135,10 +135,10 @@ const DocumentAnalysisPage = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Processing</p>
-                <p className="text-2xl font-bold text-blue-600">{analysisStats.processing}</p>
+                <p className="text-sm text-muted-foreground">Processing</p>
+                <p className="text-2xl font-bold text-primary">{analysisStats.processing}</p>
               </div>
-              <Clock className="h-8 w-8 text-blue-600" />
+              <Clock className="h-8 w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -147,10 +147,10 @@ const DocumentAnalysisPage = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Pending</p>
-                <p className="text-2xl font-bold text-yellow-600">{analysisStats.pending}</p>
+                <p className="text-sm text-muted-foreground">Pending</p>
+                <p className="text-2xl font-bold text-warning">{analysisStats.pending}</p>
               </div>
-              <Clock className="h-8 w-8 text-yellow-600" />
+              <Clock className="h-8 w-8 text-warning" />
             </div>
           </CardContent>
         </Card>
@@ -159,10 +159,10 @@ const DocumentAnalysisPage = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Failed</p>
-                <p className="text-2xl font-bold text-red-600">{analysisStats.failed}</p>
+                <p className="text-sm text-muted-foreground">Failed</p>
+                <p className="text-2xl font-bold text-destructive">{analysisStats.failed}</p>
               </div>
-              <AlertTriangle className="h-8 w-8 text-red-600" />
+              <AlertTriangle className="h-8 w-8 text-destructive" />
             </div>
           </CardContent>
         </Card>

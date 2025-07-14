@@ -8,7 +8,8 @@ import { notificationService } from "./services/notificationService";
 import { authService } from "./services/authService";
 import { documentAnalysisService } from "./services/documentAnalysisService";
 import { fileUpload } from "./utils/fileUpload";
-import { insertInvestmentRequestSchema, insertCashRequestSchema, insertUserSchema } from "@shared/schema";
+import { db } from "./db";
+import { insertInvestmentRequestSchema, insertCashRequestSchema, insertUserSchema, documents } from "@shared/schema";
 import { z } from "zod";
 import path from "path";
 import fs from "fs";
@@ -611,6 +612,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pendingDocuments = await storage.getDocumentsByAnalysisStatus('pending');
       res.json(pendingDocuments);
     } catch (error) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Get all documents for analytics
+  app.get('/api/documents/all', authMiddleware, async (req, res) => {
+    try {
+      // Get all documents from storage
+      const allDocuments = await db.select().from(documents);
+      res.json(allDocuments);
+    } catch (error) {
+      console.error('Error fetching all documents:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });

@@ -7,6 +7,7 @@ import NewInvestment from "@/pages/NewInvestment";
 import CashRequests from "@/pages/CashRequests";
 import MyTasks from "@/pages/MyTasks";
 import MyInvestments from "@/pages/MyInvestments";
+import DocumentAnalysisPage from "@/pages/DocumentAnalysisPage";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 import { useUser } from "@/lib/auth";
@@ -61,6 +62,11 @@ function Router() {
       <Route path="/investments">
         <ProtectedRoute>
           <MyInvestments />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/document-analytics">
+        <ProtectedRoute>
+          <DocumentAnalysisPage />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />

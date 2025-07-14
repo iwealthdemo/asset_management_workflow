@@ -30,7 +30,8 @@ import {
   Bell,
   Settings,
   Menu,
-  LogOut
+  LogOut,
+  Brain
 } from "lucide-react";
 
 interface AppLayoutProps {
@@ -68,6 +69,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { href: "/cash-requests", label: "Cash Requests", icon: DollarSign },
     { href: "/my-tasks", label: "My Tasks", icon: CheckSquare, badge: taskCount },
     { href: "/investments", label: "My Investments", icon: Briefcase },
+    { href: "/document-analytics", label: "Document Analytics", icon: Brain },
     { href: "/templates", label: "Templates", icon: FileText },
     { href: "/sla-monitoring", label: "SLA Monitoring", icon: BarChart3 },
   ];
