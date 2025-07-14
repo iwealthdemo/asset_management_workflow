@@ -215,10 +215,12 @@ export class DocumentAnalysisService {
     }
     
     if (fileExtension === '.pdf') {
+      console.log(`Processing PDF: ${filePath}`);
+      
       try {
-        // Try to convert PDF to images with timeout
+        console.log('Attempting pdf2pic + OCR extraction...');
         const convert = fromPath(filePath, {
-          density: 100,
+          density: 150,
           saveFilename: "page",
           savePath: "/tmp",
           format: "png",
@@ -230,13 +232,15 @@ export class DocumentAnalysisService {
         const pageImages = await Promise.race([
           convert.bulk(-1),
           new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('PDF conversion timeout')), 30000)
+            setTimeout(() => reject(new Error('PDF conversion timeout')), 45000)
           )
         ]) as any[];
         
-        // Use Claude's vision API to extract text from PDF images (limit to 3 pages for efficiency)
+        console.log(`Successfully converted PDF to ${pageImages.length} pages`);
+        
+        // Use Claude's vision API to extract text from PDF images (limit to 5 pages for efficiency)
         let extractedText = '';
-        const maxPages = Math.min(pageImages.length, 3);
+        const maxPages = Math.min(pageImages.length, 5);
         
         for (let i = 0; i < maxPages; i++) {
           const imagePath = pageImages[i].path;
@@ -245,13 +249,21 @@ export class DocumentAnalysisService {
           
           const response = await anthropic.messages.create({
             model: DEFAULT_MODEL_STR,
-            max_tokens: 1500,
+            max_tokens: 2000,
             messages: [{
               role: "user",
               content: [
                 {
                   type: "text",
-                  text: `Extract all text from this PDF page ${i + 1}. Focus on key information like company names, financial data, dates, and main content. Provide clean, structured text.`
+                  text: `Extract all text from this PDF page ${i + 1}. Focus on:
+                  - Financial data, numbers, and metrics
+                  - Company names and entities
+                  - Dates and important information
+                  - Investment recommendations
+                  - Risk assessments and warnings
+                  - Table data and structured information
+                  
+                  Provide clean, structured text preserving the original layout where possible.`
                 },
                 {
                   type: "image",
@@ -281,15 +293,34 @@ export class DocumentAnalysisService {
           .replace(/\n+/g, '\n') // Replace multiple newlines with single newline
           .trim();
         
-        if (!normalizedText || normalizedText.length < 50) {
-          throw new Error('PDF appears to be empty or contains minimal text');
+        if (normalizedText && normalizedText.length > 100) {
+          console.log(`Successfully extracted ${normalizedText.length} characters using OCR`);
+          return normalizedText;
         }
         
-        return normalizedText;
+        throw new Error('OCR extraction returned minimal text');
       } catch (error) {
-        console.error('PDF extraction failed:', error);
-        // Fallback to basic file info if extraction fails
-        return `PDF Document: ${path.basename(filePath)}. This PDF document could not be processed for text extraction. The document appears to be related to ${path.basename(filePath).replace(/[^a-zA-Z0-9\s]/g, ' ').trim()}. Manual review may be required to extract content from this document.`;
+        console.error('PDF OCR extraction failed:', error);
+        
+        // Fallback - return basic file info but don't completely fail
+        console.log('PDF extraction failed, using fallback approach');
+        const fileName = path.basename(filePath);
+        const fileStats = fs.statSync(filePath);
+        
+        return `PDF Document: ${fileName}
+        
+File Information:
+- File size: ${Math.round(fileStats.size / 1024)} KB
+- Document type: PDF (likely contains financial/business content)
+- Processing status: Text extraction failed - document may be image-based or encrypted
+
+The document filename suggests this is likely a financial or business document. Manual review is recommended to extract the actual content. The document may contain:
+- Financial analysis and recommendations
+- Company information and metrics  
+- Investment research and insights
+- Risk assessments and market data
+
+To properly analyze this document, please ensure it contains readable text content or consider using alternative PDF processing tools.`;
       }
     }
     
