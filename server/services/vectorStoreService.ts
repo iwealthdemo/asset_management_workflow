@@ -265,14 +265,14 @@ export class VectorStoreService {
           });
           
           // Clean up temporary assistant
-          await openai.beta.assistants.del(assistant.id);
+          await openai.beta.assistants.delete(assistant.id);
           
           return results;
         }
       }
       
       // Clean up temporary assistant
-      await openai.beta.assistants.del(assistant.id);
+      await openai.beta.assistants.delete(assistant.id);
       
       throw new Error('Query execution failed');
     } catch (error) {
@@ -345,14 +345,14 @@ export class VectorStoreService {
           }];
           
           // Clean up temporary assistant
-          await openai.beta.assistants.del(assistant.id);
+          await openai.beta.assistants.delete(assistant.id);
           
           return results;
         }
       }
       
       // Clean up temporary assistant
-      await openai.beta.assistants.del(assistant.id);
+      await openai.beta.assistants.delete(assistant.id);
       
       throw new Error('Query execution failed');
     } catch (error) {
