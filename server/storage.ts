@@ -359,50 +359,43 @@ export class DatabaseStorage implements IStorage {
     riskLevel?: string;
     description?: string;
   }>> {
-    // Get investment requests
-    const investmentQuery = db.select({
-      id: investmentRequests.id,
-      requestId: investmentRequests.requestId,
-      type: sql<'investment'>`'investment'`,
-      amount: investmentRequests.amount,
-      status: investmentRequests.status,
-      createdAt: investmentRequests.createdAt,
-      requesterFirstName: users.firstName,
-      requesterLastName: users.lastName,
-      investmentType: investmentRequests.investmentType,
-      targetCompany: investmentRequests.targetCompany,
-      expectedReturn: investmentRequests.expectedReturn,
-      riskLevel: investmentRequests.riskLevel,
-      description: investmentRequests.investmentRationale,
-    })
-    .from(investmentRequests)
-    .innerJoin(users, eq(investmentRequests.requesterId, users.id))
-    .orderBy(desc(investmentRequests.createdAt))
-    .limit(limit);
+    try {
+      // Get investment requests first
+      const investmentRequestsQuery = userId 
+        ? db.select().from(investmentRequests).where(eq(investmentRequests.requesterId, userId)).orderBy(desc(investmentRequests.createdAt)).limit(limit)
+        : db.select().from(investmentRequests).orderBy(desc(investmentRequests.createdAt)).limit(limit);
 
-    // Add userId filter if provided
-    const investmentResults = userId 
-      ? await investmentQuery.where(eq(investmentRequests.requesterId, userId))
-      : await investmentQuery;
+      const investmentResults = await investmentRequestsQuery;
 
-    // For now, just return investment results as cash requests are not the main focus
-    return investmentResults.map(row => ({
-      id: row.id,
-      requestId: row.requestId,
-      type: 'investment' as const,
-      amount: row.amount,
-      status: row.status,
-      createdAt: row.createdAt || new Date(),
-      requester: {
-        firstName: row.requesterFirstName,
-        lastName: row.requesterLastName,
-      },
-      investmentType: row.investmentType,
-      targetCompany: row.targetCompany,
-      expectedReturn: row.expectedReturn,
-      riskLevel: row.riskLevel,
-      description: row.description,
-    }));
+      // Get user information for each request
+      const resultsWithUsers = await Promise.all(
+        investmentResults.map(async (request) => {
+          const [user] = await db.select().from(users).where(eq(users.id, request.requesterId));
+          return {
+            id: request.id,
+            requestId: request.requestId,
+            type: 'investment' as const,
+            amount: request.amount,
+            status: request.status,
+            createdAt: request.createdAt || new Date(),
+            requester: {
+              firstName: user.firstName,
+              lastName: user.lastName,
+            },
+            investmentType: request.investmentType,
+            targetCompany: request.targetCompany,
+            expectedReturn: request.expectedReturn,
+            riskLevel: request.riskLevel,
+            description: request.investmentRationale,
+          };
+        })
+      );
+
+      return resultsWithUsers;
+    } catch (error) {
+      console.error('Error in getRecentRequests:', error);
+      return [];
+    }
   }
 }
 
