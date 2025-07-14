@@ -67,13 +67,18 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
   const [showDetails, setShowDetails] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch analysis if completed
-  const { data: analysis, isLoading: analysisLoading } = useQuery({
-    queryKey: ['document-analysis', document.id],
-    queryFn: () => apiRequest('GET', `/api/documents/${document.id}/analysis`),
-    enabled: document.analysisStatus === 'completed',
-    retry: false
-  });
+  // Parse analysis from document.analysisResult if available
+  const analysis = React.useMemo(() => {
+    if (document.analysisStatus === 'completed' && document.analysisResult) {
+      try {
+        return JSON.parse(document.analysisResult);
+      } catch (error) {
+        console.error('Failed to parse analysis result:', error);
+        return null;
+      }
+    }
+    return null;
+  }, [document.analysisResult, document.analysisStatus]);
 
   // Trigger analysis mutation
   const analyzeDocumentMutation = useMutation({

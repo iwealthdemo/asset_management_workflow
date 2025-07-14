@@ -529,6 +529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(analysis);
     } catch (error) {
+      console.error('Error getting document analysis:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
@@ -548,45 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analyze document manually
-  app.post('/api/documents/:documentId/analyze', authMiddleware, async (req, res) => {
-    try {
-      const { documentId } = req.params;
-      const document = await storage.getDocument(parseInt(documentId));
-      
-      if (!document) {
-        return res.status(404).json({ message: 'Document not found' });
-      }
-      
-      // Update status to processing
-      await storage.updateDocument(parseInt(documentId), {
-        analysisStatus: 'processing'
-      });
-      
-      // Start analysis asynchronously
-      setTimeout(async () => {
-        try {
-          const filePath = path.join(process.cwd(), 'uploads', document.fileName);
-          const analysis = await documentAnalysisService.analyzeDocument(parseInt(documentId), filePath);
-          console.log('Document analysis completed for', documentId);
-        } catch (error) {
-          console.error('Document analysis failed for', documentId, ':', error);
-          await storage.updateDocument(parseInt(documentId), {
-            analysisStatus: 'failed'
-          });
-        }
-      }, 1000);
-      
-      res.json({ 
-        message: 'Analysis started', 
-        status: 'processing',
-        documentId: parseInt(documentId)
-      });
-    } catch (error) {
-      console.error('Error starting document analysis:', error);
-      res.status(500).json({ message: 'Failed to start document analysis' });
-    }
-  });
+
 
   app.post('/api/documents/batch-analyze', authMiddleware, async (req, res) => {
     try {
