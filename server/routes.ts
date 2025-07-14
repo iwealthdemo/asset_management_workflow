@@ -367,17 +367,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         documents.push(document);
         
-        // Trigger document analysis and vector store upload in the background
+        // Trigger enhanced document processing in the background
         setTimeout(async () => {
           try {
-            // Run document analysis
-            await documentAnalysisService.analyzeDocument(document.id, file.path);
-            
-            // Upload to vector store for searchability
-            await vectorStoreService.uploadDocumentToVectorStore(document.id, file.path);
+            // First upload to vector store for better processing
+            const vectorStoreResult = await vectorStoreService.uploadDocumentToVectorStore(document.id, file.path);
             console.log(`Document ${document.id} uploaded to vector store successfully`);
+            
+            // Then run enhanced analysis using vector store capabilities
+            await documentAnalysisService.analyzeDocument(document.id, file.path);
+            console.log(`Enhanced document analysis completed for ${document.id}`);
           } catch (error) {
-            console.error(`Document processing failed for ${document.id}:`, error);
+            console.error(`Enhanced document processing failed for ${document.id}:`, error);
           }
         }, 100); // Small delay to ensure response is sent first
       }

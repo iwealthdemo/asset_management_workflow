@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { storage } from '../storage';
 import { fromPath } from 'pdf2pic';
+import { vectorStoreService } from './vectorStoreService';
 
 /*
 <important_code_snippet_instructions>
@@ -64,6 +65,72 @@ export class DocumentAnalysisService {
         throw new Error('Document not found');
       }
 
+      console.log(`Starting enhanced document analysis for ${document.fileName} (ID: ${documentId})`);
+
+      // Update document status to processing
+      await storage.updateDocument(documentId, {
+        analysisStatus: 'processing'
+      });
+
+      // Check if document already has OpenAI file ID from vector store upload
+      let openaiFileId: string | null = null;
+      
+      if (document.analysisResult) {
+        try {
+          const existingResult = JSON.parse(document.analysisResult);
+          openaiFileId = existingResult.openai_file_id;
+        } catch (parseError) {
+          console.warn('Failed to parse existing analysis result');
+        }
+      }
+
+      let analysis: DocumentAnalysis;
+
+      // If we have an OpenAI file ID, use vector store analysis
+      if (openaiFileId) {
+        console.log(`Using vector store analysis for file ID: ${openaiFileId}`);
+        try {
+          analysis = await vectorStoreService.analyzeDocumentViaVectorStore(openaiFileId, document.fileName);
+        } catch (vectorError) {
+          console.warn('Vector store analysis failed, falling back to traditional method:', vectorError);
+          analysis = await this.fallbackAnalysis(filePath, document.fileName);
+        }
+      } else {
+        // Fallback to traditional analysis method
+        console.log('No OpenAI file ID found, using traditional analysis');
+        analysis = await this.fallbackAnalysis(filePath, document.fileName);
+      }
+
+      // Update document with analysis results
+      await storage.updateDocument(documentId, {
+        analysisStatus: 'completed',
+        analysisResult: JSON.stringify(analysis),
+        classification: analysis.classification,
+        extractedText: analysis.extractedText,
+        keyInformation: JSON.stringify(analysis.keyInformation),
+        riskLevel: analysis.riskAssessment.level,
+        confidence: analysis.confidence,
+        analyzedAt: new Date()
+      });
+
+      console.log(`Document analysis completed for ${document.fileName}`);
+      return analysis;
+    } catch (error) {
+      console.error('Document analysis error:', error);
+      
+      // Update document status to failed
+      await storage.updateDocument(documentId, {
+        analysisStatus: 'failed',
+        analysisResult: JSON.stringify({ error: error.message }),
+        analyzedAt: new Date()
+      });
+
+      throw error;
+    }
+  }
+
+  private async fallbackAnalysis(filePath: string, fileName: string): Promise<DocumentAnalysis> {
+    try {
       const fileExtension = path.extname(filePath).toLowerCase();
       let content: string;
 
@@ -75,23 +142,32 @@ export class DocumentAnalysisService {
         throw new Error(`Unsupported file type: ${fileExtension}`);
       }
 
-      const analysis = await this.performAnalysis(content, document.fileName);
-      
-      // Update document with analysis results
-      await storage.updateDocument(documentId, {
-        analysisResult: JSON.stringify(analysis),
-        classification: analysis.classification,
-        analysisStatus: 'completed'
-      });
-
-      return analysis;
+      return await this.performAnalysis(content, fileName);
     } catch (error) {
-      console.error('Document analysis failed:', error);
-      await storage.updateDocument(documentId, {
-        analysisStatus: 'failed',
-        analysisResult: JSON.stringify({ error: error.message })
-      });
-      throw error;
+      console.error('Fallback analysis error:', error);
+      
+      // Return basic analysis structure even if extraction fails
+      return {
+        documentType: 'unknown',
+        classification: 'unknown',
+        confidence: 0.1,
+        keyInformation: {
+          amounts: [],
+          dates: [],
+          parties: [],
+          riskFactors: ['Document processing failed'],
+          companyName: '',
+          financialMetrics: {}
+        },
+        summary: `Failed to analyze document: ${error.message}`,
+        riskAssessment: {
+          level: 'medium',
+          factors: ['Analysis failed', 'Manual review required'],
+          score: 50
+        },
+        recommendations: ['Manual document review required', 'Check document format and accessibility'],
+        extractedText: `Error: ${error.message}`
+      };
     }
   }
 

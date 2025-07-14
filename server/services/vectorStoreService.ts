@@ -361,6 +361,117 @@ export class VectorStoreService {
     }
   }
 
+  async analyzeDocumentViaVectorStore(fileId: string, fileName: string): Promise<any> {
+    try {
+      console.log(`Starting vector store analysis for file: ${fileName} (${fileId})`);
+      
+      // Wait a moment for vector store to process the file
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      // Execute multiple analysis queries
+      const analysisQueries = [
+        {
+          key: 'classification',
+          query: `What type of document is this? Classify it as one of: financial_statement, annual_report, contract, proposal, due_diligence, legal_document, or other. Also provide a more specific subtype and confidence level (0-1). Respond in JSON format with keys: type, subtype, confidence.`
+        },
+        {
+          key: 'keyInformation',
+          query: `Extract key information from this document including: company name, financial metrics (revenue, profit, etc.), monetary amounts, important dates, parties involved, and risk factors. Respond in JSON format with keys: companyName, financialMetrics (object), amounts (array), dates (array), parties (array), riskFactors (array).`
+        },
+        {
+          key: 'summary',
+          query: `Provide a comprehensive summary of this document's main points, key findings, and critical information. Focus on the most important aspects that would be relevant for investment decisions. Keep it concise but informative (3-5 sentences).`
+        },
+        {
+          key: 'riskAssessment',
+          query: `Analyze the risks mentioned in this document. Categorize the overall risk level as low, medium, or high. List specific risk factors and provide a risk score from 1-100. Respond in JSON format with keys: level (low/medium/high), factors (array), score (number).`
+        },
+        {
+          key: 'recommendations',
+          query: `Based on the document content, provide actionable recommendations for investment decisions. Focus on specific steps or considerations that would be valuable for analysts and decision-makers. Provide as an array of recommendation strings.`
+        }
+      ];
+
+      const results = {};
+      
+      // Execute queries sequentially to avoid rate limits
+      for (const query of analysisQueries) {
+        try {
+          console.log(`Executing ${query.key} query...`);
+          const queryResults = await this.querySpecificDocument(fileId, query.query);
+          if (queryResults.length > 0) {
+            let content = queryResults[0].content;
+            
+            // Try to parse JSON responses
+            if (query.key === 'classification' || query.key === 'keyInformation' || query.key === 'riskAssessment') {
+              try {
+                // Extract JSON from response if it exists
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  content = JSON.parse(jsonMatch[0]);
+                }
+              } catch (parseError) {
+                console.warn(`Failed to parse JSON for ${query.key}, using raw content`);
+              }
+            }
+            
+            // For recommendations, try to extract array
+            if (query.key === 'recommendations') {
+              try {
+                const arrayMatch = content.match(/\[([\s\S]*)\]/);
+                if (arrayMatch) {
+                  content = JSON.parse(`[${arrayMatch[1]}]`);
+                } else {
+                  // Split by lines or bullet points
+                  content = content.split('\n').filter(line => line.trim()).map(line => line.replace(/^[-*•]\s*/, ''));
+                }
+              } catch (parseError) {
+                content = [content];
+              }
+            }
+            
+            results[query.key] = content;
+          }
+        } catch (queryError) {
+          console.error(`Error in ${query.key} query:`, queryError);
+          results[query.key] = null;
+        }
+      }
+
+      // Structure the analysis result
+      const documentAnalysis = {
+        documentType: results.classification?.type || 'unknown',
+        classification: results.classification?.subtype || 'unknown',
+        confidence: results.classification?.confidence || 0.5,
+        keyInformation: {
+          companyName: results.keyInformation?.companyName || '',
+          financialMetrics: results.keyInformation?.financialMetrics || {},
+          amounts: results.keyInformation?.amounts || [],
+          dates: results.keyInformation?.dates || [],
+          parties: results.keyInformation?.parties || [],
+          riskFactors: results.keyInformation?.riskFactors || []
+        },
+        summary: results.summary || 'Analysis summary not available',
+        riskAssessment: {
+          level: results.riskAssessment?.level || 'medium',
+          factors: results.riskAssessment?.factors || [],
+          score: results.riskAssessment?.score || 50
+        },
+        recommendations: Array.isArray(results.recommendations) ? results.recommendations : [results.recommendations || 'No recommendations available'],
+        extractedText: 'Content processed via OpenAI Vector Store',
+        analysisMethod: 'vector_store',
+        processedAt: new Date().toISOString()
+      };
+
+      console.log(`Vector store analysis completed for ${fileName}`);
+      return documentAnalysis;
+      
+    } catch (error) {
+      console.error('Error in vector store document analysis:', error);
+      throw new Error(`Vector store analysis failed: ${error.message}`);
+    }
+  }
+
   async getVectorStoreInfo(vectorStoreId?: string): Promise<VectorStoreInfo> {
     try {
       if (vectorStoreId) {
