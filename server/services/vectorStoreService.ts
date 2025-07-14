@@ -66,60 +66,38 @@ export class VectorStoreService {
         throw new Error('OpenAI API key is not configured');
       }
       
-      // For now, simulate vector store functionality until OpenAI client is properly configured
-      console.log('OpenAI client structure:', Object.keys(openai));
-      console.log('OpenAI beta:', openai.beta ? Object.keys(openai.beta) : 'beta not available');
-      
-      // Return a simulated vector store info for now
-      return {
-        id: 'vs_sim_' + Date.now(),
-        name: storeName,
-        fileCount: 0,
-        usageBytes: 0,
-        status: 'ready',
-        expiresAt: new Date(Date.now() + this.vectorStoreExpiry * 24 * 60 * 60 * 1000)
-      };
-      
-      // Try to use real OpenAI Vector Store API if available
-      if (openai.vectorStores) {
-        try {
-          // List existing vector stores to find our default one
-          const vectorStores = await openai.vectorStores.list();
-          const existingStore = vectorStores.data.find(store => store.name === storeName);
+      // Use real OpenAI Vector Store API
+      const vectorStores = await openai.vectorStores.list();
+      const existingStore = vectorStores.data.find(store => store.name === storeName);
           
-          if (existingStore) {
-            return {
-              id: existingStore.id,
-              name: existingStore.name,
-              fileCount: existingStore.file_counts.total,
-              usageBytes: existingStore.usage_bytes,
-              status: existingStore.status,
-              expiresAt: existingStore.expires_at ? new Date(existingStore.expires_at * 1000) : undefined
-            };
-          }
-          
-          // Create new vector store
-          const vectorStore = await openai.vectorStores.create({
-            name: storeName,
-            expires_after: {
-              anchor: 'last_active_at',
-              days: this.vectorStoreExpiry
-            }
-          });
-          
-          return {
-            id: vectorStore.id,
-            name: vectorStore.name,
-            fileCount: vectorStore.file_counts.total,
-            usageBytes: vectorStore.usage_bytes,
-            status: vectorStore.status,
-            expiresAt: vectorStore.expires_at ? new Date(vectorStore.expires_at * 1000) : undefined
-          };
-        } catch (error) {
-          console.error('OpenAI Vector Store API error:', error);
-          // Fall back to simulation if OpenAI API fails
-        }
+      if (existingStore) {
+        return {
+          id: existingStore.id,
+          name: existingStore.name,
+          fileCount: existingStore.file_counts.total,
+          usageBytes: existingStore.usage_bytes,
+          status: existingStore.status,
+          expiresAt: existingStore.expires_at ? new Date(existingStore.expires_at * 1000) : undefined
+        };
       }
+      
+      // Create new vector store
+      const vectorStore = await openai.vectorStores.create({
+        name: storeName,
+        expires_after: {
+          anchor: 'last_active_at',
+          days: this.vectorStoreExpiry
+        }
+      });
+      
+      return {
+        id: vectorStore.id,
+        name: vectorStore.name,
+        fileCount: vectorStore.file_counts.total,
+        usageBytes: vectorStore.usage_bytes,
+        status: vectorStore.status,
+        expiresAt: vectorStore.expires_at ? new Date(vectorStore.expires_at * 1000) : undefined
+      };
     } catch (error) {
       console.error('Error creating/getting vector store:', error);
       throw new Error(`Failed to create vector store: ${error.message}`);
@@ -142,6 +120,12 @@ export class VectorStoreService {
       const storeId = vectorStoreId || vectorStore.id;
 
       // Upload file to OpenAI
+      console.log('OpenAI client status:', {
+        hasFiles: !!openai.files,
+        hasVectorStores: !!openai.vectorStores,
+        hasCreate: !!openai.files?.create
+      });
+      
       const fileStream = fs.createReadStream(filePath);
       const file = await openai.files.create({
         file: fileStream,
@@ -149,8 +133,7 @@ export class VectorStoreService {
       });
 
       // Add file to vector store
-      await openai.beta.vectorStores.files.create({
-        vector_store_id: storeId,
+      await openai.vectorStores.files.create(storeId, {
         file_id: file.id,
       });
 
@@ -434,35 +417,19 @@ export class VectorStoreService {
     usageBytes: number;
   }>> {
     try {
-      // For now, return empty array for simulated implementation
-      return [];
-      
-      // TODO: Enable this when OpenAI vector store is properly configured
-      /*
       const vectorStore = await this.getOrCreateVectorStore();
       const storeId = vectorStoreId || vectorStore.id;
       
-      // Handle simulated vector store
-      if (storeId.startsWith('vs_sim_')) {
-        // Return empty array for simulated vector store
-        return [];
-      }
+      // Use real OpenAI vector store files API
+      const files = await openai.vectorStores.files.list(storeId);
       
-      // For real OpenAI vector store
-      if (openai.vectorStores && openai.vectorStores.files) {
-        const files = await openai.vectorStores.files.list(storeId);
-        
-        return files.data.map(file => ({
-          id: file.id,
-          fileName: file.id, // We'll need to get filename from our database
-          status: file.status,
-          createdAt: new Date(file.created_at * 1000),
-          usageBytes: file.usage_bytes
-        }));
-      }
-      
-      return [];
-      */
+      return files.data.map(file => ({
+        id: file.id,
+        fileName: file.id, // We'll need to get filename from our database
+        status: file.status,
+        createdAt: new Date(file.created_at * 1000),
+        usageBytes: file.usage_bytes
+      }));
     } catch (error) {
       console.error('Error listing vector store files:', error);
       throw new Error(`Failed to list vector store files: ${error.message}`);
