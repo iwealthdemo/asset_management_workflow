@@ -86,13 +86,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get current user to check role
       const currentUser = await storage.getUser(req.userId!);
+      console.log('Current user for recent requests:', currentUser);
       
       // Analysts can only see their own requests
       const userId = currentUser?.role === 'analyst' ? req.userId : undefined;
+      console.log('Using userId filter:', userId);
       
       const requests = await storage.getRecentRequests(10, userId);
+      console.log('Found requests:', requests);
       res.json(requests);
     } catch (error) {
+      console.error('Error in recent requests endpoint:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });

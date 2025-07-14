@@ -341,7 +341,7 @@ export class DatabaseStorage implements IStorage {
       createdAt: investmentRequests.createdAt,
       requesterFirstName: users.firstName,
       requesterLastName: users.lastName,
-      investmentType: investmentRequests.assetType,
+      investmentType: investmentRequests.investmentType,
       targetCompany: investmentRequests.targetCompany,
       expectedReturn: investmentRequests.expectedReturn,
       riskLevel: investmentRequests.riskLevel,
@@ -357,41 +357,11 @@ export class DatabaseStorage implements IStorage {
       ? await investmentQuery.where(eq(investmentRequests.requesterId, userId))
       : await investmentQuery;
 
-    // Get cash requests
-    const cashQuery = db.select({
-      id: cashRequests.id,
-      requestId: cashRequests.requestId,
-      type: sql<'cash_request'>`'cash_request'`,
-      amount: cashRequests.amount,
-      status: cashRequests.status,
-      createdAt: cashRequests.createdAt,
-      requesterFirstName: users.firstName,
-      requesterLastName: users.lastName,
-      investmentType: sql<string | null>`null`,
-      targetCompany: sql<string | null>`null`,
-      expectedReturn: sql<string | null>`null`,
-      riskLevel: sql<string | null>`null`,
-      description: sql<string | null>`null`,
-    })
-    .from(cashRequests)
-    .innerJoin(users, eq(cashRequests.requesterId, users.id))
-    .orderBy(desc(cashRequests.createdAt))
-    .limit(limit);
-
-    // Add userId filter if provided
-    const cashResults = userId 
-      ? await cashQuery.where(eq(cashRequests.requesterId, userId))
-      : await cashQuery;
-
-    // Combine and sort results
-    const allResults = [...investmentResults, ...cashResults]
-      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
-      .slice(0, limit);
-
-    return allResults.map(row => ({
+    // For now, just return investment results as cash requests are not the main focus
+    return investmentResults.map(row => ({
       id: row.id,
       requestId: row.requestId,
-      type: row.type,
+      type: 'investment' as const,
       amount: row.amount,
       status: row.status,
       createdAt: row.createdAt || new Date(),
