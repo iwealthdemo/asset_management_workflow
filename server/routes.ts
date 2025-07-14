@@ -10,6 +10,7 @@ import { documentAnalysisService } from "./services/documentAnalysisService";
 import { fileUpload } from "./utils/fileUpload";
 import { db } from "./db";
 import { insertInvestmentRequestSchema, insertCashRequestSchema, insertUserSchema, documents } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import path from "path";
 import fs from "fs";
@@ -624,6 +625,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(allDocuments);
     } catch (error) {
       console.error('Error fetching all documents:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Force complete stuck processing documents
+  app.post('/api/documents/force-complete', authMiddleware, async (req, res) => {
+    try {
+      // Update documents stuck in processing to completed
+      const processingDocuments = await db.select().from(documents)
+        .where(eq(documents.analysisStatus, 'processing'));
+      
+      for (const doc of processingDocuments) {
+        await storage.updateDocument(doc.id, {
+          analysisStatus: 'completed',
+          analyzedAt: new Date()
+        });
+      }
+      
+      res.json({ 
+        message: 'Forced completion of stuck documents',
+        count: processingDocuments.length 
+      });
+    } catch (error) {
+      console.error('Error forcing document completion:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });

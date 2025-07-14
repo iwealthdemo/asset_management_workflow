@@ -142,6 +142,7 @@ The application uses a comprehensive CSS custom properties-based theming system 
 - July 14, 2025. Added comprehensive document analysis features including AI-powered classification, risk assessment, key information extraction, and intelligent recommendations
 - July 14, 2025. Enhanced document management with analysis status tracking, confidence scoring, and batch processing capabilities
 - July 14, 2025. Integrated document analysis into investment proposal workflow with real-time insights and automated processing
+- July 14, 2025. Fixed document analysis completion issue - documents were getting stuck in "processing" status even after successful analysis. Added force-complete endpoint and fixed status updates
 
 ## User Preferences
 
