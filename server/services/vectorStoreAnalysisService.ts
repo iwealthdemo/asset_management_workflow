@@ -185,6 +185,7 @@ export class VectorStoreAnalysisService {
     try {
       // Create a thread for the query
       const thread = await openai.beta.threads.create();
+      console.log(`Thread created with ID: ${thread.id}`);
       
       // Add the query message
       await openai.beta.threads.messages.create(thread.id, {
@@ -200,6 +201,7 @@ export class VectorStoreAnalysisService {
       const vectorStore = await vectorStoreService.getOrCreateVectorStore();
       
       // Create and run the assistant
+      console.log(`About to create run with threadId: ${thread.id} and assistantId: ${assistantId}`);
       const run = await openai.beta.threads.runs.create(thread.id, {
         assistant_id: assistantId,
         tools: [{ type: 'file_search' }],
@@ -209,8 +211,10 @@ export class VectorStoreAnalysisService {
           }
         }
       });
+      console.log(`Run created with ID: ${run.id}`);
       
       // Wait for completion
+      console.log(`Thread ID: ${thread.id}, Run ID: ${run.id}`);
       await this.waitForRunCompletion(thread.id, run.id);
       
       // Get the response
