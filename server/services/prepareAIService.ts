@@ -33,7 +33,11 @@ export class PrepareAIService {
       
       // Step 1: Get or create vector store
       const vectorStore = await vectorStoreService.getOrCreateVectorStore();
-      console.log(`Using vector store: ${vectorStore.id}`);
+      console.log(`Using vector store:`, vectorStore);
+      
+      if (!vectorStore || !vectorStore.id) {
+        throw new Error('Failed to get or create vector store');
+      }
       
       // Step 2: Check if file already exists in vector store
       const existingFile = await this.checkFileInVectorStore(vectorStore.id, fileName);
@@ -80,6 +84,7 @@ export class PrepareAIService {
       console.log(`File added to vector store: ${vectorStoreFile.id}`);
       
       // Step 5: Wait for embedding processing
+      console.log(`About to wait for embedding completion with vectorStore.id: ${vectorStore.id} and uploadedFile.id: ${uploadedFile.id}`);
       await this.waitForEmbeddingCompletion(vectorStore.id, uploadedFile.id);
       
       // Step 6: Update document status to completed
@@ -157,6 +162,8 @@ export class PrepareAIService {
     
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
+        // Check the status of the file in the vector store
+        // The fileId here should be the original uploaded file ID, not the vector store file ID
         const fileStatus = await openai.vectorStores.files.retrieve(vectorStoreId, fileId);
         
         console.log(`Embedding status (attempt ${attempt}): ${fileStatus.status}`);
@@ -167,7 +174,7 @@ export class PrepareAIService {
         }
         
         if (fileStatus.status === 'failed') {
-          throw new Error(`Embedding processing failed: ${fileStatus.last_error?.message}`);
+          throw new Error(`Embedding processing failed: ${fileStatus.last_error?.message || 'Unknown error'}`);
         }
         
         // Wait before next attempt
@@ -175,6 +182,8 @@ export class PrepareAIService {
         
       } catch (error) {
         console.error(`Error checking embedding status (attempt ${attempt}):`, error);
+        
+        // If this is the last attempt, throw the error
         if (attempt === maxAttempts) {
           throw new Error(`Embedding processing timeout: ${error.message}`);
         }
