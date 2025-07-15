@@ -348,6 +348,24 @@ export class DocumentAnalysisService {
     if (fileExtension === '.pdf') {
       console.log(`Processing PDF: ${filePath}`);
       
+      // First try pdf-parse library for text extraction
+      try {
+        console.log('Attempting pdf-parse extraction...');
+        const pdfParse = require('pdf-parse');
+        const dataBuffer = fs.readFileSync(filePath);
+        const pdfData = await pdfParse(dataBuffer);
+        
+        if (pdfData.text && pdfData.text.length > 100) {
+          console.log(`Successfully extracted ${pdfData.text.length} characters using pdf-parse`);
+          return pdfData.text;
+        } else {
+          console.log('pdf-parse extraction insufficient, trying OCR...');
+        }
+      } catch (error) {
+        console.error('pdf-parse extraction failed:', error);
+      }
+      
+      // Fallback to OCR method
       try {
         console.log('Attempting pdf2pic + OCR extraction...');
         const convert = fromPath(filePath, {
