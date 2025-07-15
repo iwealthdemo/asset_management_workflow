@@ -53,16 +53,19 @@ export class VectorStoreAnalysisService {
       // Step 2: Upload file to vector store
       const openaiFileId = await this.ensureFileInVectorStore(filePath, fileName, vectorStore.id);
       
-      // Step 3: Analyze key messages
+      // Step 3: Wait for file processing
+      await this.waitForFileProcessing(vectorStore.id, openaiFileId);
+      
+      // Step 4: Analyze key messages
       const keyMessages = await this.analyzeKeyMessages(fileName, openaiFileId);
       
-      // Step 4: Generate document summary
+      // Step 5: Generate document summary
       const summary = await this.generateDocumentSummary(fileName, openaiFileId);
       
-      // Step 5: Perform comprehensive analysis
+      // Step 6: Perform comprehensive analysis
       const analysis = await this.performComprehensiveAnalysis(fileName, keyMessages, summary);
       
-      // Step 6: Update database with results
+      // Step 7: Update database with results
       await this.updateDatabaseWithAnalysis(documentId, analysis);
       
       console.log(`Vector store analysis completed for document ${documentId}`);
@@ -93,7 +96,7 @@ export class VectorStoreAnalysisService {
       
       // Add file to vector store
       console.log('Adding file to vector store...');
-      const vectorStoreFile = await openai.beta.vectorStores.files.create(
+      const vectorStoreFile = await openai.vectorStores.files.create(
         vectorStoreId,
         {
           file_id: uploadedFile.id
@@ -112,7 +115,7 @@ export class VectorStoreAnalysisService {
   /**
    * Wait for file processing to complete
    */
-  private async waitForFileProcessing(fileId: string): Promise<void> {
+  private async waitForFileProcessing(vectorStoreId: string, fileId: string): Promise<void> {
     console.log(`Waiting for file processing: ${fileId}`);
     
     const maxAttempts = 30;
@@ -120,8 +123,8 @@ export class VectorStoreAnalysisService {
     
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        const fileStatus = await openai.beta.vectorStores.files.retrieve(
-          VECTOR_STORE_ID,
+        const fileStatus = await openai.vectorStores.files.retrieve(
+          vectorStoreId,
           fileId
         );
         
