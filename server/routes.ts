@@ -535,6 +535,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Document AI insights route - Stage 3: Get insights from vector store
+  app.post('/api/documents/:documentId/get-insights', authMiddleware, async (req, res) => {
+    try {
+      const { documentId } = req.params;
+      
+      // Import get insights service
+      const { getInsightsService } = await import('./services/getInsightsService');
+      
+      // Generate insights for the document
+      const result = await getInsightsService.generateInsights(parseInt(documentId));
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: result.error,
+          message: 'Failed to generate insights' 
+        });
+      }
+      
+      res.json({
+        summary: result.summary,
+        insights: result.insights,
+        success: true
+      });
+      
+    } catch (error) {
+      console.error('Get insights failed:', error);
+      res.status(500).json({ 
+        error: 'Failed to generate insights',
+        message: error.message 
+      });
+    }
+  });
+
   app.get('/api/documents/:documentId/analysis', authMiddleware, async (req, res) => {
     try {
       const { documentId } = req.params;

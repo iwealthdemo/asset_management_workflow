@@ -151,6 +151,7 @@ The application uses a comprehensive CSS custom properties-based theming system 
 - July 15, 2025. Restructured document analysis to use OpenAI Vector Store exclusively - removed all local PDF processing and OCR code, implemented streamlined vector store workflow with file upload verification, assistant-based querying, and structured analysis results
 - July 15, 2025. Added document analysis functionality to approval workflow - approvers can now analyze supporting documents directly from the task view with "Analyze" button alongside Preview/Download, displaying AI-powered insights including document type, risk assessment, key amounts, and recommendations
 - July 15, 2025. Successfully implemented "Prepare for AI" functionality using OpenAI file_batches.createAndPoll() method based on working Python code reference. Fixed parameter passing issues by replacing individual file upload with batch processing approach. Vector store preparation now working reliably with automatic polling and status updates
+- July 15, 2025. Successfully implemented complete Stage 3 "Get Insights" functionality using OpenAI Assistants API with file_search tool connected to vector store. Created GetInsightsService with persistent assistant caching for improved performance. Added "Get Insights" button to DocumentAnalysisCard component that generates both summary and insights using user-provided Python code prompts. Full 3-stage AI workflow now operational: Upload → Prepare for AI → Get Insights
 
 ## User Preferences
 

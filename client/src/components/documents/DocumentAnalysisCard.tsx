@@ -66,6 +66,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
   requestId 
 }) => {
   const [showDetails, setShowDetails] = useState(false);
+  const [insights, setInsights] = useState<{summary: string; insights: string} | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -113,11 +114,53 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
     }
   });
 
+  // Get insights mutation
+  const getInsightsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', `/api/documents/${document.id}/get-insights`);
+      return response.json();
+    },
+    onSuccess: (result) => {
+      setInsights({
+        summary: result.summary,
+        insights: result.insights
+      });
+      toast({
+        title: "✅ Insights Generated",
+        description: `AI insights generated for "${document.originalName}".`,
+        duration: 5000,
+      });
+    },
+    onMutate: () => {
+      toast({
+        title: "Generating Insights",
+        description: "AI is analyzing the document to generate summary and insights...",
+      });
+    },
+    onError: (error) => {
+      console.error('Get insights failed:', error);
+      toast({
+        title: "❌ Insights Generation Failed",
+        description: `Failed to generate insights for "${document.originalName}". Please try again.`,
+        variant: "destructive",
+        duration: 5000,
+      });
+    }
+  });
+
   // Parse analysis from document.analysisResult if available
   const analysis = React.useMemo(() => {
     if (document.analysisStatus === 'completed' && document.analysisResult) {
       try {
-        return JSON.parse(document.analysisResult);
+        const parsed = JSON.parse(document.analysisResult);
+        // Check if insights are already in the stored result
+        if (parsed.summary && parsed.insights) {
+          setInsights({
+            summary: parsed.summary,
+            insights: parsed.insights
+          });
+        }
+        return parsed;
       } catch (error) {
         console.error('Failed to parse analysis result:', error);
         return null;
@@ -180,6 +223,17 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
               >
                 <Brain className="h-4 w-4 mr-1" />
                 {prepareForAIMutation.isPending ? 'Preparing...' : 'Prepare for AI'}
+              </Button>
+            )}
+            {document.analysisStatus === 'completed' && analysis && (
+              <Button 
+                onClick={() => getInsightsMutation.mutate()}
+                disabled={getInsightsMutation.isPending}
+                size="sm"
+                variant="secondary"
+              >
+                <Brain className="h-4 w-4 mr-1" />
+                {getInsightsMutation.isPending ? 'Analyzing...' : 'Get Insights'}
               </Button>
             )}
           </div>
@@ -275,13 +329,41 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
               </div>
             )}
 
-            {/* Summary */}
-            <div className="space-y-2">
-              <span className="text-sm font-medium">Summary</span>
-              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                {analysis.summary}
-              </p>
-            </div>
+            {/* AI Insights Section */}
+            {insights && (
+              <div className="space-y-4 border-t pt-4">
+                <div className="flex items-center gap-2">
+                  <Brain className="h-4 w-4 text-purple-600" />
+                  <span className="text-sm font-medium">AI-Generated Insights</span>
+                </div>
+                
+                {/* Summary */}
+                <div className="space-y-2">
+                  <span className="text-sm font-medium">Summary</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    {insights.summary}
+                  </p>
+                </div>
+
+                {/* Insights */}
+                <div className="space-y-2">
+                  <span className="text-sm font-medium">Key Insights</span>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+                    {insights.insights}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Original Summary (fallback) */}
+            {!insights && analysis.summary && (
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Summary</span>
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                  {analysis.summary}
+                </p>
+              </div>
+            )}
 
             {/* Toggle Details */}
             <div className="flex items-center gap-2">
