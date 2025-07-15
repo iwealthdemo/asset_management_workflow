@@ -256,12 +256,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                 </Tooltip>
               </TooltipProvider>
             )}
-            {/* Debug: Show current status and button conditions */}
-            <div className="text-xs text-gray-500 border p-2 bg-yellow-50">
-              Status: {document.analysisStatus}<br/>
-              Should show pending button: {document.analysisStatus === 'pending' ? 'YES' : 'NO'}<br/>
-              Should show insights button: {document.analysisStatus === 'completed' ? 'YES' : 'NO'}
-            </div>
+
           </div>
         </div>
       </CardHeader>

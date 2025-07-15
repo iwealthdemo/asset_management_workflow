@@ -291,6 +291,38 @@ function TaskCard({
     }
   };
 
+  const handleGetInsights = async (document: any) => {
+    setAnalyzingDocument(document.id);
+    
+    try {
+      toast({
+        title: "Getting AI Insights",
+        description: "Analyzing document and generating insights...",
+      });
+      
+      const response = await apiRequest('POST', `/api/documents/${document.id}/get-insights`);
+      const result = await response.json();
+      
+      toast({
+        title: "Insights Generated",
+        description: "AI insights have been generated for the document",
+      });
+      
+      // Refresh the tasks to show updated data
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/${task.requestType}/${task.requestId}`] });
+      
+    } catch (error) {
+      console.error('Get insights failed:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate insights. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setAnalyzingDocument(null);
+    }
+  };
+
   const handlePrepareForAI = async (document: any) => {
     setAnalyzingDocument(document.id);
     
@@ -511,23 +543,45 @@ function TaskCard({
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handlePrepareForAI(document)}
-                                disabled={analyzingDocument === document.id}
-                              >
-                                <Brain className={`h-4 w-4 ${analyzingDocument === document.id ? 'animate-pulse' : ''}`} />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{analyzingDocument === document.id ? 'Preparing for AI...' : 'Prepare for AI'}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        {document.analysisStatus === 'pending' && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handlePrepareForAI(document)}
+                                  disabled={analyzingDocument === document.id}
+                                >
+                                  <Brain className={`h-4 w-4 ${analyzingDocument === document.id ? 'animate-pulse' : ''}`} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{analyzingDocument === document.id ? 'Preparing for AI...' : 'Prepare for AI'}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        {document.analysisStatus === 'completed' && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleGetInsights(document)}
+                                  disabled={analyzingDocument === document.id}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                  <Brain className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Get AI Insights</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                     </div>
                   ))}
