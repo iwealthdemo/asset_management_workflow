@@ -486,7 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Document analysis routes
+  // Document analysis routes - Vector Store Only
   app.post('/api/documents/:documentId/analyze', authMiddleware, async (req, res) => {
     try {
       const { documentId } = req.params;
@@ -496,20 +496,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Document not found' });
       }
       
+      const filePath = path.join(process.cwd(), 'uploads', document.fileName);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      
+      // Update status to processing
       await storage.updateDocument(parseInt(documentId), {
         analysisStatus: 'processing'
       });
       
-      const filePath = path.join(process.cwd(), document.fileUrl);
-      const analysis = await documentAnalysisService.analyzeDocument(parseInt(documentId), filePath);
+      // Import vector store analysis service
+      const { vectorStoreAnalysisService } = await import('./services/vectorStoreAnalysisService');
       
-      res.json({ 
-        message: 'Document analysis completed', 
-        analysis 
+      // Perform analysis using vector store only
+      const analysis = await vectorStoreAnalysisService.analyzeDocumentFromVectorStore(
+        parseInt(documentId),
+        filePath,
+        document.fileName
+      );
+      
+      res.json({
+        message: 'Document analysis completed using vector store',
+        analysis
       });
+      
     } catch (error) {
-      console.error('Document analysis error:', error);
-      res.status(500).json({ message: 'Document analysis failed' });
+      console.error('Vector store document analysis failed:', error);
+      
+      // Update status to failed
+      if (req.params.documentId) {
+        await storage.updateDocument(parseInt(req.params.documentId), {
+          analysisStatus: 'failed'
+        });
+      }
+      
+      res.status(500).json({ 
+        error: 'Document analysis failed',
+        message: error.message 
+      });
     }
   });
 
