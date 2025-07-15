@@ -185,7 +185,14 @@ export class VectorStoreAnalysisService {
   private async queryVectorStore(query: string): Promise<string> {
     try {
       // Create a thread for the query
+      console.log('Creating thread...');
       const thread = await openai.beta.threads.create();
+      console.log(`Thread created:`, thread);
+      
+      if (!thread || !thread.id) {
+        throw new Error('Failed to create thread - no thread ID returned');
+      }
+      
       console.log(`Thread created with ID: ${thread.id}`);
       
       // Add the query message
@@ -203,6 +210,11 @@ export class VectorStoreAnalysisService {
       
       // Create and run the assistant
       console.log(`About to create run with threadId: ${thread.id} and assistantId: ${assistantId}`);
+      
+      if (!thread.id) {
+        throw new Error('Thread ID is undefined before creating run');
+      }
+      
       const run = await openai.beta.threads.runs.create(thread.id, {
         assistant_id: assistantId,
         tools: [{ type: 'file_search' }],
@@ -212,6 +224,13 @@ export class VectorStoreAnalysisService {
           }
         }
       });
+      
+      console.log(`Run created:`, run);
+      
+      if (!run || !run.id) {
+        throw new Error('Failed to create run - no run ID returned');
+      }
+      
       console.log(`Run created with ID: ${run.id}`);
       
       // Wait for completion
