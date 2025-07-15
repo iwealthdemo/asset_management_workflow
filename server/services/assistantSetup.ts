@@ -4,7 +4,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY 
 });
 
-const VECTOR_STORE_ID = 'vs_BqCN6XGRQNyfgPvUfzgVw8iR';
+let VECTOR_STORE_ID: string | null = null;
 
 export async function createOrGetAssistant(): Promise<string> {
   try {
@@ -21,10 +21,10 @@ export async function createOrGetAssistant(): Promise<string> {
       return existingAssistant.id;
     }
     
-    // Create new assistant
+    // Create new assistant without vector store dependency
     const assistant = await openai.beta.assistants.create({
       name: 'Document Analysis Assistant',
-      instructions: `You are an expert financial document analyst. Your role is to analyze documents uploaded to the vector store and provide detailed insights including:
+      instructions: `You are an expert financial document analyst. Your role is to analyze documents and provide detailed insights including:
 
 1. Key financial figures and metrics
 2. Important dates and deadlines
@@ -42,12 +42,7 @@ When analyzing documents:
 - Provide actionable recommendations
 - Be specific and detailed in your responses`,
       model: "gpt-4o",
-      tools: [{ type: "file_search" }],
-      tool_resources: {
-        file_search: {
-          vector_store_ids: [VECTOR_STORE_ID]
-        }
-      }
+      tools: [{ type: "file_search" }]
     });
     
     console.log(`Created new assistant: ${assistant.id}`);
