@@ -2,13 +2,11 @@ import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
 import { storage } from '../storage';
-import { VectorStoreService } from './vectorStoreService';
+import pdf from 'pdf-parse';
 
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY 
 });
-
-const vectorStoreService = new VectorStoreService();
 
 export interface VectorStoreAnalysisResult {
   documentType: string;

@@ -507,18 +507,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         analysisStatus: 'processing'
       });
       
-      // Import vector store analysis service
-      const { vectorStoreAnalysisService } = await import('./services/vectorStoreAnalysisService');
+      // Import simplified document analysis service
+      const { simpleDocumentAnalysisService } = await import('./services/simpleDocumentAnalysisService');
       
-      // Perform analysis using vector store only
-      const analysis = await vectorStoreAnalysisService.analyzeDocumentFromVectorStore(
+      // Perform analysis using simplified direct approach
+      const analysis = await simpleDocumentAnalysisService.analyzeDocumentFromVectorStore(
         parseInt(documentId),
         filePath,
         document.fileName
       );
       
       res.json({
-        message: 'Document analysis completed using vector store',
+        message: 'Document analysis completed using direct processing',
         analysis
       });
       
