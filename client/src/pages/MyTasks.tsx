@@ -234,7 +234,24 @@ function TaskCard({
   const Icon = getTaskIcon(task.taskType);
   const [analyzingDocument, setAnalyzingDocument] = useState<number | null>(null);
   const [analysisResults, setAnalysisResults] = useState<Record<number, any>>({});
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
+  const { data: requestData } = useQuery({
+    queryKey: [`/api/${task.requestType.replace('_', '-')}s/${task.requestId}`],
+    enabled: isExpanded,
+  });
+
+  const { data: approvalHistory } = useQuery({
+    queryKey: [`/api/approvals/${task.requestType}/${task.requestId}`],
+    enabled: isExpanded,
+  });
+
+  const { data: documents } = useQuery({
+    queryKey: [`/api/documents/${task.requestType}/${task.requestId}`],
+    enabled: isExpanded,
+  });
+
   // Load existing insights from documents when they're available
   useEffect(() => {
     if (documents && documents.length > 0) {
@@ -254,23 +271,6 @@ function TaskCard({
       setAnalysisResults(results);
     }
   }, [documents]);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  const { data: requestData } = useQuery({
-    queryKey: [`/api/${task.requestType.replace('_', '-')}s/${task.requestId}`],
-    enabled: isExpanded,
-  });
-
-  const { data: approvalHistory } = useQuery({
-    queryKey: [`/api/approvals/${task.requestType}/${task.requestId}`],
-    enabled: isExpanded,
-  });
-
-  const { data: documents } = useQuery({
-    queryKey: [`/api/documents/${task.requestType}/${task.requestId}`],
-    enabled: isExpanded,
-  });
 
   const getFileIcon = (mimeType: string) => {
     if (mimeType.includes('pdf')) {
