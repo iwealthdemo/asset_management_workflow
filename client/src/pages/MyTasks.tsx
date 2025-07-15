@@ -303,6 +303,17 @@ function TaskCard({
       const response = await apiRequest('POST', `/api/documents/${document.id}/get-insights`);
       const result = await response.json();
       
+      // Store the insights in the analysis results for display
+      setAnalysisResults(prev => ({
+        ...prev,
+        [document.id]: {
+          ...prev[document.id],
+          summary: result.summary,
+          insights: result.insights,
+          confidence: 0.95 // Default confidence for insights
+        }
+      }));
+      
       toast({
         title: "Insights Generated",
         description: "AI insights have been generated for the document",
@@ -624,6 +635,16 @@ function TaskCard({
                             <p className="text-sm font-medium text-gray-600 mb-1">Summary</p>
                             <p className="text-sm text-gray-700">{analysis.summary}</p>
                           </div>
+                          
+                          {/* AI Insights */}
+                          {analysis.insights && (
+                            <div className="mt-3">
+                              <p className="text-sm font-medium text-gray-600 mb-1">AI Insights</p>
+                              <div className="text-sm text-gray-700 whitespace-pre-line">
+                                {analysis.insights}
+                              </div>
+                            </div>
+                          )}
                           
                           {analysis.keyInformation?.amounts && analysis.keyInformation.amounts.length > 0 && (
                             <div className="mt-3">
