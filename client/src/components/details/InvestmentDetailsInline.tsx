@@ -17,7 +17,6 @@ import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DocumentAnalysisCard from "@/components/documents/DocumentAnalysisCard";
-import DocumentInsights from "@/components/documents/DocumentInsights";
 
 // Edit form schema
 const editFormSchema = z.object({
@@ -467,12 +466,6 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                 <FileText className="h-5 w-5" />
                 Documents & AI Analysis ({documents?.length || 0})
               </h3>
-              
-              {/* Document Insights */}
-              <DocumentInsights 
-                requestType="investment" 
-                requestId={investmentDetails?.id || 0} 
-              />
               
               {/* Individual Document Analysis */}
               {documents && documents.length > 0 ? (
