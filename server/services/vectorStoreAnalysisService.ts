@@ -216,6 +216,8 @@ export class VectorStoreAnalysisService {
       
       // Wait for completion
       console.log(`Thread ID: ${thread.id}, Run ID: ${run.id}`);
+      console.log(`Thread object:`, thread);
+      console.log(`Run object:`, run);
       await this.waitForRunCompletion(thread.id, run.id);
       
       // Get the response
