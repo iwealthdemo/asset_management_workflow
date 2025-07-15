@@ -73,17 +73,28 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
   const prepareForAIMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest('POST', `/api/documents/${document.id}/prepare-ai`);
-      return response;
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['all-documents'] });
       queryClient.invalidateQueries({ queryKey: [`/api/documents/${requestType}/${requestId}`] });
       queryClient.invalidateQueries({ queryKey: ['documents', requestType, requestId] });
       queryClient.invalidateQueries({ queryKey: ['document-analysis', document.id] });
-      toast({
-        title: "AI Preparation Complete",
-        description: "Document has been prepared for AI analysis.",
-      });
+      
+      // Show specific success message based on the result
+      if (result.message?.includes('already prepared')) {
+        toast({
+          title: "✅ Already Prepared",
+          description: `Document "${document.originalName}" was already in the vector store and ready for AI analysis.`,
+          duration: 5000,
+        });
+      } else {
+        toast({
+          title: "✅ AI Preparation Complete",
+          description: `Document "${document.originalName}" has been successfully uploaded to vector store and is ready for AI analysis.`,
+          duration: 5000,
+        });
+      }
     },
     onMutate: () => {
       toast({
@@ -94,9 +105,10 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
     onError: (error) => {
       console.error('AI preparation failed:', error);
       toast({
-        title: "AI Preparation Failed",
-        description: "Failed to prepare document for AI. Please try again.",
+        title: "❌ AI Preparation Failed",
+        description: `Failed to prepare document "${document.originalName}" for AI. Please try again.`,
         variant: "destructive",
+        duration: 5000,
       });
     }
   });
