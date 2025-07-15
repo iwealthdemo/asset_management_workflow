@@ -2,12 +2,13 @@ import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
 import { storage } from '../storage';
+import { VectorStoreService } from './vectorStoreService';
 
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY 
 });
 
-let VECTOR_STORE_ID: string | null = null;
+const vectorStoreService = new VectorStoreService();
 
 export interface VectorStoreAnalysisResult {
   documentType: string;
@@ -45,8 +46,12 @@ export class VectorStoreAnalysisService {
     console.log(`Starting vector store analysis for document ${documentId}: ${fileName}`);
     
     try {
-      // Step 1: Upload file to OpenAI
-      const openaiFileId = await this.uploadFileToOpenAI(filePath, fileName);
+      // Step 1: Get or create vector store
+      const vectorStore = await vectorStoreService.getOrCreateVectorStore();
+      console.log(`Using vector store: ${vectorStore.id}`);
+      
+      // Step 2: Upload file to vector store
+      const openaiFileId = await this.ensureFileInVectorStore(filePath, fileName, vectorStore.id);
       
       // Step 3: Analyze key messages
       const keyMessages = await this.analyzeKeyMessages(fileName, openaiFileId);
@@ -72,11 +77,11 @@ export class VectorStoreAnalysisService {
   /**
    * Ensure file exists in vector store, upload if not
    */
-  private async uploadFileToOpenAI(filePath: string, fileName: string): Promise<string> {
-    console.log(`Uploading file to OpenAI: ${fileName}`);
+  private async ensureFileInVectorStore(filePath: string, fileName: string, vectorStoreId: string): Promise<string> {
+    console.log(`Uploading file to vector store: ${fileName}`);
     
     try {
-      // Upload file to OpenAI directly
+      // Upload file to OpenAI first
       console.log('Uploading file to OpenAI...');
       const fileStream = fs.createReadStream(filePath);
       const uploadedFile = await openai.files.create({
@@ -85,10 +90,21 @@ export class VectorStoreAnalysisService {
       });
       
       console.log(`File uploaded to OpenAI: ${uploadedFile.id}`);
+      
+      // Add file to vector store
+      console.log('Adding file to vector store...');
+      const vectorStoreFile = await openai.beta.vectorStores.files.create(
+        vectorStoreId,
+        {
+          file_id: uploadedFile.id
+        }
+      );
+      console.log(`File added to vector store: ${vectorStoreFile.id}`);
+      
       return uploadedFile.id;
       
     } catch (error) {
-      console.error('Error uploading file to OpenAI:', error);
+      console.error('Error ensuring file in vector store:', error);
       throw error;
     }
   }
@@ -184,9 +200,18 @@ export class VectorStoreAnalysisService {
       const { createOrGetAssistant } = await import('./assistantSetup');
       const assistantId = await createOrGetAssistant();
       
+      // Get vector store
+      const vectorStore = await vectorStoreService.getOrCreateVectorStore();
+      
       // Create and run the assistant
       const run = await openai.beta.threads.runs.create(thread.id, {
-        assistant_id: assistantId
+        assistant_id: assistantId,
+        tools: [{ type: 'file_search' }],
+        tool_resources: {
+          file_search: {
+            vector_store_ids: [vectorStore.id]
+          }
+        }
       });
       
       // Wait for completion
