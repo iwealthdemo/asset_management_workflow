@@ -156,6 +156,12 @@ export class PrepareAIService {
    */
   private async waitForEmbeddingCompletion(vectorStoreId: string, fileId: string): Promise<void> {
     console.log(`Waiting for embedding completion for file ${fileId} in vector store ${vectorStoreId}`);
+    console.log(`Debug: vectorStoreId type: ${typeof vectorStoreId}, value: ${vectorStoreId}`);
+    console.log(`Debug: fileId type: ${typeof fileId}, value: ${fileId}`);
+    
+    if (!vectorStoreId || !fileId) {
+      throw new Error(`Invalid parameters: vectorStoreId=${vectorStoreId}, fileId=${fileId}`);
+    }
     
     const maxAttempts = 60; // 2 minutes max
     const delayMs = 2000; // 2 seconds between checks
@@ -164,6 +170,7 @@ export class PrepareAIService {
       try {
         // Check the status of the file in the vector store
         // The fileId here should be the original uploaded file ID, not the vector store file ID
+        console.log(`Debug attempt ${attempt}: About to call openai.vectorStores.files.retrieve(${vectorStoreId}, ${fileId})`);
         const fileStatus = await openai.vectorStores.files.retrieve(vectorStoreId, fileId);
         
         console.log(`Embedding status (attempt ${attempt}): ${fileStatus.status}`);
