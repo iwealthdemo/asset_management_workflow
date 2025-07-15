@@ -2,11 +2,14 @@ import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
 import { storage } from '../storage';
-import pdf from 'pdf-parse';
+import { VectorStoreService } from './vectorStoreService';
+import { createOrGetAssistant } from './assistantSetup';
 
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY 
 });
+
+const vectorStoreService = new VectorStoreService();
 
 export interface VectorStoreAnalysisResult {
   documentType: string;
@@ -235,11 +238,14 @@ export class VectorStoreAnalysisService {
    * Wait for assistant run to complete
    */
   private async waitForRunCompletion(threadId: string, runId: string): Promise<void> {
+    console.log(`waitForRunCompletion called with threadId: "${threadId}" and runId: "${runId}"`);
+    
     const maxAttempts = 30;
     const delayMs = 2000;
     
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
+        console.log(`Attempting to retrieve run with threadId: "${threadId}", runId: "${runId}"`);
         const run = await openai.beta.threads.runs.retrieve(threadId, runId);
         
         console.log(`Run status (attempt ${attempt}): ${run.status}`);
