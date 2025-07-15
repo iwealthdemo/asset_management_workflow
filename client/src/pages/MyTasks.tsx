@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye, Brain } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from "date-fns";
@@ -234,6 +234,26 @@ function TaskCard({
   const Icon = getTaskIcon(task.taskType);
   const [analyzingDocument, setAnalyzingDocument] = useState<number | null>(null);
   const [analysisResults, setAnalysisResults] = useState<Record<number, any>>({});
+  
+  // Load existing insights from documents when they're available
+  useEffect(() => {
+    if (documents && documents.length > 0) {
+      const results: Record<number, any> = {};
+      
+      documents.forEach((doc: any) => {
+        if (doc.analysisStatus === 'completed' && doc.analysisResult) {
+          try {
+            const analysisData = JSON.parse(doc.analysisResult);
+            results[doc.id] = analysisData;
+          } catch (error) {
+            console.error('Failed to parse analysis result for document', doc.id, error);
+          }
+        }
+      });
+      
+      setAnalysisResults(results);
+    }
+  }, [documents]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
