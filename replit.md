@@ -149,6 +149,7 @@ The application uses a comprehensive CSS custom properties-based theming system 
 - July 15, 2025. Enhanced document analysis robustness with improved error handling, fallback systems, and retry mechanisms to handle OpenAI API timeouts and server errors
 - July 15, 2025. Implemented manual document analysis trigger system - replaced unreliable automatic processing with user-controlled manual analysis buttons for better reliability and control
 - July 15, 2025. Restructured document analysis to use OpenAI Vector Store exclusively - removed all local PDF processing and OCR code, implemented streamlined vector store workflow with file upload verification, assistant-based querying, and structured analysis results
+- July 15, 2025. Added document analysis functionality to approval workflow - approvers can now analyze supporting documents directly from the task view with "Analyze" button alongside Preview/Download, displaying AI-powered insights including document type, risk assessment, key amounts, and recommendations
 
 ## User Preferences
 

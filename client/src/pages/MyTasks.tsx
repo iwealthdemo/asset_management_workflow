@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useState } from "react";
-import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye } from "lucide-react";
+import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye, Brain } from "lucide-react";
 import { format } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -231,6 +231,10 @@ function TaskCard({
   onPreview: (document: any) => void;
 }) {
   const Icon = getTaskIcon(task.taskType);
+  const [analyzingDocument, setAnalyzingDocument] = useState<number | null>(null);
+  const [analysisResults, setAnalysisResults] = useState<Record<number, any>>({});
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const { data: requestData } = useQuery({
     queryKey: [`/api/${task.requestType.replace('_', '-')}s/${task.requestId}`],
@@ -283,6 +287,40 @@ function TaskCard({
     } catch (error) {
       console.error('Download failed:', error);
       alert('Download failed. Please try again or contact support.');
+    }
+  };
+
+  const handleAnalyze = async (document: any) => {
+    setAnalyzingDocument(document.id);
+    
+    try {
+      toast({
+        title: "Analysis Started",
+        description: "Document analysis is now in progress...",
+      });
+      
+      const response = await apiRequest('POST', `/api/documents/${document.id}/analyze`);
+      const result = await response.json();
+      
+      setAnalysisResults(prev => ({
+        ...prev,
+        [document.id]: result.analysis
+      }));
+      
+      toast({
+        title: "Analysis Complete",
+        description: "Document analysis has been completed successfully.",
+      });
+      
+    } catch (error) {
+      console.error('Document analysis failed:', error);
+      toast({
+        title: "Analysis Failed",
+        description: "Document analysis failed. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setAnalyzingDocument(null);
     }
   };
 
@@ -447,10 +485,89 @@ function TaskCard({
                           <Download className="h-4 w-4 mr-1" />
                           Download
                         </Button>
+                        <Button
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleAnalyze(document)}
+                          disabled={analyzingDocument === document.id}
+                        >
+                          <Brain className={`h-4 w-4 mr-1 ${analyzingDocument === document.id ? 'animate-pulse' : ''}`} />
+                          {analyzingDocument === document.id ? 'Analyzing...' : 'Analyze'}
+                        </Button>
                       </div>
                     </div>
                   ))}
                 </div>
+                
+                {/* Analysis Results */}
+                {Object.keys(analysisResults).length > 0 && (
+                  <div className="mt-6 space-y-4">
+                    <h4 className="font-semibold text-lg">Document Analysis Results</h4>
+                    {Object.entries(analysisResults).map(([docId, analysis]) => {
+                      const document = documents.find((doc: any) => doc.id === parseInt(docId));
+                      return (
+                        <div key={docId} className="bg-blue-50 p-4 rounded-lg border">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Brain className="h-5 w-5 text-blue-600" />
+                            <h5 className="font-medium">{document?.originalName}</h5>
+                            <Badge className="bg-blue-100 text-blue-800">
+                              {Math.round(analysis.confidence * 100)}% confidence
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm font-medium text-gray-600 mb-1">Document Type</p>
+                              <p className="text-sm">{analysis.documentType}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-600 mb-1">Risk Level</p>
+                              <Badge className={
+                                analysis.riskAssessment?.level === 'high' ? 'bg-red-100 text-red-800' :
+                                analysis.riskAssessment?.level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-green-100 text-green-800'
+                              }>
+                                {analysis.riskAssessment?.level || 'unknown'} risk
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-3">
+                            <p className="text-sm font-medium text-gray-600 mb-1">Summary</p>
+                            <p className="text-sm text-gray-700">{analysis.summary}</p>
+                          </div>
+                          
+                          {analysis.keyInformation?.amounts && analysis.keyInformation.amounts.length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-sm font-medium text-gray-600 mb-1">Key Amounts</p>
+                              <div className="flex flex-wrap gap-2">
+                                {analysis.keyInformation.amounts.map((amount: string, index: number) => (
+                                  <Badge key={index} variant="outline" className="text-xs">
+                                    {amount}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {analysis.recommendations && analysis.recommendations.length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-sm font-medium text-gray-600 mb-1">Recommendations</p>
+                              <ul className="text-sm text-gray-700 space-y-1">
+                                {analysis.recommendations.slice(0, 3).map((rec: string, index: number) => (
+                                  <li key={index} className="flex items-start gap-2">
+                                    <span className="text-blue-600">•</span>
+                                    <span>{rec}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
