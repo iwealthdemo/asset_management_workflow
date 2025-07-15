@@ -76,22 +76,9 @@ export class VectorStoreAnalysisService {
    * Ensure file exists in vector store, upload if not
    */
   private async ensureFileInVectorStore(filePath: string, fileName: string): Promise<string> {
-    console.log(`Checking if file exists in vector store: ${fileName}`);
+    console.log(`Uploading file to vector store: ${fileName}`);
     
     try {
-      // Check if file already exists by listing vector store files
-      const vectorStoreFiles = await openai.beta.vectorStores.files.list(VECTOR_STORE_ID);
-      
-      // Check if file already exists (by name comparison)
-      const existingFile = vectorStoreFiles.data.find(file => 
-        file.id && file.id.includes(fileName.substring(0, 20))
-      );
-      
-      if (existingFile) {
-        console.log(`File already exists in vector store: ${existingFile.id}`);
-        return existingFile.id;
-      }
-      
       // Upload file to OpenAI first
       console.log('Uploading file to OpenAI...');
       const fileStream = fs.createReadStream(filePath);
@@ -112,6 +99,10 @@ export class VectorStoreAnalysisService {
       );
       
       console.log(`File added to vector store: ${vectorStoreFile.id}`);
+      
+      // Wait for file processing to complete
+      await this.waitForFileProcessing(vectorStoreFile.id);
+      
       return vectorStoreFile.id;
       
     } catch (error) {
