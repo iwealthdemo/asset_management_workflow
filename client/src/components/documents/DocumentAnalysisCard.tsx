@@ -15,6 +15,7 @@ import {
   Eye,
   Download
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -218,26 +219,42 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
               {document.analysisStatus.charAt(0).toUpperCase() + document.analysisStatus.slice(1)}
             </Badge>
             {document.analysisStatus === 'pending' && (
-              <Button 
-                onClick={() => prepareForAIMutation.mutate()}
-                disabled={prepareForAIMutation.isPending}
-                size="sm"
-              >
-                <Brain className="h-4 w-4 mr-1" />
-                {prepareForAIMutation.isPending ? 'Preparing...' : 'Prepare for AI'}
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => prepareForAIMutation.mutate()}
+                      disabled={prepareForAIMutation.isPending}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <Brain className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{prepareForAIMutation.isPending ? 'Preparing for AI...' : 'Prepare for AI'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
             {document.analysisStatus === 'completed' && (
-              <Button 
-                onClick={() => getInsightsMutation.mutate()}
-                disabled={getInsightsMutation.isPending}
-                size="sm"
-                variant="default"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Brain className="h-4 w-4 mr-1" />
-                {getInsightsMutation.isPending ? 'Analyzing...' : 'Get Insights'}
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => getInsightsMutation.mutate()}
+                      disabled={getInsightsMutation.isPending}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Brain className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{getInsightsMutation.isPending ? 'Analyzing document...' : 'Get AI Insights'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
         </div>
@@ -372,22 +389,38 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
 
             {/* Toggle Details */}
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowDetails(!showDetails)}
-              >
-                <Eye className="h-4 w-4 mr-1" />
-                {showDetails ? 'Hide Details' : 'Show Details'}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => window.open(`/api/documents/download/${document.id}`, '_blank')}
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Download
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowDetails(!showDetails)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{showDetails ? 'Hide Details' : 'Show Details'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => window.open(`/api/documents/download/${document.id}`, '_blank')}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Download Document</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
 
             {/* Detailed Analysis */}
