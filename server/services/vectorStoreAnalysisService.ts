@@ -51,16 +51,16 @@ export class VectorStoreAnalysisService {
       console.log(`Using vector store: ${vectorStore.id}`);
       
       // Step 2: Upload file to vector store
-      const openaiFileId = await this.ensureFileInVectorStore(filePath, fileName, vectorStore.id);
+      const vectorStoreFileId = await this.ensureFileInVectorStore(filePath, fileName, vectorStore.id);
       
       // Step 3: Wait for file processing
-      await this.waitForFileProcessing(vectorStore.id, openaiFileId);
+      await this.waitForFileProcessing(vectorStore.id, vectorStoreFileId);
       
-      // Step 4: Analyze key messages
-      const keyMessages = await this.analyzeKeyMessages(fileName, openaiFileId);
+      // Step 4: Analyze key messages (using vector store search)
+      const keyMessages = await this.analyzeKeyMessages(fileName);
       
-      // Step 5: Generate document summary
-      const summary = await this.generateDocumentSummary(fileName, openaiFileId);
+      // Step 5: Generate document summary (using vector store search)
+      const summary = await this.generateDocumentSummary(fileName);
       
       // Step 6: Perform comprehensive analysis
       const analysis = await this.performComprehensiveAnalysis(fileName, keyMessages, summary);
@@ -104,7 +104,7 @@ export class VectorStoreAnalysisService {
       );
       console.log(`File added to vector store: ${vectorStoreFile.id}`);
       
-      return uploadedFile.id;
+      return vectorStoreFile.id;
       
     } catch (error) {
       console.error('Error ensuring file in vector store:', error);
@@ -156,48 +156,38 @@ export class VectorStoreAnalysisService {
   /**
    * Analyze key messages from document
    */
-  private async analyzeKeyMessages(fileName: string, fileId: string): Promise<string> {
+  private async analyzeKeyMessages(fileName: string): Promise<string> {
     console.log('Analyzing key messages...');
     
     const query = `What are the key messages, important financial figures, and critical insights from the document ${fileName}? Please provide specific numbers, dates, and key findings.`;
     
-    return await this.queryVectorStore(query, fileId);
+    return await this.queryVectorStore(query);
   }
   
   /**
    * Generate document summary
    */
-  private async generateDocumentSummary(fileName: string, fileId: string): Promise<string> {
+  private async generateDocumentSummary(fileName: string): Promise<string> {
     console.log('Generating document summary...');
     
     const query = `Please provide a comprehensive summary of the document ${fileName}, including its purpose, main content, key financial information, and important conclusions.`;
     
-    return await this.queryVectorStore(query, fileId);
+    return await this.queryVectorStore(query);
   }
   
   /**
    * Query the vector store with a specific question
    */
-  private async queryVectorStore(query: string, fileId?: string): Promise<string> {
+  private async queryVectorStore(query: string): Promise<string> {
     try {
       // Create a thread for the query
       const thread = await openai.beta.threads.create();
       
-      // Add the query message, optionally with file attachment
-      const messageData: any = {
+      // Add the query message
+      await openai.beta.threads.messages.create(thread.id, {
         role: 'user',
         content: query
-      };
-      
-      // If we have a file ID, attach it to the message
-      if (fileId) {
-        messageData.attachments = [{
-          file_id: fileId,
-          tools: [{ type: 'file_search' }]
-        }];
-      }
-      
-      await openai.beta.threads.messages.create(thread.id, messageData);
+      });
       
       // Get or create assistant
       const { createOrGetAssistant } = await import('./assistantSetup');
