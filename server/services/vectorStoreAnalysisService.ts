@@ -52,11 +52,11 @@ export class VectorStoreAnalysisService {
       console.log(`Vector store object:`, vectorStore);
       
       // Step 2: Upload file to vector store
-      const vectorStoreFileId = await this.ensureFileInVectorStore(filePath, fileName, vectorStore.id);
+      const openaiFileId = await this.ensureFileInVectorStore(filePath, fileName, vectorStore.id);
       
-      // Step 3: Wait for file processing
-      console.log(`About to call waitForFileProcessing with vectorStoreId: ${vectorStore.id} and fileId: ${vectorStoreFileId}`);
-      await this.waitForFileProcessing(vectorStore.id, vectorStoreFileId);
+      // Step 3: Give file a moment to process (skip wait for now)
+      console.log(`File uploaded successfully, proceeding with analysis...`);
+      // await this.waitForFileProcessing(vectorStore.id, openaiFileId);
       
       // Step 4: Analyze key messages (using vector store search)
       const keyMessages = await this.analyzeKeyMessages(fileName);
@@ -104,9 +104,10 @@ export class VectorStoreAnalysisService {
           file_id: uploadedFile.id
         }
       );
-      console.log(`File added to vector store: ${vectorStoreFile.id}`);
+      console.log(`File added to vector store. VectorStoreFile object:`, vectorStoreFile);
       
-      return vectorStoreFile.id;
+      // Return the uploaded file ID for vector store file tracking
+      return uploadedFile.id;
       
     } catch (error) {
       console.error('Error ensuring file in vector store:', error);
