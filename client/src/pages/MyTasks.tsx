@@ -290,33 +290,31 @@ function TaskCard({
     }
   };
 
-  const handleAnalyze = async (document: any) => {
+  const handlePrepareForAI = async (document: any) => {
     setAnalyzingDocument(document.id);
     
     try {
       toast({
-        title: "Analysis Started",
-        description: "Document analysis is now in progress...",
+        title: "Preparing for AI",
+        description: "Uploading document to vector store and creating embeddings...",
       });
       
-      const response = await apiRequest('POST', `/api/documents/${document.id}/analyze`);
+      const response = await apiRequest('POST', `/api/documents/${document.id}/prepare-ai`);
       const result = await response.json();
       
-      setAnalysisResults(prev => ({
-        ...prev,
-        [document.id]: result.analysis
-      }));
-      
       toast({
-        title: "Analysis Complete",
-        description: "Document analysis has been completed successfully.",
+        title: "AI Preparation Complete",
+        description: "Document has been prepared for AI analysis.",
       });
       
+      // Refresh the task data to update button states
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks/my-tasks'] });
+      
     } catch (error) {
-      console.error('Document analysis failed:', error);
+      console.error('AI preparation failed:', error);
       toast({
-        title: "Analysis Failed",
-        description: "Document analysis failed. Please try again.",
+        title: "AI Preparation Failed",
+        description: "Failed to prepare document for AI. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -488,11 +486,11 @@ function TaskCard({
                         <Button
                           variant="ghost" 
                           size="sm"
-                          onClick={() => handleAnalyze(document)}
+                          onClick={() => handlePrepareForAI(document)}
                           disabled={analyzingDocument === document.id}
                         >
                           <Brain className={`h-4 w-4 mr-1 ${analyzingDocument === document.id ? 'animate-pulse' : ''}`} />
-                          {analyzingDocument === document.id ? 'Analyzing...' : 'Analyze'}
+                          {analyzingDocument === document.id ? 'Preparing...' : 'Prepare for AI'}
                         </Button>
                       </div>
                     </div>

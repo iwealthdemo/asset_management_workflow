@@ -486,8 +486,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Document analysis routes - Vector Store Only
-  app.post('/api/documents/:documentId/analyze', authMiddleware, async (req, res) => {
+  // Document AI preparation route - Stage 1: Upload to vector store
+  app.post('/api/documents/:documentId/prepare-ai', authMiddleware, async (req, res) => {
     try {
       const { documentId } = req.params;
       const document = await storage.getDocument(parseInt(documentId));
@@ -502,28 +502,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'File not found' });
       }
       
-      // Update status to processing
-      await storage.updateDocument(parseInt(documentId), {
-        analysisStatus: 'processing'
-      });
+      // Import prepare AI service
+      const { prepareAIService } = await import('./services/prepareAIService');
       
-      // Import vector store analysis service
-      const { vectorStoreAnalysisService } = await import('./services/vectorStoreAnalysisService');
-      
-      // Perform analysis using vector store only
-      const analysis = await vectorStoreAnalysisService.analyzeDocumentFromVectorStore(
+      // Prepare document for AI analysis
+      const result = await prepareAIService.prepareDocumentForAI(
         parseInt(documentId),
         filePath,
         document.fileName
       );
       
       res.json({
-        message: 'Document analysis completed using vector store',
-        analysis
+        message: result.message,
+        success: result.success,
+        fileId: result.fileId
       });
       
     } catch (error) {
-      console.error('Vector store document analysis failed:', error);
+      console.error('AI preparation failed:', error);
       
       // Update status to failed
       if (req.params.documentId) {
@@ -533,7 +529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.status(500).json({ 
-        error: 'Document analysis failed',
+        error: 'AI preparation failed',
         message: error.message 
       });
     }

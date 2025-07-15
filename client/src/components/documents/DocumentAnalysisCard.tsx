@@ -69,10 +69,10 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Manual document analysis mutation
-  const analyzeDocumentMutation = useMutation({
+  // Manual document AI preparation mutation
+  const prepareForAIMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', `/api/documents/${document.id}/analyze`);
+      const response = await apiRequest('POST', `/api/documents/${document.id}/prepare-ai`);
       return response;
     },
     onSuccess: () => {
@@ -81,21 +81,21 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
       queryClient.invalidateQueries({ queryKey: ['documents', requestType, requestId] });
       queryClient.invalidateQueries({ queryKey: ['document-analysis', document.id] });
       toast({
-        title: "Analysis Complete",
-        description: "Document analysis has been completed successfully.",
+        title: "AI Preparation Complete",
+        description: "Document has been prepared for AI analysis.",
       });
     },
     onMutate: () => {
       toast({
-        title: "Analysis Started",
-        description: "Document analysis is now in progress...",
+        title: "Preparing for AI",
+        description: "Uploading document to vector store and creating embeddings...",
       });
     },
     onError: (error) => {
-      console.error('Document analysis failed:', error);
+      console.error('AI preparation failed:', error);
       toast({
-        title: "Analysis Failed",
-        description: "Document analysis failed. Please try again.",
+        title: "AI Preparation Failed",
+        description: "Failed to prepare document for AI. Please try again.",
         variant: "destructive",
       });
     }
@@ -162,12 +162,12 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
             </Badge>
             {document.analysisStatus === 'pending' && (
               <Button 
-                onClick={() => analyzeDocumentMutation.mutate()}
-                disabled={analyzeDocumentMutation.isPending}
+                onClick={() => prepareForAIMutation.mutate()}
+                disabled={prepareForAIMutation.isPending}
                 size="sm"
               >
                 <Brain className="h-4 w-4 mr-1" />
-                {analyzeDocumentMutation.isPending ? 'Analyzing...' : 'Analyze'}
+                {prepareForAIMutation.isPending ? 'Preparing...' : 'Prepare for AI'}
               </Button>
             )}
           </div>
