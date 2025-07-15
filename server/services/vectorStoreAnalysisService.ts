@@ -49,11 +49,13 @@ export class VectorStoreAnalysisService {
       // Step 1: Get or create vector store
       const vectorStore = await vectorStoreService.getOrCreateVectorStore();
       console.log(`Using vector store: ${vectorStore.id}`);
+      console.log(`Vector store object:`, vectorStore);
       
       // Step 2: Upload file to vector store
       const vectorStoreFileId = await this.ensureFileInVectorStore(filePath, fileName, vectorStore.id);
       
       // Step 3: Wait for file processing
+      console.log(`About to call waitForFileProcessing with vectorStoreId: ${vectorStore.id} and fileId: ${vectorStoreFileId}`);
       await this.waitForFileProcessing(vectorStore.id, vectorStoreFileId);
       
       // Step 4: Analyze key messages (using vector store search)
@@ -116,7 +118,7 @@ export class VectorStoreAnalysisService {
    * Wait for file processing to complete
    */
   private async waitForFileProcessing(vectorStoreId: string, fileId: string): Promise<void> {
-    console.log(`Waiting for file processing: ${fileId}`);
+    console.log(`waitForFileProcessing called with vectorStoreId: ${vectorStoreId} and fileId: ${fileId}`);
     
     const maxAttempts = 30;
     const delayMs = 2000;
