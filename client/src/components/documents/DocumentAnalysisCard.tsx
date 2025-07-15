@@ -67,6 +67,25 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
   const [showDetails, setShowDetails] = useState(false);
   const queryClient = useQueryClient();
 
+  // Manual document analysis mutation
+  const analyzeDocumentMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest(`/api/documents/${document.id}/analyze`, {
+        method: 'POST',
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-documents'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/${requestType}/${requestId}`] });
+      queryClient.invalidateQueries({ queryKey: ['documents', requestType, requestId] });
+      queryClient.invalidateQueries({ queryKey: ['document-analysis', document.id] });
+    },
+    onError: (error) => {
+      console.error('Document analysis failed:', error);
+    }
+  });
+
   // Parse analysis from document.analysisResult if available
   const analysis = React.useMemo(() => {
     if (document.analysisStatus === 'completed' && document.analysisResult) {
@@ -79,15 +98,6 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
     }
     return null;
   }, [document.analysisResult, document.analysisStatus]);
-
-  // Trigger analysis mutation
-  const analyzeDocumentMutation = useMutation({
-    mutationFn: () => apiRequest('POST', `/api/documents/${document.id}/analyze`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents', requestType, requestId] });
-      queryClient.invalidateQueries({ queryKey: ['document-analysis', document.id] });
-    }
-  });
 
   const getStatusColor = (status: string) => {
     switch (status) {

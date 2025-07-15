@@ -147,6 +147,7 @@ The application uses a comprehensive CSS custom properties-based theming system 
 - July 14, 2025. Increased file upload size limit from 10MB to 50MB to support larger documents like annual reports and comprehensive investment research files
 - July 14, 2025. Implemented vector store-based document analysis system - replaced traditional text extraction with OpenAI Vector Store queries for superior document processing and insight generation
 - July 15, 2025. Enhanced document analysis robustness with improved error handling, fallback systems, and retry mechanisms to handle OpenAI API timeouts and server errors
+- July 15, 2025. Implemented manual document analysis trigger system - replaced unreliable automatic processing with user-controlled manual analysis buttons for better reliability and control
 
 ## User Preferences
 
