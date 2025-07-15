@@ -16,6 +16,7 @@ import {
   Download
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface DocumentAnalysis {
   documentType: string;
@@ -66,13 +67,12 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
 }) => {
   const [showDetails, setShowDetails] = useState(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Manual document analysis mutation
   const analyzeDocumentMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest(`/api/documents/${document.id}/analyze`, {
-        method: 'POST',
-      });
+      const response = await apiRequest('POST', `/api/documents/${document.id}/analyze`);
       return response;
     },
     onSuccess: () => {
@@ -80,9 +80,24 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
       queryClient.invalidateQueries({ queryKey: [`/api/documents/${requestType}/${requestId}`] });
       queryClient.invalidateQueries({ queryKey: ['documents', requestType, requestId] });
       queryClient.invalidateQueries({ queryKey: ['document-analysis', document.id] });
+      toast({
+        title: "Analysis Complete",
+        description: "Document analysis has been completed successfully.",
+      });
+    },
+    onMutate: () => {
+      toast({
+        title: "Analysis Started",
+        description: "Document analysis is now in progress...",
+      });
     },
     onError: (error) => {
       console.error('Document analysis failed:', error);
+      toast({
+        title: "Analysis Failed",
+        description: "Document analysis failed. Please try again.",
+        variant: "destructive",
+      });
     }
   });
 
