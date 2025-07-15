@@ -273,7 +273,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                   <span className="text-sm font-medium">Document Type</span>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">
-                  {analysis.documentType.replace('_', ' ')}
+                  {analysis.documentType ? analysis.documentType.replace('_', ' ') : 'Unknown'}
                 </p>
               </div>
               <div className="space-y-2">
@@ -282,27 +282,29 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                   <span className="text-sm font-medium">Confidence</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Progress value={analysis.confidence * 100} className="h-2 flex-1" />
-                  <span className="text-sm">{Math.round(analysis.confidence * 100)}%</span>
+                  <Progress value={(analysis.confidence || 0) * 100} className="h-2 flex-1" />
+                  <span className="text-sm">{Math.round((analysis.confidence || 0) * 100)}%</span>
                 </div>
               </div>
             </div>
 
             {/* Risk Assessment */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <span className="text-sm font-medium">Risk Assessment</span>
+            {analysis.riskAssessment && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <span className="text-sm font-medium">Risk Assessment</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className={getRiskColor(analysis.riskAssessment.level)}>
+                    {analysis.riskAssessment.level?.toUpperCase() || 'UNKNOWN'}
+                  </Badge>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Score: {analysis.riskAssessment.score || 0}/100
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge className={getRiskColor(analysis.riskAssessment.level)}>
-                  {analysis.riskAssessment.level.toUpperCase()}
-                </Badge>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Score: {analysis.riskAssessment.score}/100
-                </span>
-              </div>
-            </div>
+            )}
 
             {/* Key Information */}
             {analysis.keyInformation && (
@@ -389,7 +391,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
             {showDetails && (
               <div className="space-y-4 border-t pt-4">
                 {/* Risk Factors */}
-                {analysis.riskAssessment.factors.length > 0 && (
+                {analysis.riskAssessment?.factors?.length > 0 && (
                   <div>
                     <h4 className="font-medium mb-2">Risk Factors</h4>
                     <ul className="text-sm space-y-1">
@@ -404,7 +406,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                 )}
 
                 {/* Recommendations */}
-                {analysis.recommendations.length > 0 && (
+                {analysis.recommendations?.length > 0 && (
                   <div>
                     <h4 className="font-medium mb-2">Recommendations</h4>
                     <ul className="text-sm space-y-1">
@@ -419,7 +421,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                 )}
 
                 {/* Financial Metrics */}
-                {analysis.keyInformation.financialMetrics && 
+                {analysis.keyInformation?.financialMetrics && 
                  Object.keys(analysis.keyInformation.financialMetrics).length > 0 && (
                   <div>
                     <h4 className="font-medium mb-2">Financial Metrics</h4>
