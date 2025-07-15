@@ -48,14 +48,11 @@ export class VectorStoreAnalysisService {
       // Step 1: Check if file exists in vector store or upload it
       const openaiFileId = await this.ensureFileInVectorStore(filePath, fileName);
       
-      // Step 2: Wait for file to be processed
-      await this.waitForFileProcessing(openaiFileId);
-      
       // Step 3: Analyze key messages
-      const keyMessages = await this.analyzeKeyMessages(fileName);
+      const keyMessages = await this.analyzeKeyMessages(fileName, openaiFileId);
       
       // Step 4: Generate document summary
-      const summary = await this.generateDocumentSummary(fileName);
+      const summary = await this.generateDocumentSummary(fileName, openaiFileId);
       
       // Step 5: Perform comprehensive analysis
       const analysis = await this.performComprehensiveAnalysis(fileName, keyMessages, summary);
@@ -91,19 +88,28 @@ export class VectorStoreAnalysisService {
       
       // Add file to vector store
       console.log('Adding file to vector store...');
-      const vectorStoreFile = await openai.beta.vectorStores.files.create(
-        VECTOR_STORE_ID,
-        {
-          file_id: uploadedFile.id
-        }
-      );
       
-      console.log(`File added to vector store: ${vectorStoreFile.id}`);
-      
-      // Wait for file processing to complete
-      await this.waitForFileProcessing(vectorStoreFile.id);
-      
-      return vectorStoreFile.id;
+      try {
+        const vectorStoreFile = await openai.beta.vectorStores.files.create(
+          VECTOR_STORE_ID,
+          {
+            file_id: uploadedFile.id
+          }
+        );
+        console.log(`File added to vector store: ${vectorStoreFile.id}`);
+        
+        // Wait for file processing to complete
+        await this.waitForFileProcessing(vectorStoreFile.id);
+        
+        return vectorStoreFile.id;
+        
+      } catch (vectorStoreError) {
+        console.error('Vector store file creation failed:', vectorStoreError);
+        
+        // If vector store fails, let's try to use the file directly with assistant
+        console.log('Attempting to use file directly with assistant...');
+        return uploadedFile.id;
+      }
       
     } catch (error) {
       console.error('Error ensuring file in vector store:', error);
@@ -155,38 +161,48 @@ export class VectorStoreAnalysisService {
   /**
    * Analyze key messages from document
    */
-  private async analyzeKeyMessages(fileName: string): Promise<string> {
+  private async analyzeKeyMessages(fileName: string, fileId: string): Promise<string> {
     console.log('Analyzing key messages...');
     
     const query = `What are the key messages, important financial figures, and critical insights from the document ${fileName}? Please provide specific numbers, dates, and key findings.`;
     
-    return await this.queryVectorStore(query);
+    return await this.queryVectorStore(query, fileId);
   }
   
   /**
    * Generate document summary
    */
-  private async generateDocumentSummary(fileName: string): Promise<string> {
+  private async generateDocumentSummary(fileName: string, fileId: string): Promise<string> {
     console.log('Generating document summary...');
     
     const query = `Please provide a comprehensive summary of the document ${fileName}, including its purpose, main content, key financial information, and important conclusions.`;
     
-    return await this.queryVectorStore(query);
+    return await this.queryVectorStore(query, fileId);
   }
   
   /**
    * Query the vector store with a specific question
    */
-  private async queryVectorStore(query: string): Promise<string> {
+  private async queryVectorStore(query: string, fileId?: string): Promise<string> {
     try {
       // Create a thread for the query
       const thread = await openai.beta.threads.create();
       
-      // Add the query message
-      await openai.beta.threads.messages.create(thread.id, {
+      // Add the query message, optionally with file attachment
+      const messageData: any = {
         role: 'user',
         content: query
-      });
+      };
+      
+      // If we have a file ID, attach it to the message
+      if (fileId) {
+        messageData.attachments = [{
+          file_id: fileId,
+          tools: [{ type: 'file_search' }]
+        }];
+      }
+      
+      await openai.beta.threads.messages.create(thread.id, messageData);
       
       // Get or create assistant
       const { createOrGetAssistant } = await import('./assistantSetup');
