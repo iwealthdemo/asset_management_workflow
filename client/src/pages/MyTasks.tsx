@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useState } from "react";
 import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye, Brain } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -466,43 +467,67 @@ function TaskCard({
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            // Open preview in new tab to avoid Chrome blocking
-                            window.open(`/api/documents/preview/${document.id}`, '_blank');
-                          }}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Preview
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            // Use direct link approach for download
-                            const link = window.document.createElement('a');
-                            link.href = `/api/documents/download/${document.id}`;
-                            link.download = document.originalName;
-                            link.target = '_blank';
-                            window.document.body.appendChild(link);
-                            link.click();
-                            window.document.body.removeChild(link);
-                          }}
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          Download
-                        </Button>
-                        <Button
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handlePrepareForAI(document)}
-                          disabled={analyzingDocument === document.id}
-                        >
-                          <Brain className={`h-4 w-4 mr-1 ${analyzingDocument === document.id ? 'animate-pulse' : ''}`} />
-                          {analyzingDocument === document.id ? 'Preparing...' : 'Prepare for AI'}
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => {
+                                  // Open preview in new tab to avoid Chrome blocking
+                                  window.open(`/api/documents/preview/${document.id}`, '_blank');
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Preview Document</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => {
+                                  // Use direct link approach for download
+                                  const link = window.document.createElement('a');
+                                  link.href = `/api/documents/download/${document.id}`;
+                                  link.download = document.originalName;
+                                  link.target = '_blank';
+                                  window.document.body.appendChild(link);
+                                  link.click();
+                                  window.document.body.removeChild(link);
+                                }}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Download Document</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handlePrepareForAI(document)}
+                                disabled={analyzingDocument === document.id}
+                              >
+                                <Brain className={`h-4 w-4 ${analyzingDocument === document.id ? 'animate-pulse' : ''}`} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{analyzingDocument === document.id ? 'Preparing for AI...' : 'Prepare for AI'}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </div>
                   ))}
