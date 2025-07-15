@@ -72,31 +72,31 @@ export class PrepareAIService {
       
       console.log(`File uploaded to OpenAI: ${uploadedFile.id}`);
       
-      // Step 4: Add file to vector store
-      console.log('Adding file to vector store...');
-      const vectorStoreFile = await openai.vectorStores.files.create(
+      // Step 4: Add file to vector store using file_batches (Python equivalent)
+      console.log('Adding file to vector store using file_batches...');
+      const fileBatch = await openai.vectorStores.fileBatches.createAndPoll(
         vectorStore.id,
         {
-          file_id: uploadedFile.id
+          file_ids: [uploadedFile.id]
         }
       );
       
-      console.log(`File added to vector store: ${vectorStoreFile.id}`);
+      console.log(`File batch created and processed: ${fileBatch.id}, status: ${fileBatch.status}`);
       
-      // Step 5: Wait for embedding processing
-      console.log(`About to wait for embedding completion with vectorStore.id: ${vectorStore.id} and uploadedFile.id: ${uploadedFile.id}`);
-      await this.waitForEmbeddingCompletion(vectorStore.id, uploadedFile.id);
-      
-      // Step 6: Update document status to completed
-      await storage.updateDocument(documentId, {
-        analysisStatus: 'completed',
-        analysisResult: JSON.stringify({
-          openai_file_id: uploadedFile.id,
-          vector_store_id: vectorStore.id,
-          vector_store_file_id: vectorStoreFile.id,
-          status: 'processed'
-        })
-      });
+      // Step 5: Check final status and update document
+      if (fileBatch.status === 'completed') {
+        await storage.updateDocument(documentId, {
+          analysisStatus: 'completed',
+          analysisResult: JSON.stringify({
+            openai_file_id: uploadedFile.id,
+            vector_store_id: vectorStore.id,
+            file_batch_id: fileBatch.id,
+            status: 'processed'
+          })
+        });
+      } else {
+        throw new Error(`File batch processing failed with status: ${fileBatch.status}`);
+      }
       
       console.log(`AI preparation completed for document ${documentId}`);
       
@@ -151,57 +151,7 @@ export class PrepareAIService {
     }
   }
   
-  /**
-   * Wait for embedding processing to complete
-   */
-  private async waitForEmbeddingCompletion(vectorStoreId: string, fileId: string): Promise<void> {
-    console.log(`Waiting for embedding completion for file ${fileId} in vector store ${vectorStoreId}`);
-    console.log(`Debug: vectorStoreId type: ${typeof vectorStoreId}, value: ${vectorStoreId}`);
-    console.log(`Debug: fileId type: ${typeof fileId}, value: ${fileId}`);
-    
-    if (!vectorStoreId || !fileId) {
-      throw new Error(`Invalid parameters: vectorStoreId=${vectorStoreId}, fileId=${fileId}`);
-    }
-    
-    const maxAttempts = 60; // 2 minutes max
-    const delayMs = 2000; // 2 seconds between checks
-    
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        // Check the status of the file in the vector store
-        // The fileId here should be the original uploaded file ID, not the vector store file ID
-        console.log(`Debug attempt ${attempt}: About to call openai.vectorStores.files.retrieve(${vectorStoreId}, ${fileId})`);
-        const fileStatus = await openai.vectorStores.files.retrieve(vectorStoreId, fileId);
-        
-        console.log(`Embedding status (attempt ${attempt}): ${fileStatus.status}`);
-        
-        if (fileStatus.status === 'completed') {
-          console.log('Embedding processing completed successfully');
-          return;
-        }
-        
-        if (fileStatus.status === 'failed') {
-          throw new Error(`Embedding processing failed: ${fileStatus.last_error?.message || 'Unknown error'}`);
-        }
-        
-        // Wait before next attempt
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-        
-      } catch (error) {
-        console.error(`Error checking embedding status (attempt ${attempt}):`, error);
-        
-        // If this is the last attempt, throw the error
-        if (attempt === maxAttempts) {
-          throw new Error(`Embedding processing timeout: ${error.message}`);
-        }
-        
-        // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
-    }
-    
-    throw new Error('Embedding processing timeout - maximum attempts reached');
-  }
+
 }
 
 export const prepareAIService = new PrepareAIService();
