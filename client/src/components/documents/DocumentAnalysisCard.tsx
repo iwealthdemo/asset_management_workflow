@@ -195,6 +195,8 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -230,7 +232,8 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                 onClick={() => getInsightsMutation.mutate()}
                 disabled={getInsightsMutation.isPending}
                 size="sm"
-                variant="secondary"
+                variant="default"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Brain className="h-4 w-4 mr-1" />
                 {getInsightsMutation.isPending ? 'Analyzing...' : 'Get Insights'}
