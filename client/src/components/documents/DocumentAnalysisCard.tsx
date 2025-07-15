@@ -225,7 +225,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                 {prepareForAIMutation.isPending ? 'Preparing...' : 'Prepare for AI'}
               </Button>
             )}
-            {document.analysisStatus === 'completed' && analysis && (
+            {document.analysisStatus === 'completed' && (
               <Button 
                 onClick={() => getInsightsMutation.mutate()}
                 disabled={getInsightsMutation.isPending}
