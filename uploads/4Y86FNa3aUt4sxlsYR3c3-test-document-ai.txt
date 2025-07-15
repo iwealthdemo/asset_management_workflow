@@ -1,0 +1,21 @@
+
+TEST DOCUMENT FOR AI PREPARATION
+=====================================
+
+Company: Test Company AI Prep
+Investment Amount: $1,000,000
+Expected Return: 15%
+Risk Level: Medium
+
+Financial Highlights:
+- Revenue: $50M annually
+- Profit Margin: 12%
+- Growth Rate: 25% YoY
+- Market Cap: $500M
+
+Risk Factors:
+- Market volatility
+- Regulatory changes
+- Competition
+
+Recommendation: APPROVE with conditions
