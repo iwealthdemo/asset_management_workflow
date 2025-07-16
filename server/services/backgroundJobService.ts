@@ -22,12 +22,7 @@ export class BackgroundJobService {
     const [job] = await db
       .select()
       .from(backgroundJobs)
-      .where(
-        and(
-          eq(backgroundJobs.status, 'pending'),
-          eq(backgroundJobs.attempts, 0) // Start with jobs that haven't been attempted yet
-        )
-      )
+      .where(eq(backgroundJobs.status, 'pending'))
       .orderBy(backgroundJobs.priority, backgroundJobs.createdAt)
       .limit(1);
     
@@ -181,6 +176,15 @@ export class BackgroundJobService {
     if (!result.success) {
       throw new Error(result.error || 'Failed to prepare document for AI');
     }
+    
+    // Update document analysis status to completed
+    await db
+      .update(documents)
+      .set({
+        analysisStatus: 'completed',
+        analyzedAt: new Date()
+      })
+      .where(eq(documents.id, job.documentId));
   }
 
   /**
