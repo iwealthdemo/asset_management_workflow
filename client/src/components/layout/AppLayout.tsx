@@ -64,17 +64,25 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const unreadNotifications = notifications.filter((n: any) => !n.isRead).length;
 
-  const navigationItems = [
-    { href: "/", label: "Dashboard", icon: Home },
-    { href: "/new-investment", label: "New Investment", icon: PlusCircle },
-    { href: "/cash-requests", label: "Cash Requests", icon: DollarSign },
-    { href: "/my-tasks", label: "My Tasks", icon: CheckSquare, badge: taskCount },
-    { href: "/investments", label: "My Investments", icon: Briefcase },
-    { href: "/document-analytics", label: "Document Analytics", icon: Brain },
-    { href: "/vector-store", label: "Vector Store", icon: Database },
-    { href: "/templates", label: "Templates", icon: FileText },
-    { href: "/sla-monitoring", label: "SLA Monitoring", icon: BarChart3 },
+  // Define all available navigation items with role restrictions
+  const allNavigationItems = [
+    { href: "/", label: "Dashboard", icon: Home, roles: ["all"] },
+    { href: "/new-investment", label: "New Investment", icon: PlusCircle, roles: ["analyst", "admin"] },
+    { href: "/cash-requests", label: "Cash Requests", icon: DollarSign, roles: ["analyst", "admin"] },
+    { href: "/my-tasks", label: "My Tasks", icon: CheckSquare, badge: taskCount, roles: ["all"] },
+    { href: "/investments", label: "My Investments", icon: Briefcase, roles: ["all"] },
+    { href: "/document-analytics", label: "Document Analytics", icon: Brain, roles: [] }, // Remove for all roles
+    { href: "/vector-store", label: "Vector Store", icon: Database, roles: [] }, // Remove for all roles
+    { href: "/templates", label: "Templates", icon: FileText, roles: ["analyst", "admin"] },
+    { href: "/sla-monitoring", label: "SLA Monitoring", icon: BarChart3, roles: ["all"] },
   ];
+
+  // Filter navigation items based on user role
+  const navigationItems = allNavigationItems.filter(item => {
+    if (item.roles.includes("all")) return true;
+    if (!user?.role) return false;
+    return item.roles.includes(user.role);
+  });
 
   const adminItems = [
     { href: "/user-management", label: "User Management", icon: Users },
