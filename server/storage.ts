@@ -1,10 +1,11 @@
 import { 
   users, investmentRequests, cashRequests, approvals, tasks, documents, 
-  notifications, templates, auditLogs, approvalWorkflows,
+  notifications, templates, auditLogs, approvalWorkflows, backgroundJobs,
   type User, type InsertUser, type InvestmentRequest, type InsertInvestmentRequest,
   type CashRequest, type InsertCashRequest, type Approval, type InsertApproval,
   type Task, type InsertTask, type Document, type InsertDocument,
-  type Notification, type InsertNotification, type Template, type InsertTemplate
+  type Notification, type InsertNotification, type Template, type InsertTemplate,
+  type BackgroundJob, type InsertBackgroundJob
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sql } from "drizzle-orm";
@@ -80,6 +81,12 @@ export interface IStorage {
     createdAt: Date;
     requester: { firstName: string; lastName: string };
   }>>;
+  
+  // Background job operations
+  createBackgroundJob(job: InsertBackgroundJob): Promise<BackgroundJob>;
+  getBackgroundJobsByDocument(documentId: number): Promise<BackgroundJob[]>;
+  getBackgroundJob(id: number): Promise<BackgroundJob | undefined>;
+  updateBackgroundJob(id: number, job: Partial<InsertBackgroundJob>): Promise<BackgroundJob>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -396,6 +403,37 @@ export class DatabaseStorage implements IStorage {
       console.error('Error in getRecentRequests:', error);
       return [];
     }
+  }
+
+  // Background job operations
+  async createBackgroundJob(job: InsertBackgroundJob): Promise<BackgroundJob> {
+    const [created] = await db.insert(backgroundJobs).values(job).returning();
+    return created;
+  }
+
+  async getBackgroundJobsByDocument(documentId: number): Promise<BackgroundJob[]> {
+    return await db
+      .select()
+      .from(backgroundJobs)
+      .where(eq(backgroundJobs.documentId, documentId))
+      .orderBy(desc(backgroundJobs.createdAt));
+  }
+
+  async getBackgroundJob(id: number): Promise<BackgroundJob | undefined> {
+    const [job] = await db
+      .select()
+      .from(backgroundJobs)
+      .where(eq(backgroundJobs.id, id));
+    return job || undefined;
+  }
+
+  async updateBackgroundJob(id: number, job: Partial<InsertBackgroundJob>): Promise<BackgroundJob> {
+    const [updated] = await db
+      .update(backgroundJobs)
+      .set(job)
+      .where(eq(backgroundJobs.id, id))
+      .returning();
+    return updated;
   }
 }
 
