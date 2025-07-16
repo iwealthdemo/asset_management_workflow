@@ -78,8 +78,19 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
       const response = await apiRequest('GET', `/api/documents/${document.id}/job-status`);
       return response.json();
     },
-    refetchInterval: document.analysisStatus === 'processing' ? 5000 : false, // Poll every 5 seconds if processing
+    refetchInterval: 5000, // Poll every 5 seconds to catch job completion
   });
+
+  // Watch for job completion and invalidate caches
+  React.useEffect(() => {
+    if (jobStatus?.hasJob && jobStatus.job.status === 'completed' && document.analysisStatus !== 'completed') {
+      // Job completed but document status not updated in cache - invalidate to refresh
+      queryClient.invalidateQueries({ queryKey: ['all-documents'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/${requestType}/${requestId}`] });
+      queryClient.invalidateQueries({ queryKey: ['documents', requestType, requestId] });
+      queryClient.invalidateQueries({ queryKey: ['document-analysis', document.id] });
+    }
+  }, [jobStatus, document.analysisStatus, queryClient, requestType, requestId, document.id]);
 
   // Auto-fetch insights if document is completed and background job was successful
   React.useEffect(() => {
