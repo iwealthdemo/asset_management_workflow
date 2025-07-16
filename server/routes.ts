@@ -571,6 +571,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/documents/:id/job-status', authMiddleware, async (req, res) => {
     try {
       const documentId = parseInt(req.params.id);
+      
+      if (isNaN(documentId)) {
+        return res.status(400).json({ message: 'Invalid document ID' });
+      }
+      
       const jobs = await storage.getBackgroundJobsByDocument(documentId);
       
       if (jobs.length === 0) {
@@ -592,8 +597,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
     } catch (error) {
-      console.error('Error getting job status:', error);
-      res.status(500).json({ message: 'Internal server error' });
+      console.error('Error getting job status for document', req.params.id, ':', error);
+      res.status(500).json({ 
+        message: 'Internal server error',
+        error: error.message 
+      });
     }
   });
 

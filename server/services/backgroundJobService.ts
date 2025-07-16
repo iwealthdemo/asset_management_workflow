@@ -139,7 +139,7 @@ export class BackgroundJobService {
     // Import and use the prepare AI service
     const { prepareAIService } = await import('./prepareAIService');
     
-    // Process with existing prepare AI service
+    // Process with existing prepare AI service - correct method name
     const filePath = path.join(process.cwd(), 'uploads', document.fileName);
     const result = await prepareAIService.prepareDocumentForAI(document.id, filePath, document.originalName);
     
