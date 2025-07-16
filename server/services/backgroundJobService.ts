@@ -1,7 +1,6 @@
 import { db } from '../db';
 import { backgroundJobs, documents, type BackgroundJob, type InsertBackgroundJob } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
-import { prepareAIService } from './prepareAIService';
 
 export class BackgroundJobService {
   /**
@@ -136,8 +135,11 @@ export class BackgroundJobService {
       throw new Error(`Document not found: ${job.documentId}`);
     }
 
+    // Import and use the prepare AI service
+    const { prepareAIService } = await import('./prepareAIService');
+    
     // Process with existing prepare AI service
-    const result = await prepareAIService.prepareDocument(document);
+    const result = await prepareAIService.prepareForAI(document.id);
     
     if (!result.success) {
       throw new Error(result.error || 'Failed to prepare document for AI');

@@ -567,6 +567,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get job status for a document
+  app.get('/api/documents/:id/job-status', authMiddleware, async (req, res) => {
+    try {
+      const documentId = parseInt(req.params.id);
+      const jobs = await storage.getBackgroundJobsByDocument(documentId);
+      
+      if (jobs.length === 0) {
+        return res.json({ hasJob: false });
+      }
+      
+      // Get the most recent job
+      const latestJob = jobs[0];
+      
+      res.json({
+        hasJob: true,
+        job: {
+          id: latestJob.id,
+          status: latestJob.status,
+          jobType: latestJob.jobType,
+          createdAt: latestJob.createdAt,
+          completedAt: latestJob.completedAt,
+          errorMessage: latestJob.errorMessage
+        }
+      });
+    } catch (error) {
+      console.error('Error getting job status:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Document AI insights route - Stage 3: Get insights from vector store
   app.post('/api/documents/:documentId/get-insights', authMiddleware, async (req, res) => {
     try {
