@@ -371,10 +371,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Document uploaded successfully - manual analysis trigger will be available in UI
         console.log(`Document uploaded successfully: ${document.fileName} (ID: ${document.id})`);
         
-        // Phase 2: Queue background job for analysts (they create proposals and upload documents)
+        // Queue background job for all users (analysts and managers)
         const currentUser = await storage.getUser(req.userId!);
-        if (currentUser && currentUser.role === 'analyst') {
-          console.log(`Queueing background AI preparation for analyst: ${document.fileName}`);
+        if (currentUser) {
+          console.log(`Queueing background AI preparation for ${currentUser.role}: ${document.fileName}`);
           await backgroundJobService.addJob({
             jobType: 'prepare-ai',
             documentId: document.id,
