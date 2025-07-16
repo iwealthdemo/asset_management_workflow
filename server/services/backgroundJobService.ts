@@ -150,7 +150,7 @@ export class BackgroundJobService {
   async startJobProcessor(): Promise<void> {
     console.log('Starting background job processor...');
     
-    // Process jobs every 10 seconds
+    // Process jobs every 30 seconds (increased for large document processing)
     setInterval(async () => {
       try {
         const job = await this.getNextPendingJob();
@@ -160,7 +160,7 @@ export class BackgroundJobService {
       } catch (error) {
         console.error('Error in job processor:', error);
       }
-    }, 10000); // 10 seconds
+    }, 30000); // 30 seconds
   }
 
   /**

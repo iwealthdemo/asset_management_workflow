@@ -12,9 +12,10 @@ Complete implementation and testing of hybrid background job system for document
 
 ### Technical Implementation
 - **Database**: `background_jobs` table with proper schema
-- **Processing**: Sequential job processing with 10-second polling interval
+- **Processing**: Sequential job processing with 30-second polling interval
 - **Retry Logic**: Up to 3 attempts with exponential backoff
-- **Priority System**: High priority for managers, standard for analysts
+- **Priority System**: High priority for analysts, on-demand for managers
+- **Auto-Insights**: Completed background jobs automatically show insights to managers
 
 ## Test Results
 
@@ -85,7 +86,7 @@ Complete implementation and testing of hybrid background job system for document
 ### Processing Times
 - **Prepare AI**: ~1-2 seconds (document already in vector store)
 - **Get Insights**: ~15-20 seconds (AI processing time)
-- **Background Job**: Processes within 10-second polling cycle
+- **Background Job**: Processes within 30-second polling cycle (increased for large documents)
 
 ### Error Handling
 - **Failed Jobs**: Retry up to 3 times with exponential backoff
@@ -100,9 +101,10 @@ Complete implementation and testing of hybrid background job system for document
 - Background processing provides seamless experience
 
 ### For Managers/Approvers
-- Manual "Prepare for AI" buttons for on-demand document analysis
-- Full control over when to analyze documents during approval process
-- Can analyze documents when needed for approval decisions
+- Automatic insights display if analyst's background job succeeded
+- Manual "Prepare for AI" buttons only shown if background job failed
+- Full control over additional analysis during approval process
+- Seamless experience with pre-processed documents
 
 ### For All Users
 - Fallback manual triggers if background jobs fail

@@ -71,6 +71,24 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Query to check background job status
+  const { data: jobStatus } = useQuery({
+    queryKey: ['job-status', document.id],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/documents/${document.id}/job-status`);
+      return response.json();
+    },
+    refetchInterval: document.analysisStatus === 'processing' ? 5000 : false, // Poll every 5 seconds if processing
+  });
+
+  // Auto-fetch insights if document is completed and background job was successful
+  React.useEffect(() => {
+    if (document.analysisStatus === 'completed' && !insights && jobStatus && jobStatus.hasJob && jobStatus.job.status === 'completed') {
+      // Automatically get insights for completed background jobs
+      getInsightsMutation.mutate();
+    }
+  }, [document.analysisStatus, jobStatus, insights]);
+
   // Manual document AI preparation mutation
   const prepareForAIMutation = useMutation({
     mutationFn: async () => {
@@ -218,7 +236,8 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
               {document.analysisStatus === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
               {document.analysisStatus.charAt(0).toUpperCase() + document.analysisStatus.slice(1)}
             </Badge>
-            {document.analysisStatus === 'pending' && (
+            {/* Show manual trigger only if no background job exists or if background job failed */}
+            {document.analysisStatus === 'pending' && (!jobStatus?.hasJob || jobStatus?.job?.status === 'failed') && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -237,7 +256,21 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                 </Tooltip>
               </TooltipProvider>
             )}
-            {document.analysisStatus === 'completed' && (
+            {/* Show background job status if it exists */}
+            {jobStatus?.hasJob && jobStatus.job.status === 'pending' && (
+              <Badge variant="outline" className="text-xs">
+                <Clock className="h-3 w-3 mr-1" />
+                Queued
+              </Badge>
+            )}
+            {jobStatus?.hasJob && jobStatus.job.status === 'processing' && (
+              <Badge variant="outline" className="text-xs">
+                <Clock className="h-3 w-3 mr-1" />
+                Processing
+              </Badge>
+            )}
+            {/* Show manual insights trigger only if no automatic insights were generated */}
+            {document.analysisStatus === 'completed' && !insights && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
