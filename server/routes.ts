@@ -11,8 +11,8 @@ import { vectorStoreService } from "./services/vectorStoreService";
 import { backgroundJobService } from "./services/backgroundJobService";
 import { fileUpload } from "./utils/fileUpload";
 import { db } from "./db";
-import { insertInvestmentRequestSchema, insertCashRequestSchema, insertUserSchema, documents } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { insertInvestmentRequestSchema, insertCashRequestSchema, insertUserSchema, documents, backgroundJobs } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import path from "path";
 import fs from "fs";
@@ -500,17 +500,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+
   // Check document background job status
   app.get('/api/documents/:documentId/job-status', authMiddleware, async (req, res) => {
     try {
       const { documentId } = req.params;
-      const { backgroundJobService } = await import('./services/backgroundJobService');
-      const job = await backgroundJobService.getDocumentJob(parseInt(documentId));
+      
+      // Direct database query to bypass storage method issue
+      const jobs = await db
+        .select()
+        .from(backgroundJobs)
+        .where(eq(backgroundJobs.documentId, parseInt(documentId)))
+        .orderBy(desc(backgroundJobs.createdAt));
+      
+      if (jobs.length === 0) {
+        return res.json({ hasJob: false });
+      }
+      
+      // Get the most recent job
+      const latestJob = jobs[0];
       
       res.json({
-        hasJob: !!job,
-        job: job,
-        needsManualTrigger: !job || job.status === 'failed'
+        hasJob: true,
+        job: {
+          id: latestJob.id,
+          status: latestJob.status,
+          jobType: latestJob.jobType,
+          createdAt: latestJob.createdAt,
+          completedAt: latestJob.completedAt,
+          errorMessage: latestJob.errorMessage
+        },
+        needsManualTrigger: !latestJob || latestJob.status === 'failed'
       });
     } catch (error) {
       console.error('Job status error:', error);
@@ -567,43 +588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get job status for a document
-  app.get('/api/documents/:id/job-status', authMiddleware, async (req, res) => {
-    try {
-      const documentId = parseInt(req.params.id);
-      
-      if (isNaN(documentId)) {
-        return res.status(400).json({ message: 'Invalid document ID' });
-      }
-      
-      const jobs = await storage.getBackgroundJobsByDocument(documentId);
-      
-      if (jobs.length === 0) {
-        return res.json({ hasJob: false });
-      }
-      
-      // Get the most recent job
-      const latestJob = jobs[0];
-      
-      res.json({
-        hasJob: true,
-        job: {
-          id: latestJob.id,
-          status: latestJob.status,
-          jobType: latestJob.jobType,
-          createdAt: latestJob.createdAt,
-          completedAt: latestJob.completedAt,
-          errorMessage: latestJob.errorMessage
-        }
-      });
-    } catch (error) {
-      console.error('Error getting job status for document', req.params.id, ':', error);
-      res.status(500).json({ 
-        message: 'Internal server error',
-        error: error.message 
-      });
-    }
-  });
+
 
   // Document AI insights route - Stage 3: Get insights from vector store
   app.post('/api/documents/:documentId/get-insights', authMiddleware, async (req, res) => {
