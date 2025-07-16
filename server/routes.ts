@@ -490,28 +490,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/documents/:requestType/:requestId', authMiddleware, async (req, res) => {
-    try {
-      const { requestType, requestId } = req.params;
-      const documents = await storage.getDocumentsByRequest(requestType, parseInt(requestId));
-      res.json(documents);
-    } catch (error) {
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-
-
-
-  // Check document background job status
+  // Check document background job status (must come before the general :requestType/:requestId route)
   app.get('/api/documents/:documentId/job-status', authMiddleware, async (req, res) => {
     try {
       const { documentId } = req.params;
+      
+      // Validate that documentId is a valid integer
+      const docId = parseInt(documentId);
+      if (isNaN(docId)) {
+        return res.status(400).json({ message: 'Invalid document ID' });
+      }
       
       // Direct database query to bypass storage method issue
       const jobs = await db
         .select()
         .from(backgroundJobs)
-        .where(eq(backgroundJobs.documentId, parseInt(documentId)))
+        .where(eq(backgroundJobs.documentId, docId))
         .orderBy(desc(backgroundJobs.createdAt));
       
       if (jobs.length === 0) {
@@ -535,6 +529,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Job status error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/documents/:requestType/:requestId', authMiddleware, async (req, res) => {
+    try {
+      const { requestType, requestId } = req.params;
+      const documents = await storage.getDocumentsByRequest(requestType, parseInt(requestId));
+      res.json(documents);
+    } catch (error) {
       res.status(500).json({ message: 'Internal server error' });
     }
   });
