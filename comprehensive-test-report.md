@@ -6,8 +6,8 @@ Complete implementation and testing of hybrid background job system for document
 ## System Architecture
 
 ### Hybrid Background Job System
-- **Managers/Senior Roles**: Automatic background job queuing when documents are uploaded
-- **Analysts**: Manual "Prepare for AI" triggers for full control
+- **Analysts**: Automatic background job queuing when they upload documents (create proposals)
+- **Managers/Approvers**: Manual "Prepare for AI" triggers for on-demand analysis during approval
 - **Fallback**: Manual triggers available for failed background jobs
 
 ### Technical Implementation
@@ -94,15 +94,15 @@ Complete implementation and testing of hybrid background job system for document
 
 ## User Experience
 
-### For Managers
-- Documents automatically queued for processing
-- No manual intervention required
+### For Analysts (Proposal Creators)
+- Documents automatically queued for processing when uploaded
+- No manual intervention required during proposal creation
 - Background processing provides seamless experience
 
-### For Analysts
-- Full control over document processing
-- Manual "Prepare for AI" buttons for each document
-- Maintains existing workflow patterns
+### For Managers/Approvers
+- Manual "Prepare for AI" buttons for on-demand document analysis
+- Full control over when to analyze documents during approval process
+- Can analyze documents when needed for approval decisions
 
 ### For All Users
 - Fallback manual triggers if background jobs fail
