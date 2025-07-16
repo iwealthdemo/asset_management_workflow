@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { backgroundJobs, documents, type BackgroundJob, type InsertBackgroundJob } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
+import path from 'path';
 
 export class BackgroundJobService {
   /**
@@ -139,7 +140,8 @@ export class BackgroundJobService {
     const { prepareAIService } = await import('./prepareAIService');
     
     // Process with existing prepare AI service
-    const result = await prepareAIService.prepareForAI(document.id);
+    const filePath = path.join(process.cwd(), 'uploads', document.fileName);
+    const result = await prepareAIService.prepareDocumentForAI(document.id, filePath, document.originalName);
     
     if (!result.success) {
       throw new Error(result.error || 'Failed to prepare document for AI');
