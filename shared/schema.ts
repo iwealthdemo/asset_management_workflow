@@ -153,6 +153,10 @@ export const backgroundJobs = pgTable("background_jobs", {
   id: serial("id").primaryKey(),
   jobType: varchar("job_type", { length: 50 }).notNull(),
   status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, processing, completed, failed
+  currentStep: varchar("current_step", { length: 50 }).default("queued"), // queued, preparing, uploading, analyzing, generating_summary, generating_insights, completed
+  stepProgress: integer("step_progress").default(0), // 0-100 percentage for current step
+  totalSteps: integer("total_steps").default(4), // Total number of steps in the process
+  currentStepNumber: integer("current_step_number").default(0), // Current step number (0-based)
   documentId: integer("document_id").references(() => documents.id),
   requestType: varchar("request_type", { length: 50 }),
   requestId: integer("request_id"),

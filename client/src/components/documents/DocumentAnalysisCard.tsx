@@ -214,6 +214,19 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const getStepDisplayText = (step: string) => {
+    switch (step) {
+      case 'queued': return 'Queued';
+      case 'preparing': return 'Preparing for AI analysis';
+      case 'uploading': return 'Uploading to vector store';
+      case 'analyzing': return 'Analyzing document';
+      case 'generating_summary': return 'Generating summary';
+      case 'generating_insights': return 'Generating insights';
+      case 'completed': return 'Completed';
+      default: return 'Processing';
+    }
+  };
+
 
 
   return (
@@ -266,7 +279,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
             {jobStatus?.hasJob && jobStatus.job.status === 'processing' && (
               <Badge variant="outline" className="text-xs">
                 <Clock className="h-3 w-3 mr-1" />
-                Processing
+                {getStepDisplayText(jobStatus.job.currentStep)}
               </Badge>
             )}
             {/* Show manual insights trigger only if no automatic insights were generated */}
@@ -296,13 +309,29 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
 
       <CardContent className="space-y-4">
         {/* Analysis Progress */}
-        {document.analysisStatus === 'processing' && (
+        {(document.analysisStatus === 'processing' || (jobStatus?.hasJob && jobStatus.job.status === 'processing')) && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span>Analyzing document...</span>
-              <span>Processing</span>
+              <span>
+                {jobStatus?.hasJob && jobStatus.job.currentStep 
+                  ? getStepDisplayText(jobStatus.job.currentStep)
+                  : 'Analyzing document...'
+                }
+              </span>
+              <span>
+                {jobStatus?.hasJob && jobStatus.job.currentStepNumber 
+                  ? `${jobStatus.job.currentStepNumber}/${jobStatus.job.totalSteps}`
+                  : 'Processing'
+                }
+              </span>
             </div>
-            <Progress value={60} className="h-2" />
+            <Progress 
+              value={jobStatus?.hasJob && jobStatus.job.stepProgress 
+                ? jobStatus.job.stepProgress 
+                : 60
+              } 
+              className="h-2" 
+            />
           </div>
         )}
 

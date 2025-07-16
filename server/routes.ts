@@ -521,6 +521,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: latestJob.id,
           status: latestJob.status,
           jobType: latestJob.jobType,
+          currentStep: latestJob.currentStep,
+          stepProgress: latestJob.stepProgress,
+          totalSteps: latestJob.totalSteps,
+          currentStepNumber: latestJob.currentStepNumber,
           createdAt: latestJob.createdAt,
           completedAt: latestJob.completedAt,
           errorMessage: latestJob.errorMessage

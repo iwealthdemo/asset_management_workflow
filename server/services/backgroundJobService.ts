@@ -42,8 +42,25 @@ export class BackgroundJobService {
       .update(backgroundJobs)
       .set({
         status: 'processing',
+        currentStep: 'preparing',
+        stepProgress: 0,
+        currentStepNumber: 1,
         startedAt: new Date(),
         attempts: 1
+      })
+      .where(eq(backgroundJobs.id, jobId));
+  }
+
+  /**
+   * Update job progress with current step
+   */
+  async updateJobProgress(jobId: number, step: string, stepNumber: number, progress: number = 0): Promise<void> {
+    await db
+      .update(backgroundJobs)
+      .set({
+        currentStep: step,
+        currentStepNumber: stepNumber,
+        stepProgress: progress
       })
       .where(eq(backgroundJobs.id, jobId));
   }
@@ -56,6 +73,9 @@ export class BackgroundJobService {
       .update(backgroundJobs)
       .set({
         status: 'completed',
+        currentStep: 'completed',
+        stepProgress: 100,
+        currentStepNumber: 4,
         completedAt: new Date(),
         result: result
       })
@@ -136,12 +156,27 @@ export class BackgroundJobService {
       throw new Error(`Document not found: ${job.documentId}`);
     }
 
+    console.log(`Starting AI preparation for document ${job.documentId}: ${document.fileName}`);
+    
+    // Step 1: Preparing for AI analysis
+    await this.updateJobProgress(job.id, 'preparing', 1, 25);
+    
+    const filePath = path.join(process.cwd(), 'uploads', document.fileName);
+    
+    // Step 2: Uploading to vector store
+    await this.updateJobProgress(job.id, 'uploading', 2, 50);
+    
     // Import and use the prepare AI service
     const { prepareAIService } = await import('./prepareAIService');
+    const result = await prepareAIService.prepareDocumentForAI(job.documentId, filePath, document.fileName);
     
-    // Process with existing prepare AI service - correct method name
-    const filePath = path.join(process.cwd(), 'uploads', document.fileName);
-    const result = await prepareAIService.prepareDocumentForAI(document.id, filePath, document.originalName);
+    // Step 3: Generating summary
+    await this.updateJobProgress(job.id, 'generating_summary', 3, 75);
+    
+    // Step 4: Generating insights
+    await this.updateJobProgress(job.id, 'generating_insights', 4, 90);
+    
+    console.log(`AI preparation completed for document ${job.documentId}`);
     
     if (!result.success) {
       throw new Error(result.error || 'Failed to prepare document for AI');
