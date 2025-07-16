@@ -381,8 +381,9 @@ function TaskCard({
         });
       }
       
-      // Refresh the task data to update button states
+      // Refresh the task data and documents to update button states
       queryClient.invalidateQueries({ queryKey: ['/api/tasks/my-tasks'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/${task.requestType}/${task.requestId}`] });
       
     } catch (error) {
       console.error('AI preparation failed:', error);
