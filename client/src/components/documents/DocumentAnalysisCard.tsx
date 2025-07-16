@@ -247,7 +247,10 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
               {document.analysisStatus === 'processing' && <Clock className="h-3 w-3 mr-1" />}
               {document.analysisStatus === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
               {document.analysisStatus === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
-              {document.analysisStatus.charAt(0).toUpperCase() + document.analysisStatus.slice(1)}
+              {document.analysisStatus === 'processing' && (jobStatus?.hasJob && jobStatus.job.status === 'completed') 
+                ? 'Processed' 
+                : document.analysisStatus.charAt(0).toUpperCase() + document.analysisStatus.slice(1)
+              }
             </Badge>
             {/* Show manual trigger only if no background job exists or if background job failed */}
             {document.analysisStatus === 'pending' && (!jobStatus?.hasJob || jobStatus?.job?.status === 'failed') && (
@@ -282,6 +285,12 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                 {getStepDisplayText(jobStatus.job.currentStep)}
               </Badge>
             )}
+            {jobStatus?.hasJob && jobStatus.job.status === 'completed' && (
+              <Badge variant="outline" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Processed
+              </Badge>
+            )}
             {/* Show manual insights trigger only if no automatic insights were generated */}
             {document.analysisStatus === 'completed' && !insights && (
               <TooltipProvider>
@@ -309,25 +318,25 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
 
       <CardContent className="space-y-4">
         {/* Analysis Progress */}
-        {(document.analysisStatus === 'processing' || (jobStatus?.hasJob && jobStatus.job.status === 'processing')) && (
+        {(document.analysisStatus === 'processing' || (jobStatus?.hasJob && (jobStatus.job.status === 'processing' || jobStatus.job.status === 'completed'))) && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span>
                 {jobStatus?.hasJob && jobStatus.job.currentStep 
-                  ? getStepDisplayText(jobStatus.job.currentStep)
+                  ? (jobStatus.job.status === 'completed' ? 'Completed' : getStepDisplayText(jobStatus.job.currentStep))
                   : 'Analyzing document...'
                 }
               </span>
               <span>
                 {jobStatus?.hasJob && jobStatus.job.currentStepNumber 
-                  ? `${jobStatus.job.currentStepNumber}/${jobStatus.job.totalSteps}`
+                  ? `${jobStatus.job.status === 'completed' ? jobStatus.job.totalSteps : jobStatus.job.currentStepNumber}/${jobStatus.job.totalSteps}`
                   : 'Processing'
                 }
               </span>
             </div>
             <Progress 
               value={jobStatus?.hasJob && jobStatus.job.stepProgress 
-                ? jobStatus.job.stepProgress 
+                ? (jobStatus.job.status === 'completed' ? 100 : jobStatus.job.stepProgress)
                 : 60
               } 
               className="h-2" 
