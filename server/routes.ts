@@ -504,6 +504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/documents/:documentId/job-status', authMiddleware, async (req, res) => {
     try {
       const { documentId } = req.params;
+      const { backgroundJobService } = await import('./services/backgroundJobService');
       const job = await backgroundJobService.getDocumentJob(parseInt(documentId));
       
       res.json({
@@ -512,6 +513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         needsManualTrigger: !job || job.status === 'failed'
       });
     } catch (error) {
+      console.error('Job status error:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
