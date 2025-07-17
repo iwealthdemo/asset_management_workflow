@@ -154,6 +154,48 @@ export class GetInsightsService {
       };
     }
   }
+
+  async processCustomQuery(documentId: number, query: string): Promise<{ success: boolean; answer?: string; error?: string }> {
+    try {
+      console.log(`Processing custom query for document ${documentId}: ${query}`);
+      
+      // Get document details
+      const document = await storage.getDocument(documentId);
+      if (!document) {
+        return {
+          success: false,
+          error: 'Document not found'
+        };
+      }
+
+      // Check if document has been analyzed
+      if (document.analysisStatus !== 'completed') {
+        return {
+          success: false,
+          error: 'Document must be analyzed first before querying'
+        };
+      }
+
+      // Create a targeted query that focuses on the specific document
+      const targetedQuery = `Please search through the documents in the vector store and find the document "${document.originalName}" or any document related to "${document.originalName}". Then answer the following question based on that document's content: ${query}`;
+      
+      // Get response from OpenAI
+      const answer = await this.getRawResponse(targetedQuery);
+      console.log('Custom query processed successfully');
+
+      return {
+        success: true,
+        answer
+      };
+
+    } catch (error) {
+      console.error('Error processing custom query:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
 }
 
 export const getInsightsService = new GetInsightsService();

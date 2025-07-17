@@ -631,6 +631,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Document custom query route - allows approvers to ask specific questions
+  app.post('/api/documents/:documentId/custom-query', authMiddleware, async (req, res) => {
+    try {
+      const { documentId } = req.params;
+      const { query } = req.body;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ 
+          error: 'Query is required and must be a string',
+          message: 'Invalid query format' 
+        });
+      }
+      
+      // Import get insights service to reuse vector store functionality
+      const { getInsightsService } = await import('./services/getInsightsService');
+      
+      // Process custom query for the document
+      const result = await getInsightsService.processCustomQuery(parseInt(documentId), query);
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: result.error,
+          message: 'Failed to process custom query' 
+        });
+      }
+      
+      res.json({
+        answer: result.answer,
+        success: true
+      });
+      
+    } catch (error) {
+      console.error('Custom query failed:', error);
+      res.status(500).json({ 
+        error: 'Failed to process custom query',
+        message: error.message 
+      });
+    }
+  });
+
   app.get('/api/documents/:documentId/analysis', authMiddleware, async (req, res) => {
     try {
       const { documentId } = req.params;
