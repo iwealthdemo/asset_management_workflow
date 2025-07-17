@@ -91,7 +91,7 @@ export interface IStorage {
 
   // Document query operations
   saveDocumentQuery(query: InsertDocumentQuery): Promise<DocumentQuery>;
-  getDocumentQueries(documentId: number): Promise<DocumentQuery[]>;
+  getDocumentQueries(documentId: number): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -447,26 +447,33 @@ export class DatabaseStorage implements IStorage {
     return saved;
   }
 
-  async getDocumentQueries(documentId: number): Promise<DocumentQuery[]> {
-    return await db
-      .select({
-        id: documentQueries.id,
-        documentId: documentQueries.documentId,
-        userId: documentQueries.userId,
-        query: documentQueries.query,
-        response: documentQueries.response,
-        createdAt: documentQueries.createdAt,
-        user: {
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          username: users.username
-        }
-      })
-      .from(documentQueries)
-      .leftJoin(users, eq(documentQueries.userId, users.id))
-      .where(eq(documentQueries.documentId, documentId))
-      .orderBy(desc(documentQueries.createdAt));
+  async getDocumentQueries(documentId: number): Promise<any[]> {
+    try {
+      const result = await db
+        .select({
+          id: documentQueries.id,
+          documentId: documentQueries.documentId,
+          userId: documentQueries.userId,
+          query: documentQueries.query,
+          response: documentQueries.response,
+          createdAt: documentQueries.createdAt,
+          user: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            username: users.username
+          }
+        })
+        .from(documentQueries)
+        .leftJoin(users, eq(documentQueries.userId, users.id))
+        .where(eq(documentQueries.documentId, documentId))
+        .orderBy(desc(documentQueries.createdAt));
+      
+      return result;
+    } catch (error) {
+      console.error('Error in getDocumentQueries:', error);
+      throw error;
+    }
   }
 }
 

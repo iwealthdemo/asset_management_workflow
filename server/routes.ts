@@ -660,7 +660,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save query and response to database
       await storage.saveDocumentQuery({
         documentId: parseInt(documentId),
-        userId: req.user.id,
+        userId: req.userId!,
         query,
         response: result.answer
       });
@@ -683,11 +683,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/documents/:documentId/queries', authMiddleware, async (req, res) => {
     try {
       const { documentId } = req.params;
+      console.log('Fetching queries for document:', documentId);
       const queries = await storage.getDocumentQueries(parseInt(documentId));
+      console.log('Found queries:', queries.length);
       res.json(queries);
     } catch (error) {
       console.error('Error getting document queries:', error);
-      res.status(500).json({ message: 'Internal server error' });
+      console.error('Error details:', error.message);
+      console.error('Stack trace:', error.stack);
+      res.status(500).json({ message: 'Internal server error', error: error.message });
     }
   });
 
