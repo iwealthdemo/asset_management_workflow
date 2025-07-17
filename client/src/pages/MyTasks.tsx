@@ -120,6 +120,8 @@ export default function MyTasks() {
     },
     onSuccess: (data) => {
       setCustomQueryResult(data.answer);
+      // Refresh the query history after a successful query
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/${customQueryOpen}/queries`] });
       toast({
         title: "Custom Query Complete",
         description: "AI has analyzed the document and provided an answer",

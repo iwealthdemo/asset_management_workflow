@@ -73,6 +73,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
 }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [insights, setInsights] = useState<{summary: string; insights: string} | null>(null);
+  const [showQueryHistory, setShowQueryHistory] = useState(false);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -85,6 +86,12 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
       return response.json();
     },
     refetchInterval: 5000, // Poll every 5 seconds to catch job completion
+  });
+
+  // Query for document queries history
+  const { data: queryHistory } = useQuery({
+    queryKey: [`/api/documents/${document.id}/queries`],
+    enabled: document.analysisStatus === 'completed'
   });
 
   // Watch for job completion and invalidate caches
@@ -462,6 +469,51 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                 <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                   {analysis.summary}
                 </p>
+              </div>
+            )}
+
+            {/* Query History Section */}
+            {queryHistory && queryHistory.length > 0 && (
+              <div className="space-y-4 border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium">Query History</span>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowQueryHistory(!showQueryHistory)}
+                  >
+                    {showQueryHistory ? 'Hide' : 'Show'} ({queryHistory.length})
+                  </Button>
+                </div>
+                
+                {showQueryHistory && (
+                  <div className="space-y-3">
+                    {queryHistory.map((query: any, index: number) => (
+                      <div key={query.id} className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <span>{query.user ? `${query.user.firstName} ${query.user.lastName}` : 'Unknown User'}</span>
+                            <span>•</span>
+                            <span>{new Date(query.createdAt).toLocaleString()}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-sm font-medium">Question:</span>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{query.query}</p>
+                          </div>
+                          <div>
+                            <span className="text-sm font-medium">Answer:</span>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 whitespace-pre-line">{query.response}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

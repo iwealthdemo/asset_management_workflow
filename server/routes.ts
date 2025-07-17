@@ -657,6 +657,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Save query and response to database
+      await storage.saveDocumentQuery({
+        documentId: parseInt(documentId),
+        userId: req.user.id,
+        query,
+        response: result.answer
+      });
+      
       res.json({
         answer: result.answer,
         success: true
@@ -668,6 +676,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'Failed to process custom query',
         message: error.message 
       });
+    }
+  });
+
+  // Get document queries history
+  app.get('/api/documents/:documentId/queries', authMiddleware, async (req, res) => {
+    try {
+      const { documentId } = req.params;
+      const queries = await storage.getDocumentQueries(parseInt(documentId));
+      res.json(queries);
+    } catch (error) {
+      console.error('Error getting document queries:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
   });
 

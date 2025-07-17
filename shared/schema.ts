@@ -170,6 +170,16 @@ export const backgroundJobs = pgTable("background_jobs", {
   completedAt: timestamp("completed_at"),
 });
 
+// Document queries table - stores custom queries and their responses
+export const documentQueries = pgTable("document_queries", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").references(() => documents.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  query: text("query").notNull(),
+  response: text("response").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   investmentRequests: many(investmentRequests),
@@ -180,6 +190,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   notifications: many(notifications),
   auditLogs: many(auditLogs),
   templates: many(templates),
+  documentQueries: many(documentQueries),
 }));
 
 export const investmentRequestsRelations = relations(investmentRequests, ({ one, many }) => ({
@@ -206,8 +217,9 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
   assignee: one(users, { fields: [tasks.assigneeId], references: [users.id] }),
 }));
 
-export const documentsRelations = relations(documents, ({ one }) => ({
+export const documentsRelations = relations(documents, ({ one, many }) => ({
   uploader: one(users, { fields: [documents.uploaderId], references: [users.id] }),
+  queries: many(documentQueries),
 }));
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
@@ -224,6 +236,11 @@ export const templatesRelations = relations(templates, ({ one }) => ({
 
 export const backgroundJobsRelations = relations(backgroundJobs, ({ one }) => ({
   document: one(documents, { fields: [backgroundJobs.documentId], references: [documents.id] }),
+}));
+
+export const documentQueriesRelations = relations(documentQueries, ({ one }) => ({
+  document: one(documents, { fields: [documentQueries.documentId], references: [documents.id] }),
+  user: one(users, { fields: [documentQueries.userId], references: [users.id] }),
 }));
 
 // Zod schemas
@@ -279,6 +296,11 @@ export const insertBackgroundJobSchema = createInsertSchema(backgroundJobs).omit
   completedAt: true,
 });
 
+export const insertDocumentQuerySchema = createInsertSchema(documentQueries).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -298,3 +320,5 @@ export type Template = typeof templates.$inferSelect;
 export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
 export type BackgroundJob = typeof backgroundJobs.$inferSelect;
 export type InsertBackgroundJob = z.infer<typeof insertBackgroundJobSchema>;
+export type DocumentQuery = typeof documentQueries.$inferSelect;
+export type InsertDocumentQuery = z.infer<typeof insertDocumentQuerySchema>;

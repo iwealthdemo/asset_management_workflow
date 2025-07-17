@@ -1,11 +1,12 @@
 import { 
   users, investmentRequests, cashRequests, approvals, tasks, documents, 
   notifications, templates, auditLogs, approvalWorkflows, backgroundJobs,
+  documentQueries,
   type User, type InsertUser, type InvestmentRequest, type InsertInvestmentRequest,
   type CashRequest, type InsertCashRequest, type Approval, type InsertApproval,
   type Task, type InsertTask, type Document, type InsertDocument,
   type Notification, type InsertNotification, type Template, type InsertTemplate,
-  type BackgroundJob, type InsertBackgroundJob
+  type BackgroundJob, type InsertBackgroundJob, type DocumentQuery, type InsertDocumentQuery
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sql } from "drizzle-orm";
@@ -87,6 +88,10 @@ export interface IStorage {
   getBackgroundJobsByDocument(documentId: number): Promise<BackgroundJob[]>;
   getBackgroundJob(id: number): Promise<BackgroundJob | undefined>;
   updateBackgroundJob(id: number, job: Partial<InsertBackgroundJob>): Promise<BackgroundJob>;
+
+  // Document query operations
+  saveDocumentQuery(query: InsertDocumentQuery): Promise<DocumentQuery>;
+  getDocumentQueries(documentId: number): Promise<DocumentQuery[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -434,6 +439,34 @@ export class DatabaseStorage implements IStorage {
       .where(eq(backgroundJobs.id, id))
       .returning();
     return updated;
+  }
+
+  // Document query operations
+  async saveDocumentQuery(query: InsertDocumentQuery): Promise<DocumentQuery> {
+    const [saved] = await db.insert(documentQueries).values(query).returning();
+    return saved;
+  }
+
+  async getDocumentQueries(documentId: number): Promise<DocumentQuery[]> {
+    return await db
+      .select({
+        id: documentQueries.id,
+        documentId: documentQueries.documentId,
+        userId: documentQueries.userId,
+        query: documentQueries.query,
+        response: documentQueries.response,
+        createdAt: documentQueries.createdAt,
+        user: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username
+        }
+      })
+      .from(documentQueries)
+      .leftJoin(users, eq(documentQueries.userId, users.id))
+      .where(eq(documentQueries.documentId, documentId))
+      .orderBy(desc(documentQueries.createdAt));
   }
 }
 
