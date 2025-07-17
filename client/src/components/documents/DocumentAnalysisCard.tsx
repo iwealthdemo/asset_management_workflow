@@ -371,26 +371,26 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Analysis Progress */}
-        {(document.analysisStatus === 'processing' || (jobStatus?.hasJob && (jobStatus.job.status === 'processing' || jobStatus.job.status === 'completed'))) && (
+        {/* Analysis Progress - only during processing */}
+        {(document.analysisStatus === 'processing' || (jobStatus?.hasJob && jobStatus.job.status === 'processing')) && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span>
                 {jobStatus?.hasJob && jobStatus.job.currentStep 
-                  ? (jobStatus.job.status === 'completed' ? 'Completed' : getStepDisplayText(jobStatus.job.currentStep))
+                  ? getStepDisplayText(jobStatus.job.currentStep)
                   : 'Analyzing document...'
                 }
               </span>
               <span>
                 {jobStatus?.hasJob && jobStatus.job.currentStepNumber 
-                  ? `${jobStatus.job.status === 'completed' ? jobStatus.job.totalSteps : jobStatus.job.currentStepNumber}/${jobStatus.job.totalSteps}`
+                  ? `${jobStatus.job.currentStepNumber}/${jobStatus.job.totalSteps}`
                   : 'Processing'
                 }
               </span>
             </div>
             <Progress 
               value={jobStatus?.hasJob && jobStatus.job.stepProgress 
-                ? (jobStatus.job.status === 'completed' ? 100 : jobStatus.job.stepProgress)
+                ? jobStatus.job.stepProgress
                 : 60
               } 
               className="h-2" 
@@ -411,28 +411,6 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
         {/* Analysis Results */}
         {document.analysisStatus === 'completed' && analysis && (
           <div className="space-y-4">
-            {/* Quick Summary */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium">Document Type</span>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">
-                  {analysis.documentType ? analysis.documentType.replace('_', ' ') : 'Unknown'}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium">Confidence</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Progress value={(analysis.confidence || 0) * 100} className="h-2 flex-1" />
-                  <span className="text-sm">{Math.round((analysis.confidence || 0) * 100)}%</span>
-                </div>
-              </div>
-            </div>
 
             {/* Risk Assessment */}
             {analysis.riskAssessment && (
