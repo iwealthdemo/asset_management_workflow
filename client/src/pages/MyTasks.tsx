@@ -153,6 +153,14 @@ export default function MyTasks() {
                   comments={comments}
                   setComments={setComments}
                   onPreview={() => {}}
+                  customQueryOpen={customQueryOpen}
+                  setCustomQueryOpen={setCustomQueryOpen}
+                  customQuery={customQuery}
+                  setCustomQuery={setCustomQuery}
+                  customQueryResult={customQueryResult}
+                  setCustomQueryResult={setCustomQueryResult}
+                  customQueryMutation={customQueryMutation}
+                  handleCustomQuery={handleCustomQuery}
                 />
               ))}
             </div>
@@ -184,6 +192,14 @@ export default function MyTasks() {
                   comments={comments}
                   setComments={setComments}
                   onPreview={() => {}}
+                  customQueryOpen={customQueryOpen}
+                  setCustomQueryOpen={setCustomQueryOpen}
+                  customQuery={customQuery}
+                  setCustomQuery={setCustomQuery}
+                  customQueryResult={customQueryResult}
+                  setCustomQueryResult={setCustomQueryResult}
+                  customQueryMutation={customQueryMutation}
+                  handleCustomQuery={handleCustomQuery}
                 />
               ))
             )}
@@ -205,6 +221,14 @@ export default function MyTasks() {
                   comments={comments}
                   setComments={setComments}
                   onPreview={() => {}}
+                  customQueryOpen={customQueryOpen}
+                  setCustomQueryOpen={setCustomQueryOpen}
+                  customQuery={customQuery}
+                  setCustomQuery={setCustomQuery}
+                  customQueryResult={customQueryResult}
+                  setCustomQueryResult={setCustomQueryResult}
+                  customQueryMutation={customQueryMutation}
+                  handleCustomQuery={handleCustomQuery}
                 />
               ))}
             </div>
@@ -224,7 +248,15 @@ function TaskCard({
   onProcessApproval,
   comments,
   setComments,
-  onPreview
+  onPreview,
+  customQueryOpen,
+  setCustomQueryOpen,
+  customQuery,
+  setCustomQuery,
+  customQueryResult,
+  setCustomQueryResult,
+  customQueryMutation,
+  handleCustomQuery
 }: { 
   task: any; 
   onAction: (task: any) => void;
@@ -233,6 +265,14 @@ function TaskCard({
   comments: string;
   setComments: (comments: string) => void;
   onPreview: (document: any) => void;
+  customQueryOpen: number | null;
+  setCustomQueryOpen: (id: number | null) => void;
+  customQuery: string;
+  setCustomQuery: (query: string) => void;
+  customQueryResult: string | null;
+  setCustomQueryResult: (result: string | null) => void;
+  customQueryMutation: any;
+  handleCustomQuery: (e: React.FormEvent) => void;
 }) {
   const Icon = getTaskIcon(task.taskType);
   const [analyzingDocument, setAnalyzingDocument] = useState<number | null>(null);
@@ -401,37 +441,7 @@ function TaskCard({
     }
   };
 
-  // Custom query mutation
-  const customQueryMutation = useMutation({
-    mutationFn: async ({ documentId, query }: { documentId: number; query: string }) => {
-      const response = await apiRequest('POST', `/api/documents/${documentId}/custom-query`, {
-        query
-      });
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setCustomQueryResult(data.answer);
-      toast({
-        title: "Custom Query Complete",
-        description: "AI has analyzed the document and provided an answer",
-      });
-    },
-    onError: (error) => {
-      console.error('Custom query failed:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process custom query. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
 
-  const handleCustomQuery = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (customQuery.trim() && customQueryOpen) {
-      customQueryMutation.mutate({ documentId: customQueryOpen, query: customQuery });
-    }
-  };
 
   
   return (
