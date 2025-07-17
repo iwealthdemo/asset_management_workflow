@@ -75,6 +75,8 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
 }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [insights, setInsights] = useState<{summary: string; insights: string} | null>(null);
+  const [customQuery, setCustomQuery] = useState('');
+  const [customQueryOpen, setCustomQueryOpen] = useState(false);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -196,7 +198,39 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
     }
   });
 
+  // Custom query mutation
+  const customQueryMutation = useMutation({
+    mutationFn: async (query: string) => {
+      const response = await apiRequest('POST', `/api/documents/${document.id}/custom-query`, {
+        query
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Query Processed",
+        description: "Your custom query has been processed successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/${document.id}/queries`] });
+      setCustomQuery('');
+      setCustomQueryOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to process your query",
+        variant: "destructive",
+      });
+    },
+  });
 
+  // Handle custom query submission
+  const handleCustomQuery = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (customQuery.trim()) {
+      customQueryMutation.mutate(customQuery.trim());
+    }
+  };
 
   // Parse analysis from document.analysisResult if available
   const analysis = React.useMemo(() => {
@@ -505,6 +539,58 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+
+              {/* Custom Query Button */}
+              {document.analysisStatus === 'completed' && (
+                <Dialog open={customQueryOpen} onOpenChange={setCustomQueryOpen}>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ask Custom Question</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <DialogContent className="sm:max-w-[525px]">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <MessageSquare className="h-5 w-5 text-green-600" />
+                        Ask About This Document
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <form onSubmit={handleCustomQuery} className="space-y-4">
+                        <div className="flex gap-2">
+                          <Input
+                            type="text"
+                            placeholder="e.g., What are the key financial highlights?"
+                            value={customQuery}
+                            onChange={(e) => setCustomQuery(e.target.value)}
+                            disabled={customQueryMutation.isPending}
+                            className="flex-1"
+                          />
+                          <Button 
+                            type="submit"
+                            disabled={customQueryMutation.isPending || !customQuery.trim()}
+                          >
+                            {customQueryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </form>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
 
             </div>
 

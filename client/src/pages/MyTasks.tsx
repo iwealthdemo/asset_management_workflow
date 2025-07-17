@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
-import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye, MessageSquare, Send, Loader2 } from "lucide-react";
+import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -19,9 +19,7 @@ export default function MyTasks() {
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
   const [comments, setComments] = useState("");
   // Remove previewDocument state as we're using new tab approach
-  const [customQueryOpen, setCustomQueryOpen] = useState<number | null>(null);
-  const [customQuery, setCustomQuery] = useState("");
-  const [customQueryResult, setCustomQueryResult] = useState<string | null>(null);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -109,41 +107,7 @@ export default function MyTasks() {
     },
   });
 
-  const customQueryMutation = useMutation({
-    mutationFn: async (query: string) => {
-      const documentId = customQueryOpen;
-      if (!documentId) throw new Error('No document selected');
-      
-      const response = await apiRequest("POST", `/api/documents/${documentId}/custom-query`, {
-        query
-      });
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setCustomQueryResult(data.answer);
-      // Refresh the query history after a successful query
-      queryClient.invalidateQueries({ queryKey: [`/api/documents/${customQueryOpen}/queries`] });
-      toast({
-        title: "Custom Query Complete",
-        description: "AI has analyzed the document and provided an answer",
-      });
-    },
-    onError: (error) => {
-      console.error('Custom query failed:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process custom query. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
 
-  const handleCustomQuery = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (customQuery.trim()) {
-      customQueryMutation.mutate(customQuery.trim());
-    }
-  };
 
   if (isLoading) {
     return (
@@ -191,14 +155,6 @@ export default function MyTasks() {
                   comments={comments}
                   setComments={setComments}
                   onPreview={() => {}}
-                  customQueryOpen={customQueryOpen}
-                  setCustomQueryOpen={setCustomQueryOpen}
-                  customQuery={customQuery}
-                  setCustomQuery={setCustomQuery}
-                  customQueryResult={customQueryResult}
-                  setCustomQueryResult={setCustomQueryResult}
-                  customQueryMutation={customQueryMutation}
-                  handleCustomQuery={handleCustomQuery}
                 />
               ))}
             </div>
@@ -230,14 +186,6 @@ export default function MyTasks() {
                   comments={comments}
                   setComments={setComments}
                   onPreview={() => {}}
-                  customQueryOpen={customQueryOpen}
-                  setCustomQueryOpen={setCustomQueryOpen}
-                  customQuery={customQuery}
-                  setCustomQuery={setCustomQuery}
-                  customQueryResult={customQueryResult}
-                  setCustomQueryResult={setCustomQueryResult}
-                  customQueryMutation={customQueryMutation}
-                  handleCustomQuery={handleCustomQuery}
                 />
               ))
             )}
@@ -259,14 +207,6 @@ export default function MyTasks() {
                   comments={comments}
                   setComments={setComments}
                   onPreview={() => {}}
-                  customQueryOpen={customQueryOpen}
-                  setCustomQueryOpen={setCustomQueryOpen}
-                  customQuery={customQuery}
-                  setCustomQuery={setCustomQuery}
-                  customQueryResult={customQueryResult}
-                  setCustomQueryResult={setCustomQueryResult}
-                  customQueryMutation={customQueryMutation}
-                  handleCustomQuery={handleCustomQuery}
                 />
               ))}
             </div>
@@ -286,15 +226,7 @@ function TaskCard({
   onProcessApproval,
   comments,
   setComments,
-  onPreview,
-  customQueryOpen,
-  setCustomQueryOpen,
-  customQuery,
-  setCustomQuery,
-  customQueryResult,
-  setCustomQueryResult,
-  customQueryMutation,
-  handleCustomQuery
+  onPreview
 }: { 
   task: any; 
   onAction: (task: any) => void;
@@ -303,14 +235,6 @@ function TaskCard({
   comments: string;
   setComments: (comments: string) => void;
   onPreview: (document: any) => void;
-  customQueryOpen: number | null;
-  setCustomQueryOpen: (id: number | null) => void;
-  customQuery: string;
-  setCustomQuery: (query: string) => void;
-  customQueryResult: string | null;
-  setCustomQueryResult: (result: string | null) => void;
-  customQueryMutation: any;
-  handleCustomQuery: (e: React.FormEvent) => void;
 }) {
   const Icon = getTaskIcon(task.taskType);
   const [analyzingDocument, setAnalyzingDocument] = useState<number | null>(null);
@@ -497,7 +421,7 @@ function TaskCard({
             {/* Documents */}
             {documents && documents.length > 0 && (
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-4">Supporting Documents</h4>
+                <h4 className="font-semibold mb-4">Supporting Documents & Analysis</h4>
                 <div className="space-y-2">
                   {documents.map((document: any) => (
                     <div key={document.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
@@ -555,100 +479,22 @@ function TaskCard({
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        {/* Prepare for AI functionality moved to DocumentAnalysisCard */}
-                        {document.analysisStatus === 'completed' && (
-                          <Dialog open={customQueryOpen === document.id} onOpenChange={(open) => {
-                            if (open) {
-                              setCustomQueryOpen(document.id);
-                              setCustomQuery('');
-                              setCustomQueryResult(null);
-                            } else {
-                              setCustomQueryOpen(null);
-                            }
-                          }}>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <DialogTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm"
-                                      className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20"
-                                    >
-                                      <MessageSquare className="h-4 w-4" />
-                                    </Button>
-                                  </DialogTrigger>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Ask Custom Question</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <DialogContent className="sm:max-w-[525px]">
-                              <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2">
-                                  <MessageSquare className="h-5 w-5 text-green-600" />
-                                  Ask About This Document
-                                </DialogTitle>
-                                <DialogDescription>
-                                  Ask any specific question about "{document.originalName}" and get AI-powered answers based on the document content.
-                                </DialogDescription>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                
-                                <form onSubmit={handleCustomQuery} className="space-y-4">
-                                  <div className="flex gap-2">
-                                    <Input
-                                      type="text"
-                                      placeholder="e.g., What are the key financial highlights?"
-                                      value={customQuery}
-                                      onChange={(e) => setCustomQuery(e.target.value)}
-                                      disabled={customQueryMutation.isPending}
-                                      className="flex-1"
-                                    />
-                                    <Button 
-                                      type="submit" 
-                                      disabled={customQueryMutation.isPending || !customQuery.trim()}
-                                      size="sm"
-                                    >
-                                      {customQueryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                                    </Button>
-                                  </div>
-                                </form>
-                                
-                                {customQueryResult && (
-                                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <MessageSquare className="h-4 w-4 text-green-600" />
-                                      <span className="text-sm font-medium">AI Response</span>
-                                    </div>
-                                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                                      {customQueryResult}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        )}
+                        {/* Document operations consolidated in DocumentAnalysisCard */}
                       </div>
                     </div>
                   ))}
                 </div>
                 
                 {/* Document Analysis Cards */}
-                <div className="mt-6 space-y-4">
-                  <h4 className="font-semibold text-lg">Document Analysis Results</h4>
-                  <div className="space-y-4">
-                    {documents.map((document: any) => (
-                      <DocumentAnalysisCard
-                        key={document.id}
-                        document={document}
-                        requestType={task.requestType}
-                        requestId={task.requestId}
-                      />
-                    ))}
-                  </div>
+                <div className="space-y-4">
+                  {documents.map((document: any) => (
+                    <DocumentAnalysisCard
+                      key={document.id}
+                      document={document}
+                      requestType={task.requestType}
+                      requestId={task.requestId}
+                    />
+                  ))}
                 </div>
               </div>
             )}
