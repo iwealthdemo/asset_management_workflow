@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
-import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye, Brain } from "lucide-react";
+import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye, MessageSquare, Send, Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +17,9 @@ export default function MyTasks() {
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
   const [comments, setComments] = useState("");
   // Remove previewDocument state as we're using new tab approach
+  const [customQueryOpen, setCustomQueryOpen] = useState<number | null>(null);
+  const [customQuery, setCustomQuery] = useState("");
+  const [customQueryResult, setCustomQueryResult] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -398,6 +401,37 @@ function TaskCard({
     }
   };
 
+  // Custom query mutation
+  const customQueryMutation = useMutation({
+    mutationFn: async ({ documentId, query }: { documentId: number; query: string }) => {
+      const response = await apiRequest('POST', `/api/documents/${documentId}/custom-query`, {
+        query
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setCustomQueryResult(data.answer);
+      toast({
+        title: "Custom Query Complete",
+        description: "AI has analyzed the document and provided an answer",
+      });
+    },
+    onError: (error) => {
+      console.error('Custom query failed:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process custom query. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleCustomQuery = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (customQuery.trim() && customQueryOpen) {
+      customQueryMutation.mutate({ documentId: customQueryOpen, query: customQuery });
+    }
+  };
 
   
   return (
@@ -585,7 +619,7 @@ function TaskCard({
                                   onClick={() => handlePrepareForAI(document)}
                                   disabled={analyzingDocument === document.id}
                                 >
-                                  <Brain className={`h-4 w-4 ${analyzingDocument === document.id ? 'animate-pulse' : ''}`} />
+                                  <FileText className={`h-4 w-4 ${analyzingDocument === document.id ? 'animate-pulse' : ''}`} />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
@@ -595,24 +629,79 @@ function TaskCard({
                           </TooltipProvider>
                         )}
                         {document.analysisStatus === 'completed' && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleGetInsights(document)}
-                                  disabled={analyzingDocument === document.id}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                  <Brain className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Get AI Insights</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Dialog open={customQueryOpen === document.id} onOpenChange={(open) => {
+                            if (open) {
+                              setCustomQueryOpen(document.id);
+                              setCustomQuery('');
+                              setCustomQueryResult(null);
+                            } else {
+                              setCustomQueryOpen(null);
+                            }
+                          }}>
+                            <DialogTrigger asChild>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20"
+                                    >
+                                      <MessageSquare className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Ask Custom Question</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[525px]">
+                              <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                  <MessageSquare className="h-5 w-5 text-green-600" />
+                                  Ask About This Document
+                                </DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  Ask any specific question about "{document.originalName}" and get AI-powered answers based on the document content.
+                                </p>
+                                
+                                <form onSubmit={handleCustomQuery} className="space-y-4">
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      placeholder="e.g., What are the key financial highlights?"
+                                      value={customQuery}
+                                      onChange={(e) => setCustomQuery(e.target.value)}
+                                      disabled={customQueryMutation.isPending}
+                                      className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <Button 
+                                      type="submit" 
+                                      disabled={customQueryMutation.isPending || !customQuery.trim()}
+                                      size="sm"
+                                    >
+                                      {customQueryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                    </Button>
+                                  </div>
+                                </form>
+                                
+                                {customQueryResult && (
+                                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <MessageSquare className="h-4 w-4 text-green-600" />
+                                      <span className="text-sm font-medium">AI Response</span>
+                                    </div>
+                                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                      {customQueryResult}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </DialogContent>
+                          </Dialog>
                         )}
                       </div>
                     </div>
@@ -628,7 +717,7 @@ function TaskCard({
                       return (
                         <div key={docId} className="bg-blue-50 p-4 rounded-lg border">
                           <div className="flex items-center gap-2 mb-3">
-                            <Brain className="h-5 w-5 text-blue-600" />
+                            <FileText className="h-5 w-5 text-blue-600" />
                             <h5 className="font-medium">{document?.originalName}</h5>
                             <Badge className="bg-blue-100 text-blue-800">
                               {Math.round(analysis.confidence * 100)}% confidence
