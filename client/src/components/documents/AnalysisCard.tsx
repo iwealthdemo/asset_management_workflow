@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight, FileText, TrendingUp } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronUp, FileText, TrendingUp } from 'lucide-react';
 
 interface AnalysisCardProps {
   title: string;
@@ -50,6 +50,19 @@ const AnalysisCard: React.FC<AnalysisCardProps> = ({
             type === 'insights' ? 'whitespace-pre-line' : ''
           }`}>
             {content}
+          </div>
+          
+          {/* Hide Details Button */}
+          <div className="flex justify-center pt-3 mt-3 border-t">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpanded(false)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <ChevronUp className="h-4 w-4 mr-1" />
+              Hide Details
+            </Button>
           </div>
         </CardContent>
       )}

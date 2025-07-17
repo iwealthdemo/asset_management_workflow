@@ -18,7 +18,8 @@ import {
   Send,
   MessageCircle,
   Loader2,
-  MessageSquare
+  MessageSquare,
+  ChevronUp
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { apiRequest } from '@/lib/queryClient';
@@ -670,6 +671,19 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                     </div>
                   </div>
                 )}
+                
+                {/* Hide Details Button */}
+                <div className="flex justify-center pt-2 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDetails(false)}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    Hide Details
+                  </Button>
+                </div>
               </div>
             )}
           </div>
