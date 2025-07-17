@@ -17,7 +17,8 @@ import {
   Eye,
   Download,
   Send,
-  MessageCircle
+  MessageCircle,
+  Loader2
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { apiRequest } from '@/lib/queryClient';
@@ -344,6 +345,80 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                 Processed
               </Badge>
             )}
+            {/* Custom Query Button - moved to header for better visibility */}
+            {document.analysisStatus === 'completed' && (
+              <Dialog open={isCustomQueryOpen} onOpenChange={(open) => {
+                if (open) {
+                  setCustomQuery('');
+                  setCustomQueryResult(null);
+                }
+                setIsCustomQueryOpen(open);
+              }}>
+                <DialogTrigger asChild>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:text-purple-300 dark:hover:bg-purple-900/20"
+                        >
+                          <Brain className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ask Custom Question</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[525px]">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-purple-600" />
+                      Ask About This Document
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Ask any specific question about "{document.originalName}" and get AI-powered answers based on the document content.
+                    </p>
+                    
+                    <form onSubmit={handleCustomQuery} className="space-y-4">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="e.g., What are the key financial highlights?"
+                          value={customQuery}
+                          onChange={(e) => setCustomQuery(e.target.value)}
+                          disabled={customQueryMutation.isPending}
+                          className="flex-1"
+                        />
+                        <Button 
+                          type="submit" 
+                          disabled={customQueryMutation.isPending || !customQuery.trim()}
+                          size="sm"
+                        >
+                          {customQueryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send'}
+                        </Button>
+                      </div>
+                    </form>
+                    
+                    {customQueryResult && (
+                      <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Brain className="h-4 w-4 text-purple-600" />
+                          <span className="text-sm font-medium">AI Response</span>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                          {customQueryResult}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+
             {/* Show manual insights trigger only if no automatic insights were generated */}
             {document.analysisStatus === 'completed' && !insights && (
               <TooltipProvider>
@@ -355,7 +430,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                       size="sm"
                       className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                      <Brain className="h-4 w-4" />
+                      <FileText className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -546,88 +621,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
-              {/* Custom Query Button - only show if document is completed */}
-              {(() => {
-                console.log(`Document ${document.id} analysis status: ${document.analysisStatus}`);
-                console.log(`Brain icon should be visible: ${document.analysisStatus === 'completed'}`);
-                return document.analysisStatus === 'completed';
-              })() && (
-                <Dialog open={isCustomQueryOpen} onOpenChange={(open) => {
-                  if (open) {
-                    setCustomQuery('');
-                    setCustomQueryResult(null);
-                  }
-                  setIsCustomQueryOpen(open);
-                }}>
-                  <DialogTrigger asChild>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:text-purple-300 dark:hover:bg-purple-900/20"
-                          >
-                            <Brain className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Ask Custom Question</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[525px]">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <Brain className="h-5 w-5 text-purple-600" />
-                        Ask About This Document
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Ask any specific question about "{document.originalName}" and get AI-powered answers based on the document content.
-                      </p>
-                      
-                      <form onSubmit={handleCustomQuery} className="space-y-4">
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="e.g., What are the key financial highlights?"
-                            value={customQuery}
-                            onChange={(e) => setCustomQuery(e.target.value)}
-                            disabled={customQueryMutation.isPending}
-                            className="flex-1"
-                          />
-                          <Button 
-                            type="submit" 
-                            disabled={customQueryMutation.isPending || !customQuery.trim()}
-                            size="sm"
-                          >
-                            {customQueryMutation.isPending ? (
-                              <Clock className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Send className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </form>
-                      
-                      {customQueryResult && (
-                        <div className="space-y-2 border-t pt-4">
-                          <div className="flex items-center gap-2">
-                            <MessageCircle className="h-4 w-4 text-blue-600" />
-                            <span className="text-sm font-medium">AI Response</span>
-                          </div>
-                          <div className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-3 rounded-md whitespace-pre-line">
-                            {customQueryResult}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )}
+
             </div>
 
             {/* Detailed Analysis */}
