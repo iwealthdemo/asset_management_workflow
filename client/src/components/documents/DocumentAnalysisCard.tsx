@@ -103,7 +103,11 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
   React.useEffect(() => {
     if (document.analysisStatus === 'completed' && !insights && jobStatus && jobStatus.hasJob && jobStatus.job.status === 'completed') {
       // Automatically get insights for completed background jobs
-      getInsightsMutation.mutate();
+      // Only auto-fetch if insights haven't been fetched yet
+      const analysisResult = document.analysisResult ? JSON.parse(document.analysisResult) : null;
+      if (!analysisResult?.summary || !analysisResult?.insights) {
+        getInsightsMutation.mutate();
+      }
     }
   }, [document.analysisStatus, jobStatus, insights]);
 
@@ -544,8 +548,18 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
               </TooltipProvider>
               
               {/* Custom Query Button - only show if document is completed */}
-              {document.analysisStatus === 'completed' && (
-                <Dialog open={isCustomQueryOpen} onOpenChange={setIsCustomQueryOpen}>
+              {(() => {
+                console.log(`Document ${document.id} analysis status: ${document.analysisStatus}`);
+                console.log(`Brain icon should be visible: ${document.analysisStatus === 'completed'}`);
+                return document.analysisStatus === 'completed';
+              })() && (
+                <Dialog open={isCustomQueryOpen} onOpenChange={(open) => {
+                  if (open) {
+                    setCustomQuery('');
+                    setCustomQueryResult(null);
+                  }
+                  setIsCustomQueryOpen(open);
+                }}>
                   <DialogTrigger asChild>
                     <TooltipProvider>
                       <Tooltip>
@@ -554,14 +568,6 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                             variant="outline" 
                             size="sm"
                             className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:text-purple-300 dark:hover:bg-purple-900/20"
-                            onClick={(e) => {
-                              console.log('Brain icon clicked - opening custom query dialog');
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setCustomQuery('');
-                              setCustomQueryResult(null);
-                              setIsCustomQueryOpen(true);
-                            }}
                           >
                             <Brain className="h-4 w-4" />
                           </Button>
