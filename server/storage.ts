@@ -449,35 +449,42 @@ export class DatabaseStorage implements IStorage {
 
   async getDocumentQueries(documentId: number): Promise<any[]> {
     try {
-      console.log('Executing getDocumentQueries for document:', documentId);
-      console.log('documentQueries table:', documentQueries);
-      
-      const result = await db
-        .select({
-          id: documentQueries.id,
-          documentId: documentQueries.documentId,
-          userId: documentQueries.userId,
-          query: documentQueries.query,
-          response: documentQueries.response,
-          createdAt: documentQueries.createdAt,
-          user: {
-            id: users.id,
-            firstName: users.firstName,
-            lastName: users.lastName,
-            username: users.username
-          }
-        })
+      // Get queries first without ordering to avoid potential issues
+      const queries = await db
+        .select()
         .from(documentQueries)
-        .leftJoin(users, eq(documentQueries.userId, users.id))
-        .where(eq(documentQueries.documentId, documentId))
-        .orderBy(desc(documentQueries.createdAt));
+        .where(eq(documentQueries.documentId, documentId));
       
-      console.log('Query result:', result);
+      // Sort them manually by createdAt
+      queries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      // Get user info for each query
+      const result = [];
+      for (const query of queries) {
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, query.userId));
+        
+        result.push({
+          id: query.id,
+          documentId: query.documentId,
+          userId: query.userId,
+          query: query.query,
+          response: query.response,
+          createdAt: query.createdAt,
+          user: user ? {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username
+          } : null
+        });
+      }
+      
       return result;
     } catch (error) {
       console.error('Error in getDocumentQueries:', error);
-      console.error('Error type:', error.constructor.name);
-      console.error('Error message:', error.message);
       throw error;
     }
   }

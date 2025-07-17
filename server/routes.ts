@@ -537,6 +537,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get document queries history - MUST come before generic :requestType/:requestId route
+  app.get('/api/documents/:documentId/queries', authMiddleware, async (req, res) => {
+    try {
+      const { documentId } = req.params;
+      console.log('Fetching queries for document:', documentId);
+      
+      // Check if documentId is valid
+      if (!documentId || isNaN(parseInt(documentId))) {
+        console.error('Invalid document ID:', documentId);
+        return res.status(400).json({ message: 'Invalid document ID' });
+      }
+
+      const queries = await storage.getDocumentQueries(parseInt(documentId));
+      console.log('Found queries:', queries.length);
+      res.json(queries);
+    } catch (error) {
+      console.error('Error getting document queries:', error);
+      console.error('Error details:', error.message);
+      console.error('Stack trace:', error.stack);
+      res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+  });
+
   app.get('/api/documents/:requestType/:requestId', authMiddleware, async (req, res) => {
     try {
       const { requestType, requestId } = req.params;
@@ -679,28 +702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get document queries history
-  app.get('/api/documents/:documentId/queries', authMiddleware, async (req, res) => {
-    try {
-      const { documentId } = req.params;
-      console.log('Fetching queries for document:', documentId);
-      
-      // Check if documentId is valid
-      if (!documentId || isNaN(parseInt(documentId))) {
-        console.error('Invalid document ID:', documentId);
-        return res.status(400).json({ message: 'Invalid document ID' });
-      }
-      
-      const queries = await storage.getDocumentQueries(parseInt(documentId));
-      console.log('Found queries:', queries.length);
-      res.json(queries);
-    } catch (error) {
-      console.error('Error getting document queries:', error);
-      console.error('Error details:', error.message);
-      console.error('Stack trace:', error.stack);
-      res.status(500).json({ message: 'Internal server error', error: error.message });
-    }
-  });
+
 
   app.get('/api/documents/:documentId/analysis', authMiddleware, async (req, res) => {
     try {
