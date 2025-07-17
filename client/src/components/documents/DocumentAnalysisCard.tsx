@@ -19,7 +19,8 @@ import {
   MessageCircle,
   Loader2,
   MessageSquare,
-  ChevronUp
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { apiRequest } from '@/lib/queryClient';
@@ -75,6 +76,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
   requestId 
 }) => {
   const [showDetails, setShowDetails] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [insights, setInsights] = useState<{summary: string; insights: string} | null>(null);
   const [customQuery, setCustomQuery] = useState('');
   const [showQueryInput, setShowQueryInput] = useState(false);
@@ -301,8 +303,8 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
 
 
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <Card className="w-full sticky top-4 z-10">
+      <CardHeader className="cursor-pointer" onClick={() => setIsCollapsed(!isCollapsed)}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FileText className="h-5 w-5 text-blue-600" />
@@ -314,6 +316,16 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsCollapsed(!isCollapsed);
+              }}
+            >
+              {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </Button>
             <Badge className={getStatusColor(document.analysisStatus)}>
               {document.analysisStatus === 'processing' && <Clock className="h-3 w-3 mr-1" />}
               {document.analysisStatus === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
@@ -370,7 +382,8 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      {!isCollapsed && (
+        <CardContent className="space-y-4">
         {/* Analysis Progress - only during processing */}
         {(document.analysisStatus === 'processing' || (jobStatus?.hasJob && jobStatus.job.status === 'processing')) && (
           <div className="space-y-2">
@@ -676,7 +689,8 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
             )}
           </div>
         )}
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   );
 };
