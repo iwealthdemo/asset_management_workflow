@@ -418,84 +418,17 @@ function TaskCard({
               )}
             </div>
 
-            {/* Documents */}
+            {/* Document Analysis Cards */}
             {documents && documents.length > 0 && (
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-4">Supporting Documents & Analysis</h4>
-                <div className="space-y-2">
-                  {documents.map((document: any) => (
-                    <div key={document.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-                      <div className="flex items-center space-x-3">
-                        {getFileIcon(document.mimeType)}
-                        <div>
-                          <p className="text-sm font-medium">{document.originalName}</p>
-                          <p className="text-xs text-gray-500">
-                            {(document.fileSize / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => {
-                                  // Open preview in new tab to avoid Chrome blocking
-                                  window.open(`/api/documents/preview/${document.id}`, '_blank');
-                                }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Preview Document</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => {
-                                  // Use direct link approach for download
-                                  const link = window.document.createElement('a');
-                                  link.href = `/api/documents/download/${document.id}`;
-                                  link.download = document.originalName;
-                                  link.target = '_blank';
-                                  window.document.body.appendChild(link);
-                                  link.click();
-                                  window.document.body.removeChild(link);
-                                }}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Download Document</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        {/* Document operations consolidated in DocumentAnalysisCard */}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Document Analysis Cards */}
-                <div className="space-y-4">
-                  {documents.map((document: any) => (
-                    <DocumentAnalysisCard
-                      key={document.id}
-                      document={document}
-                      requestType={task.requestType}
-                      requestId={task.requestId}
-                    />
-                  ))}
-                </div>
+              <div className="space-y-4">
+                {documents.map((document: any) => (
+                  <DocumentAnalysisCard
+                    key={document.id}
+                    document={document}
+                    requestType={task.requestType}
+                    requestId={task.requestId}
+                  />
+                ))}
               </div>
             )}
 
