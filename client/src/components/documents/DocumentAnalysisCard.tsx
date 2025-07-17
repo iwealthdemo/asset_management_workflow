@@ -23,6 +23,8 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import AnalysisCard from './AnalysisCard';
+import QueryCard from './QueryCard';
 
 interface DocumentAnalysis {
   documentType: string;
@@ -73,7 +75,6 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
 }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [insights, setInsights] = useState<{summary: string; insights: string} | null>(null);
-  const [showQueryHistory, setShowQueryHistory] = useState(false);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -436,86 +437,39 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
               </div>
             )}
 
-            {/* AI Insights Section */}
-            {insights && (
-              <div className="space-y-4 border-t pt-4">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-medium">AI-Generated Insights</span>
-                </div>
-                
-                {/* Summary */}
-                <div className="space-y-2">
-                  <span className="text-sm font-medium">Summary</span>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                    {insights.summary}
-                  </p>
-                </div>
+            {/* Analysis Cards Section */}
+            <div className="space-y-3">
+              {/* Summary Card */}
+              {(insights?.summary || analysis.summary) && (
+                <AnalysisCard
+                  title="Summary"
+                  content={insights?.summary || analysis.summary}
+                  icon={<FileText className="h-4 w-4 text-blue-600" />}
+                  type="summary"
+                  defaultExpanded={false}
+                />
+              )}
 
-                {/* Insights */}
-                <div className="space-y-2">
-                  <span className="text-sm font-medium">Key Insights</span>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
-                    {insights.insights}
-                  </div>
-                </div>
-              </div>
-            )}
+              {/* Insights Card */}
+              {insights?.insights && (
+                <AnalysisCard
+                  title="AI Insights"
+                  content={insights.insights}
+                  icon={<TrendingUp className="h-4 w-4 text-purple-600" />}
+                  type="insights"
+                  defaultExpanded={false}
+                />
+              )}
 
-            {/* Original Summary (fallback) */}
-            {!insights && analysis.summary && (
-              <div className="space-y-2">
-                <span className="text-sm font-medium">Summary</span>
-                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                  {analysis.summary}
-                </p>
-              </div>
-            )}
-
-            {/* Query History Section */}
-            {queryHistory && queryHistory.length > 0 && (
-              <div className="space-y-4 border-t pt-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium">Query History</span>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowQueryHistory(!showQueryHistory)}
-                  >
-                    {showQueryHistory ? 'Hide' : 'Show'} ({queryHistory.length})
-                  </Button>
+              {/* Query Cards */}
+              {queryHistory && queryHistory.length > 0 && (
+                <div className="space-y-3">
+                  {queryHistory.map((query: any, index: number) => (
+                    <QueryCard key={query.id} query={query} index={index} />
+                  ))}
                 </div>
-                
-                {showQueryHistory && (
-                  <div className="space-y-3">
-                    {queryHistory.map((query: any, index: number) => (
-                      <div key={query.id} className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
-                            <span>{query.user ? `${query.user.firstName} ${query.user.lastName}` : 'Unknown User'}</span>
-                            <span>•</span>
-                            <span>{new Date(query.createdAt).toLocaleString()}</span>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <div>
-                            <span className="text-sm font-medium">Question:</span>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{query.query}</p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium">Answer:</span>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 whitespace-pre-line">{query.response}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Action Buttons */}
             <div className="flex items-center gap-2">
