@@ -543,8 +543,8 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                 </Tooltip>
               </TooltipProvider>
               
-              {/* Custom Query Button - only show if document has insights or is completed */}
-              {(insights || document.analysisStatus === 'completed') && (
+              {/* Custom Query Button - only show if document is completed */}
+              {document.analysisStatus === 'completed' && (
                 <Dialog open={isCustomQueryOpen} onOpenChange={setIsCustomQueryOpen}>
                   <DialogTrigger asChild>
                     <TooltipProvider>
@@ -553,7 +553,15 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                           <Button 
                             variant="outline" 
                             size="sm"
-                            className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                            className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:text-purple-300 dark:hover:bg-purple-900/20"
+                            onClick={(e) => {
+                              console.log('Brain icon clicked - opening custom query dialog');
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setCustomQuery('');
+                              setCustomQueryResult(null);
+                              setIsCustomQueryOpen(true);
+                            }}
                           >
                             <Brain className="h-4 w-4" />
                           </Button>
