@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, AlertTriangle, Clock, Eye, ChevronDown, ChevronUp, Edit, Send, FileText, Brain } from "lucide-react";
+import { CheckCircle, AlertTriangle, Clock, Eye, ChevronDown, ChevronUp, Edit, Send, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -471,7 +471,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
               {documents && documents.length > 0 ? (
                 <div className="space-y-4">
                   <h4 className="font-medium flex items-center gap-2">
-                    <Brain className="h-4 w-4" />
+                    <FileText className="h-4 w-4" />
                     Document Analysis
                   </h4>
                   <div className="grid grid-cols-1 gap-4">

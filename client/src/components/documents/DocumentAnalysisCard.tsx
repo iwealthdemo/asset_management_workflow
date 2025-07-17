@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   FileText, 
-  Brain, 
   TrendingUp, 
   AlertTriangle, 
   CheckCircle,
@@ -347,10 +346,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
               </Badge>
             )}
             {/* Custom Query Button - using MessageSquare icon to avoid conflicts */}
-            {(() => {
-              console.log(`Document ${document.id} status: ${document.analysisStatus}, should show message icon: ${document.analysisStatus === 'completed'}`);
-              return document.analysisStatus === 'completed';
-            })() && (
+            {document.analysisStatus === 'completed' && (
               <Dialog open={isCustomQueryOpen} onOpenChange={(open) => {
                 if (open) {
                   setCustomQuery('');
@@ -540,7 +536,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
             {insights && (
               <div className="space-y-4 border-t pt-4">
                 <div className="flex items-center gap-2">
-                  <Brain className="h-4 w-4 text-purple-600" />
+                  <TrendingUp className="h-4 w-4 text-purple-600" />
                   <span className="text-sm font-medium">AI-Generated Insights</span>
                 </div>
                 
