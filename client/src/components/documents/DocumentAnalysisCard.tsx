@@ -513,13 +513,16 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => setShowDetails(!showDetails)}
+                      onClick={() => {
+                        // Open preview in new tab to avoid Chrome blocking
+                        window.open(`/api/documents/preview/${document.id}`, '_blank');
+                      }}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{showDetails ? 'Hide Details' : 'Show Details'}</p>
+                    <p>Preview Document</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
