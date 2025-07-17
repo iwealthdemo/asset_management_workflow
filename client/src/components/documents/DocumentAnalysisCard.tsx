@@ -347,7 +347,10 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
               </Badge>
             )}
             {/* Custom Query Button - using MessageSquare icon to avoid conflicts */}
-            {document.analysisStatus === 'completed' && (
+            {(() => {
+              console.log(`Document ${document.id} status: ${document.analysisStatus}, should show message icon: ${document.analysisStatus === 'completed'}`);
+              return document.analysisStatus === 'completed';
+            })() && (
               <Dialog open={isCustomQueryOpen} onOpenChange={(open) => {
                 if (open) {
                   setCustomQuery('');
