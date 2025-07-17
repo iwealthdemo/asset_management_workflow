@@ -42,7 +42,7 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user } = useUser();
+  const { data: user } = useUser();
   const logout = useLogout();
 
   const { data: taskCount = 0 } = useQuery<number>({
@@ -81,8 +81,11 @@ export function AppLayout({ children }: AppLayoutProps) {
   const navigationItems = allNavigationItems.filter(item => {
     if (item.roles.includes("all")) return true;
     if (!user?.role) return false;
-    return item.roles.includes(user.role);
+    const shouldShow = item.roles.includes(user.role);
+    return shouldShow;
   });
+
+
 
   const adminItems = [
     { href: "/user-management", label: "User Management", icon: Users },
