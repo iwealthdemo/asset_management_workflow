@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import DocumentAnalysisCard from '@/components/documents/DocumentAnalysisCard';
 
 export default function MyTasks() {
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
@@ -313,7 +314,7 @@ function TaskCard({
 }) {
   const Icon = getTaskIcon(task.taskType);
   const [analyzingDocument, setAnalyzingDocument] = useState<number | null>(null);
-  const [analysisResults, setAnalysisResults] = useState<Record<number, any>>({});
+
   const { toast } = useToast();
   
   const { data: requestData } = useQuery({
@@ -331,25 +332,7 @@ function TaskCard({
     enabled: isExpanded,
   });
 
-  // Load existing insights from documents when they're available
-  useEffect(() => {
-    if (documents && documents.length > 0) {
-      const results: Record<number, any> = {};
-      
-      documents.forEach((doc: any) => {
-        if (doc.analysisStatus === 'completed' && doc.analysisResult) {
-          try {
-            const analysisData = JSON.parse(doc.analysisResult);
-            results[doc.id] = analysisData;
-          } catch (error) {
-            console.error('Failed to parse analysis result for document', doc.id, error);
-          }
-        }
-      });
-      
-      setAnalysisResults(results);
-    }
-  }, [documents]);
+  // DocumentAnalysisCard component now handles the analysis results directly
 
   const getFileIcon = (mimeType: string) => {
     if (mimeType.includes('pdf')) {
@@ -390,92 +373,9 @@ function TaskCard({
     }
   };
 
-  const handleGetInsights = async (document: any) => {
-    setAnalyzingDocument(document.id);
-    
-    try {
-      toast({
-        title: "Getting AI Insights",
-        description: "Analyzing document and generating insights...",
-      });
-      
-      const response = await apiRequest('POST', `/api/documents/${document.id}/get-insights`);
-      const result = await response.json();
-      
-      // Store the insights in the analysis results for display
-      setAnalysisResults(prev => ({
-        ...prev,
-        [document.id]: {
-          ...prev[document.id],
-          summary: result.summary,
-          insights: result.insights,
-          confidence: 0.95 // Default confidence for insights
-        }
-      }));
-      
-      toast({
-        title: "Insights Generated",
-        description: "AI insights have been generated for the document",
-      });
-      
-      // Refresh the tasks to show updated data
-      queryClient.invalidateQueries({ queryKey: [`/api/documents/${task.requestType}/${task.requestId}`] });
-      
-    } catch (error) {
-      console.error('Get insights failed:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate insights. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setAnalyzingDocument(null);
-    }
-  };
+  // handleGetInsights removed - DocumentAnalysisCard handles insights directly
 
-  const handlePrepareForAI = async (document: any) => {
-    setAnalyzingDocument(document.id);
-    
-    try {
-      toast({
-        title: "Preparing for AI",
-        description: "Uploading document to vector store and creating embeddings...",
-      });
-      
-      const response = await apiRequest('POST', `/api/documents/${document.id}/prepare-ai`);
-      const result = await response.json();
-      
-      // Show specific success message based on the result
-      if (result.message?.includes('already prepared')) {
-        toast({
-          title: "✅ Already Prepared",
-          description: `Document "${document.originalName}" was already in the vector store and ready for AI analysis.`,
-          duration: 5000,
-        });
-      } else {
-        toast({
-          title: "✅ AI Preparation Complete",
-          description: `Document "${document.originalName}" has been successfully uploaded to vector store and is ready for AI analysis.`,
-          duration: 5000,
-        });
-      }
-      
-      // Refresh the task data and documents to update button states
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks/my-tasks'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/documents/${task.requestType}/${task.requestId}`] });
-      
-    } catch (error) {
-      console.error('AI preparation failed:', error);
-      toast({
-        title: "❌ AI Preparation Failed",
-        description: `Failed to prepare document "${document.originalName}" for AI. Please try again.`,
-        variant: "destructive",
-        duration: 5000,
-      });
-    } finally {
-      setAnalyzingDocument(null);
-    }
-  };
+  // handlePrepareForAI removed - DocumentAnalysisCard handles this directly
 
 
 
@@ -655,25 +555,7 @@ function TaskCard({
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        {document.analysisStatus === 'pending' && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handlePrepareForAI(document)}
-                                  disabled={analyzingDocument === document.id}
-                                >
-                                  <FileText className={`h-4 w-4 ${analyzingDocument === document.id ? 'animate-pulse' : ''}`} />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{analyzingDocument === document.id ? 'Preparing for AI...' : 'Prepare for AI'}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
+                        {/* Prepare for AI functionality moved to DocumentAnalysisCard */}
                         {document.analysisStatus === 'completed' && (
                           <Dialog open={customQueryOpen === document.id} onOpenChange={(open) => {
                             if (open) {
@@ -754,85 +636,20 @@ function TaskCard({
                   ))}
                 </div>
                 
-                {/* Analysis Results */}
-                {Object.keys(analysisResults).length > 0 && (
-                  <div className="mt-6 space-y-4">
-                    <h4 className="font-semibold text-lg">Document Analysis Results</h4>
-                    {Object.entries(analysisResults).map(([docId, analysis]) => {
-                      const document = documents.find((doc: any) => doc.id === parseInt(docId));
-                      return (
-                        <div key={docId} className="bg-blue-50 p-4 rounded-lg border">
-                          <div className="flex items-center gap-2 mb-3">
-                            <FileText className="h-5 w-5 text-blue-600" />
-                            <h5 className="font-medium">{document?.originalName}</h5>
-                            <Badge className="bg-blue-100 text-blue-800">
-                              {Math.round(analysis.confidence * 100)}% confidence
-                            </Badge>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm font-medium text-gray-600 mb-1">Document Type</p>
-                              <p className="text-sm">{analysis.documentType}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-600 mb-1">Risk Level</p>
-                              <Badge className={
-                                analysis.riskAssessment?.level === 'high' ? 'bg-red-100 text-red-800' :
-                                analysis.riskAssessment?.level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-green-100 text-green-800'
-                              }>
-                                {analysis.riskAssessment?.level || 'unknown'} risk
-                              </Badge>
-                            </div>
-                          </div>
-                          
-                          <div className="mt-3">
-                            <p className="text-sm font-medium text-gray-600 mb-1">Summary</p>
-                            <p className="text-sm text-gray-700">{analysis.summary}</p>
-                          </div>
-                          
-                          {/* AI Insights */}
-                          {analysis.insights && (
-                            <div className="mt-3">
-                              <p className="text-sm font-medium text-gray-600 mb-1">AI Insights</p>
-                              <div className="text-sm text-gray-700 whitespace-pre-line">
-                                {analysis.insights}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {analysis.keyInformation?.amounts && analysis.keyInformation.amounts.length > 0 && (
-                            <div className="mt-3">
-                              <p className="text-sm font-medium text-gray-600 mb-1">Key Amounts</p>
-                              <div className="flex flex-wrap gap-2">
-                                {analysis.keyInformation.amounts.map((amount: string, index: number) => (
-                                  <Badge key={index} variant="outline" className="text-xs">
-                                    {amount}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {analysis.recommendations && analysis.recommendations.length > 0 && (
-                            <div className="mt-3">
-                              <p className="text-sm font-medium text-gray-600 mb-1">Recommendations</p>
-                              <ul className="text-sm text-gray-700 space-y-1">
-                                {analysis.recommendations.slice(0, 3).map((rec: string, index: number) => (
-                                  <li key={index} className="flex items-start gap-2">
-                                    <span className="text-blue-600">•</span>
-                                    <span>{rec}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                {/* Document Analysis Cards */}
+                <div className="mt-6 space-y-4">
+                  <h4 className="font-semibold text-lg">Document Analysis Results</h4>
+                  <div className="space-y-4">
+                    {documents.map((document: any) => (
+                      <DocumentAnalysisCard
+                        key={document.id}
+                        document={document}
+                        requestType={task.requestType}
+                        requestId={task.requestId}
+                      />
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
             )}
 
