@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye, MessageSquare, Send, Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -681,10 +682,10 @@ function TaskCard({
                               setCustomQueryOpen(null);
                             }
                           }}>
-                            <DialogTrigger asChild>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <DialogTrigger asChild>
                                     <Button 
                                       variant="ghost" 
                                       size="sm"
@@ -692,34 +693,34 @@ function TaskCard({
                                     >
                                       <MessageSquare className="h-4 w-4" />
                                     </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Ask Custom Question</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </DialogTrigger>
+                                  </DialogTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Ask Custom Question</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <DialogContent className="sm:max-w-[525px]">
                               <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2">
                                   <MessageSquare className="h-5 w-5 text-green-600" />
                                   Ask About This Document
                                 </DialogTitle>
+                                <DialogDescription>
+                                  Ask any specific question about "{document.originalName}" and get AI-powered answers based on the document content.
+                                </DialogDescription>
                               </DialogHeader>
                               <div className="space-y-4">
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  Ask any specific question about "{document.originalName}" and get AI-powered answers based on the document content.
-                                </p>
                                 
                                 <form onSubmit={handleCustomQuery} className="space-y-4">
                                   <div className="flex gap-2">
-                                    <input
+                                    <Input
                                       type="text"
                                       placeholder="e.g., What are the key financial highlights?"
                                       value={customQuery}
                                       onChange={(e) => setCustomQuery(e.target.value)}
                                       disabled={customQueryMutation.isPending}
-                                      className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      className="flex-1"
                                     />
                                     <Button 
                                       type="submit" 
