@@ -423,26 +423,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
               </Dialog>
             )}
 
-            {/* Show manual insights trigger only if no automatic insights were generated */}
-            {document.analysisStatus === 'completed' && !insights && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={() => getInsightsMutation.mutate()}
-                      disabled={getInsightsMutation.isPending}
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      <Brain className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{getInsightsMutation.isPending ? 'Analyzing document...' : 'Get AI Insights'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
+            {/* Removed manual insights trigger - insights will be generated automatically */}
 
           </div>
         </div>
