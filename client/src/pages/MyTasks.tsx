@@ -107,6 +107,40 @@ export default function MyTasks() {
     },
   });
 
+  const customQueryMutation = useMutation({
+    mutationFn: async (query: string) => {
+      const documentId = customQueryOpen;
+      if (!documentId) throw new Error('No document selected');
+      
+      const response = await apiRequest("POST", `/api/documents/${documentId}/custom-query`, {
+        query
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setCustomQueryResult(data.answer);
+      toast({
+        title: "Custom Query Complete",
+        description: "AI has analyzed the document and provided an answer",
+      });
+    },
+    onError: (error) => {
+      console.error('Custom query failed:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process custom query. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleCustomQuery = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (customQuery.trim()) {
+      customQueryMutation.mutate(customQuery.trim());
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -278,7 +312,6 @@ function TaskCard({
   const [analyzingDocument, setAnalyzingDocument] = useState<number | null>(null);
   const [analysisResults, setAnalysisResults] = useState<Record<number, any>>({});
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   
   const { data: requestData } = useQuery({
     queryKey: [`/api/${task.requestType.replace('_', '-')}s/${task.requestId}`],
