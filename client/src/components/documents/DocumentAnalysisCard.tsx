@@ -201,12 +201,16 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
   // Custom query mutation
   const customQueryMutation = useMutation({
     mutationFn: async (query: string) => {
+      console.log('Submitting custom query:', query);
       const response = await apiRequest('POST', `/api/documents/${document.id}/custom-query`, {
         query
       });
-      return response.json();
+      const result = await response.json();
+      console.log('Custom query response:', result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Custom query success:', data);
       toast({
         title: "Query Processed",
         description: "Your custom query has been processed successfully",
@@ -216,6 +220,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
       setShowQueryInput(false);
     },
     onError: (error) => {
+      console.error('Custom query error:', error);
       toast({
         title: "Error",
         description: "Failed to process your query",

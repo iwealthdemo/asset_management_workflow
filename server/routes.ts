@@ -684,6 +684,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { documentId } = req.params;
       console.log('Fetching queries for document:', documentId);
+      
+      // Check if documentId is valid
+      if (!documentId || isNaN(parseInt(documentId))) {
+        console.error('Invalid document ID:', documentId);
+        return res.status(400).json({ message: 'Invalid document ID' });
+      }
+      
       const queries = await storage.getDocumentQueries(parseInt(documentId));
       console.log('Found queries:', queries.length);
       res.json(queries);

@@ -449,6 +449,9 @@ export class DatabaseStorage implements IStorage {
 
   async getDocumentQueries(documentId: number): Promise<any[]> {
     try {
+      console.log('Executing getDocumentQueries for document:', documentId);
+      console.log('documentQueries table:', documentQueries);
+      
       const result = await db
         .select({
           id: documentQueries.id,
@@ -469,9 +472,12 @@ export class DatabaseStorage implements IStorage {
         .where(eq(documentQueries.documentId, documentId))
         .orderBy(desc(documentQueries.createdAt));
       
+      console.log('Query result:', result);
       return result;
     } catch (error) {
       console.error('Error in getDocumentQueries:', error);
+      console.error('Error type:', error.constructor.name);
+      console.error('Error message:', error.message);
       throw error;
     }
   }
