@@ -318,7 +318,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                       size="sm"
                       variant="outline"
                     >
-                      <Brain className="h-4 w-4" />
+                      <FileText className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
