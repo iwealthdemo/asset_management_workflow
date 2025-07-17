@@ -117,13 +117,13 @@ class BrainIconTest {
 
       console.log('\n🎉 Backend functionality confirmed working!');
       console.log('\n📝 Frontend Instructions:');
-      console.log('   1. Look for the purple brain icon in the document header (next to "Processed" badge)');
-      console.log('   2. Click the brain icon to open the custom query dialog');
+      console.log('   1. Look for the GREEN MessageSquare icon in the document header (next to "Processed" badge)');
+      console.log('   2. Click the MessageSquare icon to open the custom query dialog');
       console.log('   3. Type your question and press Send');
       console.log('   4. The AI will respond with document-specific answers');
       console.log('\n🔧 Technical Details:');
-      console.log('   - Brain icon moved to header for better visibility');
-      console.log('   - Removed conflicting "Get AI Insights" button');
+      console.log('   - Using MessageSquare icon (green) to avoid conflicts with Brain icon');
+      console.log('   - Brain icon reserved for "Get AI Insights" functionality');
       console.log('   - Custom query dialog should open properly now');
       
     } catch (error) {

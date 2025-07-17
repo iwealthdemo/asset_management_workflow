@@ -18,7 +18,8 @@ import {
   Download,
   Send,
   MessageCircle,
-  Loader2
+  Loader2,
+  MessageSquare
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { apiRequest } from '@/lib/queryClient';
@@ -345,7 +346,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                 Processed
               </Badge>
             )}
-            {/* Custom Query Button - moved to header for better visibility */}
+            {/* Custom Query Button - using MessageSquare icon to avoid conflicts */}
             {document.analysisStatus === 'completed' && (
               <Dialog open={isCustomQueryOpen} onOpenChange={(open) => {
                 if (open) {
@@ -361,9 +362,9 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                         <Button 
                           variant="outline" 
                           size="sm"
-                          className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:text-purple-300 dark:hover:bg-purple-900/20"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20"
                         >
-                          <Brain className="h-4 w-4" />
+                          <MessageSquare className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -375,7 +376,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                 <DialogContent className="sm:max-w-[525px]">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-purple-600" />
+                      <MessageSquare className="h-5 w-5 text-green-600" />
                       Ask About This Document
                     </DialogTitle>
                   </DialogHeader>
@@ -406,7 +407,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                     {customQueryResult && (
                       <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
-                          <Brain className="h-4 w-4 text-purple-600" />
+                          <MessageSquare className="h-4 w-4 text-green-600" />
                           <span className="text-sm font-medium">AI Response</span>
                         </div>
                         <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
@@ -430,7 +431,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                       size="sm"
                       className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                      <FileText className="h-4 w-4" />
+                      <Brain className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
