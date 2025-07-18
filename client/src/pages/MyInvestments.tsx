@@ -3,13 +3,60 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Briefcase, DollarSign, Calendar, TrendingUp, Eye } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { 
+  Briefcase, 
+  DollarSign, 
+  Calendar, 
+  TrendingUp, 
+  Eye, 
+  Filter, 
+  X, 
+  ChevronDown, 
+  ChevronUp,
+  Clock,
+  CheckCircle,
+  AlertTriangle
+} from "lucide-react";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { InvestmentDetailsInline } from "@/components/details/InvestmentDetailsInline";
+
+// Filter interfaces
+interface InvestmentFilters {
+  selectedCompanies: string[];
+  selectedRiskLevels: string[];
+  selectedInvestmentTypes: string[];
+  expectedReturnMode: 'range' | 'specific';
+  expectedReturnRange: [number, number];
+  expectedReturnSpecific: string;
+  amountRange: [number, number];
+  amountMin: string;
+  amountMax: string;
+}
 
 export default function MyInvestments() {
   const [expandedInvestment, setExpandedInvestment] = useState<number | null>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  
+  // Filter state
+  const [filters, setFilters] = useState<InvestmentFilters>({
+    selectedCompanies: [],
+    selectedRiskLevels: [],
+    selectedInvestmentTypes: [],
+    expectedReturnMode: 'range',
+    expectedReturnRange: [0, 100],
+    expectedReturnSpecific: '',
+    amountRange: [0, 10000000],
+    amountMin: '',
+    amountMax: ''
+  });
 
   const { data: investments, isLoading } = useQuery({
     queryKey: ["/api/investments", { my: true }],
@@ -18,6 +65,91 @@ export default function MyInvestments() {
   const handleToggleDetails = (investmentId: number) => {
     setExpandedInvestment(expandedInvestment === investmentId ? null : investmentId);
   };
+
+  // Extract unique values for filter options
+  const uniqueCompanies = useMemo(() => {
+    return [...new Set(investments?.map((inv: any) => inv.targetCompany) || [])].sort();
+  }, [investments]);
+
+  const uniqueInvestmentTypes = useMemo(() => {
+    return [...new Set(investments?.map((inv: any) => inv.investmentType) || [])].sort();
+  }, [investments]);
+
+  // Filter investments based on current filters
+  const filteredInvestments = useMemo(() => {
+    if (!investments) return [];
+    
+    return investments.filter((inv: any) => {
+      // Company filter
+      if (filters.selectedCompanies.length > 0 && !filters.selectedCompanies.includes(inv.targetCompany)) {
+        return false;
+      }
+      
+      // Risk level filter
+      if (filters.selectedRiskLevels.length > 0 && !filters.selectedRiskLevels.includes(inv.riskLevel)) {
+        return false;
+      }
+      
+      // Investment type filter
+      if (filters.selectedInvestmentTypes.length > 0 && !filters.selectedInvestmentTypes.includes(inv.investmentType)) {
+        return false;
+      }
+      
+      // Expected return filter
+      if (inv.expectedReturn !== null && inv.expectedReturn !== undefined) {
+        const returnValue = parseFloat(inv.expectedReturn);
+        if (filters.expectedReturnMode === 'range') {
+          if (returnValue < filters.expectedReturnRange[0] || returnValue > filters.expectedReturnRange[1]) {
+            return false;
+          }
+        } else if (filters.expectedReturnSpecific) {
+          const specificValue = parseFloat(filters.expectedReturnSpecific);
+          if (Math.abs(returnValue - specificValue) > 0.1) {
+            return false;
+          }
+        }
+      }
+      
+      // Amount filter
+      if (inv.amount !== null && inv.amount !== undefined) {
+        const amountValue = parseFloat(inv.amount);
+        const minAmount = filters.amountMin ? parseFloat(filters.amountMin) : filters.amountRange[0];
+        const maxAmount = filters.amountMax ? parseFloat(filters.amountMax) : filters.amountRange[1];
+        
+        if (amountValue < minAmount || amountValue > maxAmount) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [investments, filters]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      selectedCompanies: [],
+      selectedRiskLevels: [],
+      selectedInvestmentTypes: [],
+      expectedReturnMode: 'range',
+      expectedReturnRange: [0, 100],
+      expectedReturnSpecific: '',
+      amountRange: [0, 10000000],
+      amountMin: '',
+      amountMax: ''
+    });
+  };
+
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.selectedCompanies.length > 0) count++;
+    if (filters.selectedRiskLevels.length > 0) count++;
+    if (filters.selectedInvestmentTypes.length > 0) count++;
+    if (filters.expectedReturnSpecific || (filters.expectedReturnRange[0] > 0 || filters.expectedReturnRange[1] < 100)) count++;
+    if (filters.amountMin || filters.amountMax || (filters.amountRange[0] > 0 || filters.amountRange[1] < 10000000)) count++;
+    return count;
+  }, [filters]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -77,19 +209,19 @@ export default function MyInvestments() {
     );
   }
 
-  // Filter logic based on actual approval states
-  const pendingInvestments = investments?.filter((inv: any) => {
+  // Filter logic based on actual approval states - now using filtered investments
+  const pendingInvestments = filteredInvestments?.filter((inv: any) => {
     // Pending means not fully approved and not rejected
     const status = inv.status.toLowerCase();
     return !status.includes('approved') && !status.includes('rejected') && status !== 'approved';
   }) || [];
   
-  const approvedInvestments = investments?.filter((inv: any) => {
+  const approvedInvestments = filteredInvestments?.filter((inv: any) => {
     // Approved means final approval status (only "approved", not partial approvals)
     return inv.status.toLowerCase() === 'approved';
   }) || [];
   
-  const rejectedInvestments = investments?.filter((inv: any) => {
+  const rejectedInvestments = filteredInvestments?.filter((inv: any) => {
     // Rejected by any approver
     const status = inv.status.toLowerCase();
     return status === 'rejected' || status.includes('rejected');
@@ -98,24 +230,211 @@ export default function MyInvestments() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold mb-2">My Investments</h1>
-        <div className="flex gap-4 text-sm text-gray-600">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-semibold">My Investments</h1>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Filters
+              {activeFilterCount > 0 && (
+                <Badge variant="secondary" className="ml-1">
+                  {activeFilterCount}
+                </Badge>
+              )}
+              {isFilterOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+
+        {/* Filter Panel */}
+        <Collapsible open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+          <CollapsibleContent>
+            <Card className="mb-4 p-4 border-2 border-dashed border-blue-200 dark:border-blue-800">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                
+                {/* Company Filter */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Client/Company</Label>
+                  <Select 
+                    value={filters.selectedCompanies.length > 0 ? filters.selectedCompanies[0] : ""} 
+                    onValueChange={(value) => 
+                      setFilters(prev => ({ 
+                        ...prev, 
+                        selectedCompanies: value ? [value] : [] 
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select company" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Companies</SelectItem>
+                      {uniqueCompanies.map(company => (
+                        <SelectItem key={company} value={company}>{company}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Risk Level Filter */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Risk Level</Label>
+                  <div className="flex gap-2">
+                    {['low', 'medium', 'high'].map(risk => (
+                      <div key={risk} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={risk}
+                          checked={filters.selectedRiskLevels.includes(risk)}
+                          onCheckedChange={(checked) => 
+                            setFilters(prev => ({
+                              ...prev,
+                              selectedRiskLevels: checked 
+                                ? [...prev.selectedRiskLevels, risk]
+                                : prev.selectedRiskLevels.filter(r => r !== risk)
+                            }))
+                          }
+                        />
+                        <Label htmlFor={risk} className="text-sm capitalize">{risk}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Investment Type Filter */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Investment Type</Label>
+                  <Select 
+                    value={filters.selectedInvestmentTypes.length > 0 ? filters.selectedInvestmentTypes[0] : ""} 
+                    onValueChange={(value) => 
+                      setFilters(prev => ({ 
+                        ...prev, 
+                        selectedInvestmentTypes: value ? [value] : [] 
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Types</SelectItem>
+                      {uniqueInvestmentTypes.map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Expected Return Filter */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Expected Returns</Label>
+                  <div className="flex gap-2 mb-2">
+                    <Button
+                      variant={filters.expectedReturnMode === 'range' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFilters(prev => ({ ...prev, expectedReturnMode: 'range' }))}
+                    >
+                      Range
+                    </Button>
+                    <Button
+                      variant={filters.expectedReturnMode === 'specific' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFilters(prev => ({ ...prev, expectedReturnMode: 'specific' }))}
+                    >
+                      Specific
+                    </Button>
+                  </div>
+                  {filters.expectedReturnMode === 'range' ? (
+                    <div className="space-y-2">
+                      <div className="px-2">
+                        <Slider
+                          value={filters.expectedReturnRange}
+                          onValueChange={(value) => setFilters(prev => ({ ...prev, expectedReturnRange: value as [number, number] }))}
+                          max={50}
+                          min={0}
+                          step={1}
+                        />
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>{filters.expectedReturnRange[0]}%</span>
+                        <span>{filters.expectedReturnRange[1]}%</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <Input
+                      type="number"
+                      placeholder="Enter specific return %"
+                      value={filters.expectedReturnSpecific}
+                      onChange={(e) => setFilters(prev => ({ ...prev, expectedReturnSpecific: e.target.value }))}
+                    />
+                  )}
+                </div>
+
+                {/* Amount Range Filter */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Amount Range</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Min amount"
+                      value={filters.amountMin}
+                      onChange={(e) => setFilters(prev => ({ ...prev, amountMin: e.target.value }))}
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Max amount"
+                      value={filters.amountMax}
+                      onChange={(e) => setFilters(prev => ({ ...prev, amountMax: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                {/* Clear Filters Button */}
+                <div className="flex items-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="flex items-center gap-2"
+                    disabled={activeFilterCount === 0}
+                  >
+                    <X className="h-4 w-4" />
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Investment counts */}
+        <div className="flex gap-4 text-sm text-gray-600 mb-4">
+          <span>{filteredInvestments.length} total</span>
           <span>{pendingInvestments.length} pending</span>
           <span>{approvedInvestments.length} approved</span>
           <span>{rejectedInvestments.length} rejected</span>
+          {activeFilterCount > 0 && (
+            <span className="text-blue-600 font-medium">
+              ({activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} applied)
+            </span>
+          )}
         </div>
       </div>
 
-      <Tabs defaultValue="all" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="approved">Approved</TabsTrigger>
-          <TabsTrigger value="rejected">Rejected</TabsTrigger>
+          <TabsTrigger value="all">All ({filteredInvestments.length})</TabsTrigger>
+          <TabsTrigger value="pending">Pending ({pendingInvestments.length})</TabsTrigger>
+          <TabsTrigger value="approved">Approved ({approvedInvestments.length})</TabsTrigger>
+          <TabsTrigger value="rejected">Rejected ({rejectedInvestments.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
-          <InvestmentList investments={investments || []} onToggleDetails={handleToggleDetails} expandedInvestment={expandedInvestment} />
+          <InvestmentList investments={filteredInvestments || []} onToggleDetails={handleToggleDetails} expandedInvestment={expandedInvestment} />
         </TabsContent>
 
         <TabsContent value="pending" className="space-y-4">
