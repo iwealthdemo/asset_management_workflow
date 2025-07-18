@@ -8,8 +8,8 @@ export class InvestmentService {
       // Generate request ID
       const requestId = await this.generateRequestId('INV');
       
-      // Determine status - use provided status or default to 'New'
-      const status = requestData.status || 'New';
+      // Determine status - use provided status or default to 'draft'
+      const status = requestData.status || 'draft';
       
       // Create the request with generated fields
       const request = await storage.createInvestmentRequest({
