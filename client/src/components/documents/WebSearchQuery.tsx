@@ -57,13 +57,7 @@ export default function WebSearchQuery({ requestType, requestId }: WebSearchQuer
   // Submit new web search query
   const submitQuery = useMutation({
     mutationFn: async (queryText: string) => {
-      return apiRequest(`/api/documents/web-search/${requestType}/${requestId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query: queryText }),
-      });
+      return apiRequest('POST', `/api/documents/web-search/${requestType}/${requestId}`, { query: queryText });
     },
     onSuccess: () => {
       setQuery('');
