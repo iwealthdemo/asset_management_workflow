@@ -150,12 +150,12 @@ export function ApprovalModal({ isOpen, onClose, task }: ApprovalModalProps) {
                 </div>
               </div>
               
-              {requestData.description && (
-                <div className="mt-4">
-                  <p className="text-sm font-medium text-gray-600 mb-2">Description</p>
-                  <p className="text-gray-800">{requestData.description}</p>
-                </div>
-              )}
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-600 mb-2">Investment Rationale / Description</p>
+                <p className="text-gray-800 bg-white p-3 rounded border min-h-[60px]">
+                  {requestData.description || 'No description provided by the analyst'}
+                </p>
+              </div>
 
               {task.requestType === 'investment' && requestData.riskLevel && (
                 <div className="mt-4">

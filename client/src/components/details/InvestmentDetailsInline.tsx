@@ -261,12 +261,12 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                   </div>
                 </div>
                 
-                {investmentDetails.description && (
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-600 mb-2">Description</p>
-                    <p className="text-gray-800">{investmentDetails.description}</p>
-                  </div>
-                )}
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-gray-600 mb-2">Investment Rationale / Description</p>
+                  <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px]">
+                    {investmentDetails.description || 'No description provided by the analyst'}
+                  </p>
+                </div>
                 
                 {/* Draft Actions */}
                 {investmentDetails.status.toLowerCase() === 'draft' && (
