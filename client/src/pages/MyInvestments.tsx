@@ -51,7 +51,7 @@ export default function MyInvestments() {
     selectedRiskLevels: [],
     selectedInvestmentTypes: [],
     expectedReturnMode: 'range',
-    expectedReturnRange: [0, 100],
+    expectedReturnRange: [0, 50],
     expectedReturnSpecific: '',
     amountRange: [0, 10000000],
     amountMin: '',
@@ -132,7 +132,7 @@ export default function MyInvestments() {
       selectedRiskLevels: [],
       selectedInvestmentTypes: [],
       expectedReturnMode: 'range',
-      expectedReturnRange: [0, 100],
+      expectedReturnRange: [0, 50],
       expectedReturnSpecific: '',
       amountRange: [0, 10000000],
       amountMin: '',
@@ -146,7 +146,7 @@ export default function MyInvestments() {
     if (filters.selectedCompanies.length > 0) count++;
     if (filters.selectedRiskLevels.length > 0) count++;
     if (filters.selectedInvestmentTypes.length > 0) count++;
-    if (filters.expectedReturnSpecific || (filters.expectedReturnRange[0] > 0 || filters.expectedReturnRange[1] < 100)) count++;
+    if (filters.expectedReturnSpecific || (filters.expectedReturnRange[0] > 0 || filters.expectedReturnRange[1] < 50)) count++;
     if (filters.amountMin || filters.amountMax || (filters.amountRange[0] > 0 || filters.amountRange[1] < 10000000)) count++;
     return count;
   }, [filters]);
@@ -261,11 +261,11 @@ export default function MyInvestments() {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Client/Company</Label>
                   <Select 
-                    value={filters.selectedCompanies.length > 0 ? filters.selectedCompanies[0] : ""} 
+                    value={filters.selectedCompanies.length > 0 ? filters.selectedCompanies[0] : "all"} 
                     onValueChange={(value) => 
                       setFilters(prev => ({ 
                         ...prev, 
-                        selectedCompanies: value ? [value] : [] 
+                        selectedCompanies: value === "all" ? [] : [value] 
                       }))
                     }
                   >
@@ -273,7 +273,7 @@ export default function MyInvestments() {
                       <SelectValue placeholder="Select company" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Companies</SelectItem>
+                      <SelectItem value="all">All Companies</SelectItem>
                       {uniqueCompanies.map(company => (
                         <SelectItem key={company} value={company}>{company}</SelectItem>
                       ))}
@@ -309,11 +309,11 @@ export default function MyInvestments() {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Investment Type</Label>
                   <Select 
-                    value={filters.selectedInvestmentTypes.length > 0 ? filters.selectedInvestmentTypes[0] : ""} 
+                    value={filters.selectedInvestmentTypes.length > 0 ? filters.selectedInvestmentTypes[0] : "all"} 
                     onValueChange={(value) => 
                       setFilters(prev => ({ 
                         ...prev, 
-                        selectedInvestmentTypes: value ? [value] : [] 
+                        selectedInvestmentTypes: value === "all" ? [] : [value] 
                       }))
                     }
                   >
@@ -321,7 +321,7 @@ export default function MyInvestments() {
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Types</SelectItem>
+                      <SelectItem value="all">All Types</SelectItem>
                       {uniqueInvestmentTypes.map(type => (
                         <SelectItem key={type} value={type}>{type}</SelectItem>
                       ))}
