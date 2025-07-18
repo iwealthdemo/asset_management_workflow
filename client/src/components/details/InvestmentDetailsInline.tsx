@@ -17,6 +17,7 @@ import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DocumentAnalysisCard from "@/components/documents/DocumentAnalysisCard";
+import CrossDocumentQuery from "@/components/documents/CrossDocumentQuery";
 
 // Edit form schema
 const editFormSchema = z.object({
@@ -883,6 +884,15 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                 <FileText className="h-5 w-5" />
                 Documents & AI Analysis ({documents?.length || 0})
               </h3>
+              
+              {/* Cross-Document Query */}
+              {documents && documents.length > 0 && (
+                <CrossDocumentQuery
+                  requestType="investment"
+                  requestId={investmentDetails?.id || 0}
+                  documentCount={documents.length}
+                />
+              )}
               
               {/* Individual Document Analysis */}
               {documents && documents.length > 0 ? (

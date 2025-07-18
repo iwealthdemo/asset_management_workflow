@@ -180,6 +180,18 @@ export const documentQueries = pgTable("document_queries", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Cross-document queries table - stores queries across multiple documents
+export const crossDocumentQueries = pgTable("cross_document_queries", {
+  id: serial("id").primaryKey(),
+  requestType: text("request_type").notNull(), // investment, cash_request
+  requestId: integer("request_id").notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  query: text("query").notNull(),
+  response: text("response").notNull(),
+  documentCount: integer("document_count").notNull().default(0), // number of documents searched
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   investmentRequests: many(investmentRequests),
@@ -191,6 +203,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   auditLogs: many(auditLogs),
   templates: many(templates),
   documentQueries: many(documentQueries),
+  crossDocumentQueries: many(crossDocumentQueries),
 }));
 
 export const investmentRequestsRelations = relations(investmentRequests, ({ one, many }) => ({
@@ -241,6 +254,10 @@ export const backgroundJobsRelations = relations(backgroundJobs, ({ one }) => ({
 export const documentQueriesRelations = relations(documentQueries, ({ one }) => ({
   document: one(documents, { fields: [documentQueries.documentId], references: [documents.id] }),
   user: one(users, { fields: [documentQueries.userId], references: [users.id] }),
+}));
+
+export const crossDocumentQueriesRelations = relations(crossDocumentQueries, ({ one }) => ({
+  user: one(users, { fields: [crossDocumentQueries.userId], references: [users.id] }),
 }));
 
 // Zod schemas
@@ -301,6 +318,11 @@ export const insertDocumentQuerySchema = createInsertSchema(documentQueries).omi
   createdAt: true,
 });
 
+export const insertCrossDocumentQuerySchema = createInsertSchema(crossDocumentQueries).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -322,3 +344,5 @@ export type BackgroundJob = typeof backgroundJobs.$inferSelect;
 export type InsertBackgroundJob = z.infer<typeof insertBackgroundJobSchema>;
 export type DocumentQuery = typeof documentQueries.$inferSelect;
 export type InsertDocumentQuery = z.infer<typeof insertDocumentQuerySchema>;
+export type CrossDocumentQuery = typeof crossDocumentQueries.$inferSelect;
+export type InsertCrossDocumentQuery = z.infer<typeof insertCrossDocumentQuerySchema>;

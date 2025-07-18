@@ -1,12 +1,13 @@
 import { 
   users, investmentRequests, cashRequests, approvals, tasks, documents, 
   notifications, templates, auditLogs, approvalWorkflows, backgroundJobs,
-  documentQueries,
+  documentQueries, crossDocumentQueries,
   type User, type InsertUser, type InvestmentRequest, type InsertInvestmentRequest,
   type CashRequest, type InsertCashRequest, type Approval, type InsertApproval,
   type Task, type InsertTask, type Document, type InsertDocument,
   type Notification, type InsertNotification, type Template, type InsertTemplate,
-  type BackgroundJob, type InsertBackgroundJob, type DocumentQuery, type InsertDocumentQuery
+  type BackgroundJob, type InsertBackgroundJob, type DocumentQuery, type InsertDocumentQuery,
+  type CrossDocumentQuery, type InsertCrossDocumentQuery
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sql, ne } from "drizzle-orm";
@@ -135,6 +136,10 @@ export interface IStorage {
   // Document query operations
   saveDocumentQuery(query: InsertDocumentQuery): Promise<DocumentQuery>;
   getDocumentQueries(documentId: number): Promise<any[]>;
+  
+  // Cross-document query operations
+  saveCrossDocumentQuery(query: InsertCrossDocumentQuery): Promise<CrossDocumentQuery>;
+  getCrossDocumentQueries(requestType: string, requestId: number): Promise<CrossDocumentQuery[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -819,6 +824,48 @@ export class DatabaseStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Error in getDocumentQueries:', error);
+      throw error;
+    }
+  }
+
+  // Cross-document query operations
+  async saveCrossDocumentQuery(query: InsertCrossDocumentQuery): Promise<CrossDocumentQuery> {
+    const [saved] = await db.insert(crossDocumentQueries).values(query).returning();
+    return saved;
+  }
+
+  async getCrossDocumentQueries(requestType: string, requestId: number): Promise<CrossDocumentQuery[]> {
+    try {
+      const queries = await db
+        .select({
+          id: crossDocumentQueries.id,
+          requestType: crossDocumentQueries.requestType,
+          requestId: crossDocumentQueries.requestId,
+          userId: crossDocumentQueries.userId,
+          query: crossDocumentQueries.query,
+          response: crossDocumentQueries.response,
+          documentCount: crossDocumentQueries.documentCount,
+          createdAt: crossDocumentQueries.createdAt,
+          user: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            username: users.username
+          }
+        })
+        .from(crossDocumentQueries)
+        .leftJoin(users, eq(crossDocumentQueries.userId, users.id))
+        .where(
+          and(
+            eq(crossDocumentQueries.requestType, requestType),
+            eq(crossDocumentQueries.requestId, requestId)
+          )
+        )
+        .orderBy(desc(crossDocumentQueries.createdAt));
+      
+      return queries;
+    } catch (error) {
+      console.error('Error in getCrossDocumentQueries:', error);
       throw error;
     }
   }

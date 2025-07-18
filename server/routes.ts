@@ -855,6 +855,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cross-document query endpoints
+  app.post('/api/documents/cross-query/:requestType/:requestId', authMiddleware, async (req, res) => {
+    try {
+      const { requestType, requestId } = req.params;
+      const { query } = req.body;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ 
+          error: 'Query is required and must be a string',
+          message: 'Invalid query format' 
+        });
+      }
+      
+      // Import cross-document query service
+      const { crossDocumentQueryService } = await import('./services/crossDocumentQueryService');
+      
+      // Process cross-document query
+      const result = await crossDocumentQueryService.processCrossDocumentQuery(
+        requestType,
+        parseInt(requestId),
+        req.userId!,
+        query
+      );
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: result.error,
+          message: 'Failed to process cross-document query' 
+        });
+      }
+      
+      res.json({
+        answer: result.answer,
+        documentCount: result.documentCount,
+        success: true
+      });
+      
+    } catch (error) {
+      console.error('Cross-document query failed:', error);
+      res.status(500).json({ 
+        error: 'Failed to process cross-document query',
+        message: error.message 
+      });
+    }
+  });
+
+  app.get('/api/documents/cross-query/:requestType/:requestId', authMiddleware, async (req, res) => {
+    try {
+      const { requestType, requestId } = req.params;
+      
+      // Get query history for this request
+      const queries = await storage.getCrossDocumentQueries(requestType, parseInt(requestId));
+      
+      res.json(queries);
+    } catch (error) {
+      console.error('Error getting cross-document queries:', error);
+      res.status(500).json({ message: 'Failed to get query history' });
+    }
+  });
+
 
 
   app.post('/api/documents/batch-analyze', authMiddleware, async (req, res) => {
