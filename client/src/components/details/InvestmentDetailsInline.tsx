@@ -18,6 +18,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DocumentAnalysisCard from "@/components/documents/DocumentAnalysisCard";
 import CrossDocumentQuery from "@/components/documents/CrossDocumentQuery";
+import WebSearchQuery from "@/components/documents/WebSearchQuery";
 
 // Edit form schema
 const editFormSchema = z.object({
@@ -893,6 +894,12 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                   documentCount={documents.length}
                 />
               )}
+              
+              {/* Web Search Query */}
+              <WebSearchQuery
+                requestType="investment"
+                requestId={investmentDetails?.id || 0}
+              />
               
               {/* Individual Document Analysis */}
               {documents && documents.length > 0 ? (

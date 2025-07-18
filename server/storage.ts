@@ -1,13 +1,13 @@
 import { 
   users, investmentRequests, cashRequests, approvals, tasks, documents, 
   notifications, templates, auditLogs, approvalWorkflows, backgroundJobs,
-  documentQueries, crossDocumentQueries,
+  documentQueries, crossDocumentQueries, webSearchQueries,
   type User, type InsertUser, type InvestmentRequest, type InsertInvestmentRequest,
   type CashRequest, type InsertCashRequest, type Approval, type InsertApproval,
   type Task, type InsertTask, type Document, type InsertDocument,
   type Notification, type InsertNotification, type Template, type InsertTemplate,
   type BackgroundJob, type InsertBackgroundJob, type DocumentQuery, type InsertDocumentQuery,
-  type CrossDocumentQuery, type InsertCrossDocumentQuery
+  type CrossDocumentQuery, type InsertCrossDocumentQuery, type WebSearchQuery, type InsertWebSearchQuery
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sql, ne } from "drizzle-orm";
@@ -140,6 +140,10 @@ export interface IStorage {
   // Cross-document query operations
   saveCrossDocumentQuery(query: InsertCrossDocumentQuery): Promise<CrossDocumentQuery>;
   getCrossDocumentQueries(requestType: string, requestId: number): Promise<CrossDocumentQuery[]>;
+  
+  // Web search query operations
+  saveWebSearchQuery(query: InsertWebSearchQuery): Promise<WebSearchQuery>;
+  getWebSearchQueries(requestType: string, requestId: number): Promise<WebSearchQuery[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -866,6 +870,48 @@ export class DatabaseStorage implements IStorage {
       return queries;
     } catch (error) {
       console.error('Error in getCrossDocumentQueries:', error);
+      throw error;
+    }
+  }
+
+  // Web search query operations
+  async saveWebSearchQuery(query: InsertWebSearchQuery): Promise<WebSearchQuery> {
+    const [saved] = await db.insert(webSearchQueries).values(query).returning();
+    return saved;
+  }
+
+  async getWebSearchQueries(requestType: string, requestId: number): Promise<WebSearchQuery[]> {
+    try {
+      const queries = await db
+        .select({
+          id: webSearchQueries.id,
+          requestType: webSearchQueries.requestType,
+          requestId: webSearchQueries.requestId,
+          userId: webSearchQueries.userId,
+          query: webSearchQueries.query,
+          response: webSearchQueries.response,
+          searchType: webSearchQueries.searchType,
+          createdAt: webSearchQueries.createdAt,
+          user: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            username: users.username
+          }
+        })
+        .from(webSearchQueries)
+        .leftJoin(users, eq(webSearchQueries.userId, users.id))
+        .where(
+          and(
+            eq(webSearchQueries.requestType, requestType),
+            eq(webSearchQueries.requestId, requestId)
+          )
+        )
+        .orderBy(desc(webSearchQueries.createdAt));
+      
+      return queries;
+    } catch (error) {
+      console.error('Error in getWebSearchQueries:', error);
       throw error;
     }
   }

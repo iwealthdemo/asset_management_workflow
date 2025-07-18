@@ -192,6 +192,18 @@ export const crossDocumentQueries = pgTable("cross_document_queries", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Web search queries table - stores web search queries and responses
+export const webSearchQueries = pgTable("web_search_queries", {
+  id: serial("id").primaryKey(),
+  requestType: text("request_type").notNull(), // investment, cash_request
+  requestId: integer("request_id").notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  query: text("query").notNull(),
+  response: text("response").notNull(),
+  searchType: text("search_type").notNull().default("web_search"), // for future extensibility
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   investmentRequests: many(investmentRequests),
@@ -204,6 +216,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   templates: many(templates),
   documentQueries: many(documentQueries),
   crossDocumentQueries: many(crossDocumentQueries),
+  webSearchQueries: many(webSearchQueries),
 }));
 
 export const investmentRequestsRelations = relations(investmentRequests, ({ one, many }) => ({
@@ -258,6 +271,10 @@ export const documentQueriesRelations = relations(documentQueries, ({ one }) => 
 
 export const crossDocumentQueriesRelations = relations(crossDocumentQueries, ({ one }) => ({
   user: one(users, { fields: [crossDocumentQueries.userId], references: [users.id] }),
+}));
+
+export const webSearchQueriesRelations = relations(webSearchQueries, ({ one }) => ({
+  user: one(users, { fields: [webSearchQueries.userId], references: [users.id] }),
 }));
 
 // Zod schemas
@@ -323,6 +340,11 @@ export const insertCrossDocumentQuerySchema = createInsertSchema(crossDocumentQu
   createdAt: true,
 });
 
+export const insertWebSearchQuerySchema = createInsertSchema(webSearchQueries).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -346,3 +368,5 @@ export type DocumentQuery = typeof documentQueries.$inferSelect;
 export type InsertDocumentQuery = z.infer<typeof insertDocumentQuerySchema>;
 export type CrossDocumentQuery = typeof crossDocumentQueries.$inferSelect;
 export type InsertCrossDocumentQuery = z.infer<typeof insertCrossDocumentQuerySchema>;
+export type WebSearchQuery = typeof webSearchQueries.$inferSelect;
+export type InsertWebSearchQuery = z.infer<typeof insertWebSearchQuerySchema>;

@@ -915,6 +915,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Web search query endpoints
+  app.post('/api/documents/web-search/:requestType/:requestId', authMiddleware, async (req, res) => {
+    try {
+      const { requestType, requestId } = req.params;
+      const { query } = req.body;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ 
+          error: 'Query is required and must be a string',
+          message: 'Invalid query format' 
+        });
+      }
+      
+      // Import web search service
+      const { webSearchService } = await import('./services/webSearchService');
+      
+      // Process web search query
+      const result = await webSearchService.processWebSearchQuery(
+        requestType,
+        parseInt(requestId),
+        req.userId!,
+        query
+      );
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: result.error,
+          message: 'Failed to process web search query' 
+        });
+      }
+      
+      res.json({
+        answer: result.answer,
+        success: true
+      });
+      
+    } catch (error) {
+      console.error('Web search query failed:', error);
+      res.status(500).json({ 
+        error: 'Failed to process web search query',
+        message: error.message 
+      });
+    }
+  });
+
+  app.get('/api/documents/web-search/:requestType/:requestId', authMiddleware, async (req, res) => {
+    try {
+      const { requestType, requestId } = req.params;
+      
+      // Get web search query history for this request
+      const queries = await storage.getWebSearchQueries(requestType, parseInt(requestId));
+      
+      res.json(queries);
+    } catch (error) {
+      console.error('Error getting web search queries:', error);
+      res.status(500).json({ message: 'Failed to get web search history' });
+    }
+  });
+
 
 
   app.post('/api/documents/batch-analyze', authMiddleware, async (req, res) => {
