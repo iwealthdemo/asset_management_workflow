@@ -67,7 +67,7 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
 
   // Fetch document search history
   const { data: documentQueries = [] } = useQuery({
-    queryKey: ['/api/cross-document-queries', requestId],
+    queryKey: [`/api/cross-document-queries/${requestId}`],
     enabled: isExpanded
   });
 
@@ -85,7 +85,7 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
         body: { requestId, query, documentIds }
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/cross-document-queries', requestId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cross-document-queries/${requestId}`] });
       setQuery('');
     }
   });

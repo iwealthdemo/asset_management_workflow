@@ -86,7 +86,8 @@ export class CrossDocumentQueryService {
     requestType: string,
     requestId: number,
     userId: number,
-    query: string
+    query: string,
+    documentIds?: number[]
   ): Promise<{
     success: boolean;
     answer?: string;
@@ -95,13 +96,25 @@ export class CrossDocumentQueryService {
   }> {
     try {
       // Get all documents for this request
-      const documents = await storage.getDocumentsByRequest(requestType, requestId);
+      let documents = await storage.getDocumentsByRequest(requestType, requestId);
       
       if (documents.length === 0) {
         return {
           success: false,
           error: 'No documents found for this request'
         };
+      }
+
+      // Filter to selected documents if documentIds are provided
+      if (documentIds && documentIds.length > 0) {
+        documents = documents.filter(doc => documentIds.includes(doc.id));
+        
+        if (documents.length === 0) {
+          return {
+            success: false,
+            error: 'None of the selected documents are available for this request'
+          };
+        }
       }
 
       // Count documents that are ready for AI analysis
@@ -117,12 +130,16 @@ export class CrossDocumentQueryService {
         };
       }
 
-      // Create a comprehensive query that mentions we're searching across multiple documents
+      // Create a comprehensive query that mentions specific documents to search
+      const documentNames = readyDocuments.map(doc => doc.fileName || doc.originalName).join(', ');
       const enhancedQuery = `
-I have ${readyDocuments.length} documents uploaded to the vector store for this ${requestType} request. 
-Please search across all these documents to answer the following question: ${query}
+I have ${readyDocuments.length} specific documents that I want you to search: ${documentNames}
 
-If the answer requires information from multiple documents, please synthesize the information and indicate which documents contain the relevant details. If possible, include document names or references in your response.
+Please search ONLY within these ${readyDocuments.length} documents to answer the following question: ${query}
+
+Important: Focus your search exclusively on the documents I mentioned above. Do not use information from any other documents in the vector store. If the answer requires information from multiple of these specific documents, please synthesize the information and clearly indicate which of these documents contain the relevant details.
+
+Document names to search: ${documentNames}
       `.trim();
 
       // Get response from OpenAI

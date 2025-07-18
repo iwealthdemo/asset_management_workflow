@@ -856,6 +856,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Cross-document query endpoints
+  app.post('/api/cross-document-queries', authMiddleware, async (req, res) => {
+    try {
+      const { requestId, query, documentIds } = req.body;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ 
+          error: 'Query is required and must be a string',
+          message: 'Invalid query format' 
+        });
+      }
+      
+      if (!requestId || typeof requestId !== 'number') {
+        return res.status(400).json({ 
+          error: 'Request ID is required and must be a number',
+          message: 'Invalid request ID' 
+        });
+      }
+      
+      // Import cross-document query service
+      const { crossDocumentQueryService } = await import('./services/crossDocumentQueryService');
+      
+      // Process cross-document query with optional document filtering
+      const result = await crossDocumentQueryService.processCrossDocumentQuery(
+        'investment', // Default to investment for unified interface
+        requestId,
+        req.userId!,
+        query,
+        documentIds
+      );
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: result.error,
+          message: 'Failed to process cross-document query' 
+        });
+      }
+      
+      res.json({
+        answer: result.answer,
+        documentCount: result.documentCount,
+        success: true
+      });
+      
+    } catch (error) {
+      console.error('Cross-document query failed:', error);
+      res.status(500).json({ 
+        error: 'Failed to process cross-document query',
+        message: error.message 
+      });
+    }
+  });
+
+  // Legacy cross-document query endpoint for backward compatibility
   app.post('/api/documents/cross-query/:requestType/:requestId', authMiddleware, async (req, res) => {
     try {
       const { requestType, requestId } = req.params;
@@ -871,7 +924,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import cross-document query service
       const { crossDocumentQueryService } = await import('./services/crossDocumentQueryService');
       
-      // Process cross-document query
+      // Process cross-document query without document filtering (legacy behavior)
       const result = await crossDocumentQueryService.processCrossDocumentQuery(
         requestType,
         parseInt(requestId),
@@ -901,6 +954,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get cross-document queries history for unified interface
+  app.get('/api/cross-document-queries/:requestId', authMiddleware, async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      
+      // Get query history for this request
+      const queries = await storage.getCrossDocumentQueries('investment', parseInt(requestId));
+      
+      res.json(queries);
+    } catch (error) {
+      console.error('Error getting cross-document queries:', error);
+      res.status(500).json({ message: 'Failed to get query history' });
+    }
+  });
+
+  // Legacy cross-document query history endpoint
   app.get('/api/documents/cross-query/:requestType/:requestId', authMiddleware, async (req, res) => {
     try {
       const { requestType, requestId } = req.params;
