@@ -47,11 +47,15 @@ export class CrossDocumentQueryService {
       console.log('Using Vector Store ID:', vectorStoreId);
       console.log('Query:', userQuery);
       
-      // Use OpenAI Responses API with file_search tool (same format as web search)
+      // Use OpenAI Responses API with file_search tool (correct format)
       const responsePayload = {
         model: "gpt-4o",
-        tools: [{"type": "file_search"}],
-        vector_store_ids: [vectorStoreId],
+        tools: [
+          {
+            type: "file_search",
+            vector_store_ids: [vectorStoreId]
+          }
+        ],
         input: userQuery
       };
       
