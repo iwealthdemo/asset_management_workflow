@@ -14,8 +14,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DocumentAnalysisCard from '@/components/documents/DocumentAnalysisCard';
-import CrossDocumentQuery from '@/components/documents/CrossDocumentQuery';
-import WebSearchQuery from '@/components/documents/WebSearchQuery';
+import UnifiedSearchInterface from '@/components/documents/UnifiedSearchInterface';
 
 export default function MyTasks() {
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
@@ -429,19 +428,10 @@ function TaskCard({
                 Documents & AI Analysis ({documents?.length || 0})
               </h4>
               
-              {/* Cross-Document Query */}
-              {documents && documents.length > 0 && (
-                <CrossDocumentQuery
-                  requestType={task.requestType}
-                  requestId={task.requestId}
-                  documentCount={documents.length}
-                />
-              )}
-              
-              {/* Web Search Query */}
-              <WebSearchQuery
-                requestType={task.requestType}
+              {/* Unified Search Interface */}
+              <UnifiedSearchInterface
                 requestId={task.requestId}
+                documents={documents || []}
               />
               
               {/* Individual Document Analysis Cards */}

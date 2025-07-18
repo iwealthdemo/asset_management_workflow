@@ -17,8 +17,7 @@ import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DocumentAnalysisCard from "@/components/documents/DocumentAnalysisCard";
-import CrossDocumentQuery from "@/components/documents/CrossDocumentQuery";
-import WebSearchQuery from "@/components/documents/WebSearchQuery";
+import UnifiedSearchInterface from "@/components/documents/UnifiedSearchInterface";
 
 // Edit form schema
 const editFormSchema = z.object({
@@ -728,19 +727,10 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                 Documents & AI Analysis ({documents?.length || 0})
               </h3>
               
-              {/* Cross-Document Query */}
-              {documents && documents.length > 0 && (
-                <CrossDocumentQuery
-                  requestType="investment"
-                  requestId={investmentDetails?.id || 0}
-                  documentCount={documents.length}
-                />
-              )}
-              
-              {/* Web Search Query */}
-              <WebSearchQuery
-                requestType="investment"
+              {/* Unified Search Interface */}
+              <UnifiedSearchInterface
                 requestId={investmentDetails?.id || 0}
+                documents={documents || []}
               />
               
               {/* Individual Document Analysis */}
