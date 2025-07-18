@@ -17,6 +17,25 @@ interface QueryCardProps {
   index: number;
 }
 
+// Simple markdown parser for basic formatting
+const parseMarkdown = (text: string): JSX.Element => {
+  // Split by double asterisks for bold text
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          // Remove the asterisks and make it bold
+          const boldText = part.slice(2, -2);
+          return <strong key={index}>{boldText}</strong>;
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </>
+  );
+};
+
 const QueryCard: React.FC<QueryCardProps> = ({ query, index }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -67,9 +86,9 @@ const QueryCard: React.FC<QueryCardProps> = ({ query, index }) => {
             </div>
             <div>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Answer:</span>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 whitespace-pre-line">
-                {query.response}
-              </p>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 whitespace-pre-line">
+                {parseMarkdown(query.response)}
+              </div>
             </div>
           </div>
           
