@@ -41,21 +41,31 @@ export class CrossDocumentQueryService {
     }
   }
 
-  private async getRawResponse(userQuery: string, vectorStoreId: string = VECTOR_STORE_ID): Promise<string> {
+  private async getRawResponse(userQuery: string, vectorStoreId: string = VECTOR_STORE_ID, openaiFileIds?: string[]): Promise<string> {
     try {
       console.log('=== OPENAI RESPONSES API CALL DETAILS ===');
       console.log('Using Vector Store ID:', vectorStoreId);
       console.log('Query:', userQuery);
       
-      // Use OpenAI Responses API with file_search tool (correct format)
+      // Use OpenAI Responses API with file_search tool and optional file ID filtering
+      const fileSearchTool: any = {
+        type: "file_search",
+        vector_store_ids: [vectorStoreId]
+      };
+      
+      // Add file ID filtering if specific files are requested
+      if (openaiFileIds && openaiFileIds.length > 0) {
+        fileSearchTool.filters = {
+          file_id: openaiFileIds
+        };
+        console.log('Using file ID filtering for:', openaiFileIds);
+      } else {
+        console.log('No file ID filtering - searching all files in vector store');
+      }
+      
       const responsePayload = {
         model: "gpt-4o",
-        tools: [
-          {
-            type: "file_search",
-            vector_store_ids: [vectorStoreId]
-          }
-        ],
+        tools: [fileSearchTool],
         input: userQuery
       };
       
@@ -218,8 +228,8 @@ OpenAI File IDs: ${openaiFileIds.join(', ')}
       console.log(enhancedQuery);
       console.log('=== END ENHANCED QUERY ===');
 
-      // Get response from OpenAI
-      const answer = await this.getRawResponse(enhancedQuery);
+      // Get response from OpenAI with file ID filtering
+      const answer = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds);
 
       // Save the query and response to database
       await storage.saveCrossDocumentQuery({
