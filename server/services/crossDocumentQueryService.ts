@@ -7,16 +7,18 @@ const openai = new OpenAI({
 
 const VECTOR_STORE_ID = 'vs_687584b54f908191b0a21ffa42948fb5';
 
-let cachedAssistant: any = null;
-
 export class CrossDocumentQueryService {
-  private async getOrCreateAssistant() {
-    if (cachedAssistant) {
-      return cachedAssistant;
-    }
+  private async getRawResponse(userQuery: string): Promise<string> {
+    // Use Assistants API directly since Responses API is not available yet
+    return this.getRawResponseWithAssistants(userQuery);
+  }
 
+  private async getRawResponseWithAssistants(userQuery: string): Promise<string> {
     try {
-      cachedAssistant = await openai.beta.assistants.create({
+      console.log('Sending cross-document query to OpenAI using Assistants API:', userQuery);
+      
+      // Create a one-time assistant for this query
+      const assistant = await openai.beta.assistants.create({
         name: "Cross-Document Query Assistant",
         instructions: "You are an intelligent assistant that can search across multiple documents in a vector store and provide comprehensive answers based on information from one or more documents. Always provide clear, well-sourced responses and indicate which documents contain the relevant information when possible.",
         model: "gpt-4o-mini",
@@ -31,20 +33,7 @@ export class CrossDocumentQueryService {
           }
         }
       });
-      
-      console.log('Created cross-document query assistant:', cachedAssistant.id);
-      return cachedAssistant;
-    } catch (error) {
-      console.error('Error creating cross-document assistant:', error);
-      throw error;
-    }
-  }
 
-  private async getRawResponse(userQuery: string): Promise<string> {
-    try {
-      console.log('Sending cross-document query to OpenAI:', userQuery);
-      
-      const assistant = await this.getOrCreateAssistant();
       const thread = await openai.beta.threads.create();
 
       await openai.beta.threads.messages.create(thread.id, {
@@ -62,13 +51,25 @@ export class CrossDocumentQueryService {
         const assistantMessage = messages.data.find(msg => msg.role === 'assistant');
         
         if (assistantMessage && assistantMessage.content[0].type === 'text') {
+          // Clean up the assistant after use
+          try {
+            await openai.beta.assistants.delete(assistant.id);
+          } catch (cleanupError) {
+            console.warn('Failed to cleanup assistant:', cleanupError);
+          }
           return assistantMessage.content[0].text.value;
         }
       }
 
+      // Clean up the assistant even if run failed
+      try {
+        await openai.beta.assistants.delete(assistant.id);
+      } catch (cleanupError) {
+        console.warn('Failed to cleanup assistant:', cleanupError);
+      }
       throw new Error(`OpenAI run failed with status: ${run.status}`);
     } catch (error) {
-      console.error('Error getting cross-document response:', error);
+      console.error('Error getting cross-document response with Assistants API:', error);
       throw error;
     }
   }
