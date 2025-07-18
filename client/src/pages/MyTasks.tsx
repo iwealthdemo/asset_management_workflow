@@ -432,9 +432,9 @@ function TaskCard({
             )}
 
             {/* Approval History */}
-            {approvalHistory && approvalHistory.length > 0 && (
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-4">Approval History</h4>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold mb-4">Approval History</h4>
+              {approvalHistory && approvalHistory.length > 0 ? (
                 <div className="space-y-3">
                   {approvalHistory.map((approval: any) => (
                     <div key={approval.id} className="flex items-center space-x-3 p-3 bg-white rounded-lg">
@@ -453,37 +453,51 @@ function TaskCard({
                             {format(new Date(approval.approvedAt), 'MMM dd, yyyy HH:mm')}
                           </p>
                         )}
-                        {approval.comments && (
-                          <p className="text-sm text-gray-600 mt-1">{approval.comments}</p>
-                        )}
+                        <div className="mt-1">
+                          <p className="text-xs text-gray-500 font-medium">Comments:</p>
+                          <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                            {approval.comments || 'No comments provided'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No approval history yet</p>
+                  <p className="text-sm">This is the first stage of approval</p>
+                </div>
+              )}
+            </div>
 
             {/* Comments and Actions */}
             {task.status === 'pending' && (
               <div className="bg-gray-50 p-4 rounded-lg">
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="comments">Comments (Optional)</Label>
+                    <Label htmlFor="comments">Comments (Required)</Label>
                     <Textarea
                       id="comments"
                       rows={3}
-                      placeholder="Add your comments or feedback..."
+                      placeholder="Please provide your comments or feedback..."
                       value={comments}
                       onChange={(e) => setComments(e.target.value)}
                       className="mt-2"
+                      required
                     />
+                    {comments.trim() === '' && (
+                      <p className="text-sm text-red-500 mt-1">
+                        Comments are required before approving or rejecting
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-end space-x-4">
                     <Button
                       variant="destructive"
                       onClick={() => onProcessApproval.mutate({ taskId: task.id, action: 'reject' })}
-                      disabled={onProcessApproval.isPending}
+                      disabled={onProcessApproval.isPending || comments.trim() === ''}
                     >
                       <XCircle className="h-4 w-4 mr-2" />
                       Reject
@@ -491,14 +505,14 @@ function TaskCard({
                     <Button
                       variant="secondary"
                       onClick={() => onProcessApproval.mutate({ taskId: task.id, action: 'changes_requested' })}
-                      disabled={onProcessApproval.isPending}
+                      disabled={onProcessApproval.isPending || comments.trim() === ''}
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Request Changes
                     </Button>
                     <Button
                       onClick={() => onProcessApproval.mutate({ taskId: task.id, action: 'approve' })}
-                      disabled={onProcessApproval.isPending}
+                      disabled={onProcessApproval.isPending || comments.trim() === ''}
                     >
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Approve

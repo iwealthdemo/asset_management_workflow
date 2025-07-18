@@ -172,10 +172,10 @@ export function ApprovalModal({ isOpen, onClose, task }: ApprovalModalProps) {
           </Card>
 
           {/* Approval History */}
-          {approvalHistory && approvalHistory.length > 0 && (
-            <Card>
-              <CardContent className="pt-6">
-                <h4 className="text-lg font-semibold mb-4">Approval History</h4>
+          <Card>
+            <CardContent className="pt-6">
+              <h4 className="text-lg font-semibold mb-4">Approval History</h4>
+              {approvalHistory && approvalHistory.length > 0 ? (
                 <div className="space-y-3">
                   {approvalHistory.map((approval: any, index: number) => (
                     <div key={approval.id} className="flex items-center space-x-3">
@@ -194,16 +194,24 @@ export function ApprovalModal({ isOpen, onClose, task }: ApprovalModalProps) {
                             {format(new Date(approval.approvedAt), 'MMM dd, yyyy HH:mm')}
                           </p>
                         )}
-                        {approval.comments && (
-                          <p className="text-sm text-gray-600 mt-1">{approval.comments}</p>
-                        )}
+                        <div className="mt-1">
+                          <p className="text-xs text-gray-500 font-medium">Comments:</p>
+                          <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                            {approval.comments || 'No comments provided'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No approval history yet</p>
+                  <p className="text-sm">This is the first stage of approval</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Documents */}
           {documents && documents.length > 0 && (
@@ -236,15 +244,21 @@ export function ApprovalModal({ isOpen, onClose, task }: ApprovalModalProps) {
           {/* Comments */}
           <Card>
             <CardContent className="pt-6">
-              <Label htmlFor="comments">Comments (Optional)</Label>
+              <Label htmlFor="comments">Comments (Required)</Label>
               <Textarea
                 id="comments"
                 rows={3}
-                placeholder="Add your comments or feedback..."
+                placeholder="Please provide your comments or feedback..."
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
                 className="mt-2"
+                required
               />
+              {comments.trim() === '' && (
+                <p className="text-sm text-red-500 mt-1">
+                  Comments are required before approving or rejecting
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -256,7 +270,7 @@ export function ApprovalModal({ isOpen, onClose, task }: ApprovalModalProps) {
             <Button
               variant="destructive"
               onClick={() => processApproval.mutate({ action: 'reject' })}
-              disabled={processApproval.isPending}
+              disabled={processApproval.isPending || comments.trim() === ''}
             >
               <XCircle className="h-4 w-4 mr-2" />
               Reject
@@ -264,14 +278,14 @@ export function ApprovalModal({ isOpen, onClose, task }: ApprovalModalProps) {
             <Button
               variant="secondary"
               onClick={() => processApproval.mutate({ action: 'changes_requested' })}
-              disabled={processApproval.isPending}
+              disabled={processApproval.isPending || comments.trim() === ''}
             >
               <FileText className="h-4 w-4 mr-2" />
               Request Changes
             </Button>
             <Button
               onClick={() => processApproval.mutate({ action: 'approve' })}
-              disabled={processApproval.isPending}
+              disabled={processApproval.isPending || comments.trim() === ''}
             >
               <CheckCircle className="h-4 w-4 mr-2" />
               Approve
