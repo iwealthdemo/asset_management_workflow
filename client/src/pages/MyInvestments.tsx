@@ -77,9 +77,23 @@ export default function MyInvestments() {
     );
   }
 
-  const pendingInvestments = investments?.filter((inv: any) => inv.status === 'pending') || [];
-  const approvedInvestments = investments?.filter((inv: any) => inv.status === 'approved') || [];
-  const rejectedInvestments = investments?.filter((inv: any) => inv.status === 'rejected') || [];
+  // Filter logic based on actual approval states
+  const pendingInvestments = investments?.filter((inv: any) => {
+    // Pending means not fully approved and not rejected
+    const status = inv.status.toLowerCase();
+    return !status.includes('approved') && !status.includes('rejected') && status !== 'approved';
+  }) || [];
+  
+  const approvedInvestments = investments?.filter((inv: any) => {
+    // Approved means final approval status (only "approved", not partial approvals)
+    return inv.status.toLowerCase() === 'approved';
+  }) || [];
+  
+  const rejectedInvestments = investments?.filter((inv: any) => {
+    // Rejected by any approver
+    const status = inv.status.toLowerCase();
+    return status === 'rejected' || status.includes('rejected');
+  }) || [];
 
   return (
     <div className="p-6">

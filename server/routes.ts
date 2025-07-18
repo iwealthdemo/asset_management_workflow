@@ -154,12 +154,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (currentUser.role === 'analyst') {
         // Analysts see all proposals initiated by them irrespective of status
         const filters: any = { userId: req.userId };
-        if (status) filters.status = status as string;
         requests = await storage.getInvestmentRequests(filters);
       } else if (currentUser.role === 'admin') {
         // Admins see all proposals
         const filters: any = {};
-        if (status) filters.status = status as string;
         requests = await storage.getInvestmentRequests(filters);
       } else if (['manager', 'committee_member', 'finance'].includes(currentUser.role)) {
         // Manager/Committee/Finance see only proposals they have acted on
@@ -169,10 +167,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (requestIds.length > 0) {
           const allRequests = await storage.getInvestmentRequests({});
           requests = allRequests.filter(request => requestIds.includes(request.id));
-          
-          if (status) {
-            requests = requests.filter(request => request.status === status);
-          }
+        }
+      }
+      
+      // Apply status filtering after getting the base requests
+      if (status) {
+        if (status === 'pending') {
+          // Pending means not fully approved and not rejected
+          requests = requests.filter(request => {
+            const requestStatus = request.status.toLowerCase();
+            return !requestStatus.includes('approved') && !requestStatus.includes('rejected') && requestStatus !== 'approved';
+          });
+        } else if (status === 'approved') {
+          // Approved means final approval status (only "approved", not partial approvals)
+          requests = requests.filter(request => request.status.toLowerCase() === 'approved');
+        } else if (status === 'rejected') {
+          // Rejected by any approver
+          requests = requests.filter(request => {
+            const requestStatus = request.status.toLowerCase();
+            return requestStatus === 'rejected' || requestStatus.includes('rejected');
+          });
+        } else {
+          // For other statuses, use exact match
+          requests = requests.filter(request => request.status === status);
         }
       }
       
