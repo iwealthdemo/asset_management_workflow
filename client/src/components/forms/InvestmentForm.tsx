@@ -115,12 +115,50 @@ export function InvestmentForm() {
         ...data,
         status: "draft",
       })
-      return response.json()
+      const investment = await response.json()
+      
+      // Upload documents if any are selected
+      if (uploadedFiles.length > 0) {
+        console.log("Uploading documents for draft:", uploadedFiles.length)
+        const formData = new FormData()
+        uploadedFiles.forEach(file => {
+          formData.append('documents', file)
+        })
+        
+        const uploadResponse = await fetch(`/api/documents/investment/${investment.id}`, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        })
+        
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload documents')
+        }
+        
+        console.log("Documents uploaded successfully for draft")
+      }
+      
+      return investment
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/investments"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent-requests"] })
+      
       toast({
         title: "Draft saved",
         description: "Your investment request has been saved as a draft",
+      })
+      
+      // Clear uploaded files after successful save
+      setUploadedFiles([])
+    },
+    onError: (error: any) => {
+      console.error("Draft save error:", error)
+      toast({
+        title: "Error saving draft",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
       })
     },
   })
