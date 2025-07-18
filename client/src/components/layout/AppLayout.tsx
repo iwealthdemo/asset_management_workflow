@@ -3,7 +3,6 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   DropdownMenu, 
@@ -26,7 +25,6 @@ import {
   Users, 
   Table, 
   PieChart,
-  Search,
   Bell,
   Settings,
   Menu,
@@ -247,15 +245,6 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
               
               <div className="flex items-center space-x-4">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search requests..."
-                    className="w-64 pl-10"
-                  />
-                </div>
-                
                 {/* Notifications */}
                 <div className="relative">
                   <Button variant="ghost" size="icon">
