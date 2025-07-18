@@ -73,6 +73,47 @@ export interface IStorage {
     cashRequests: number;
     slaBreaches: number;
   }>;
+
+  // Enhanced dashboard metrics
+  getEnhancedDashboardStats(userId: number): Promise<{
+    proposalSummary: {
+      investment: {
+        draft: { count: number; value: number };
+        pendingManager: { count: number; value: number };
+        pendingCommittee: { count: number; value: number };
+        pendingFinance: { count: number; value: number };
+        approved: { count: number; value: number };
+        rejected: { count: number; value: number };
+        total: { count: number; value: number };
+      };
+      cash: {
+        draft: { count: number; value: number };
+        pendingManager: { count: number; value: number };
+        pendingCommittee: { count: number; value: number };
+        pendingFinance: { count: number; value: number };
+        approved: { count: number; value: number };
+        rejected: { count: number; value: number };
+        total: { count: number; value: number };
+      };
+    };
+    riskProfile: {
+      low: { count: number; value: number };
+      medium: { count: number; value: number };
+      high: { count: number; value: number };
+    };
+    valueDistribution: {
+      small: { count: number; value: number }; // 0-1M
+      medium: { count: number; value: number }; // 1-5M
+      large: { count: number; value: number }; // 5-10M
+      extraLarge: { count: number; value: number }; // 10M+
+    };
+    decisionSupport: {
+      urgentApprovals: number;
+      overdueItems: number;
+      avgProcessingTime: number;
+      complianceAlerts: number;
+    };
+  }>;
   
   // Recent requests
   getRecentRequests(limit?: number, userId?: number): Promise<Array<{
@@ -364,6 +405,274 @@ export class DatabaseStorage implements IStorage {
       activeInvestments: activeInvestments.count,
       cashRequests: cashRequestsCount.count,
       slaBreaches: slaBreaches.count,
+    };
+  }
+
+  async getEnhancedDashboardStats(userId: number): Promise<{
+    proposalSummary: {
+      investment: {
+        draft: { count: number; value: number };
+        pendingManager: { count: number; value: number };
+        pendingCommittee: { count: number; value: number };
+        pendingFinance: { count: number; value: number };
+        approved: { count: number; value: number };
+        rejected: { count: number; value: number };
+        total: { count: number; value: number };
+      };
+      cash: {
+        draft: { count: number; value: number };
+        pendingManager: { count: number; value: number };
+        pendingCommittee: { count: number; value: number };
+        pendingFinance: { count: number; value: number };
+        approved: { count: number; value: number };
+        rejected: { count: number; value: number };
+        total: { count: number; value: number };
+      };
+    };
+    riskProfile: {
+      low: { count: number; value: number };
+      medium: { count: number; value: number };
+      high: { count: number; value: number };
+    };
+    valueDistribution: {
+      small: { count: number; value: number }; // 0-1M
+      medium: { count: number; value: number }; // 1-5M
+      large: { count: number; value: number }; // 5-10M
+      extraLarge: { count: number; value: number }; // 10M+
+    };
+    decisionSupport: {
+      urgentApprovals: number;
+      overdueItems: number;
+      avgProcessingTime: number;
+      complianceAlerts: number;
+    };
+  }> {
+    // Get current user to determine role-based filtering
+    const currentUser = await this.getUser(userId);
+    const userRole = currentUser?.role;
+    
+    // Simplified approach - get all data first, then apply role-based filtering
+    let investmentData = [];
+    let cashData = [];
+    
+    if (userRole === 'analyst') {
+      // Analysts can only see their own proposals
+      investmentData = await db.select().from(investmentRequests).where(eq(investmentRequests.createdBy, userId));
+      cashData = await db.select().from(cashRequests).where(eq(cashRequests.createdBy, userId));
+    } else if (userRole === 'admin') {
+      // Admin sees everything
+      investmentData = await db.select().from(investmentRequests);
+      cashData = await db.select().from(cashRequests);
+    } else {
+      // Other roles get filtered based on status visibility
+      investmentData = await db.select().from(investmentRequests).where(
+        or(
+          eq(investmentRequests.createdBy, userId),
+          sql`${investmentRequests.status} != 'draft'`
+        )
+      );
+      cashData = await db.select().from(cashRequests).where(
+        or(
+          eq(cashRequests.createdBy, userId),
+          sql`${cashRequests.status} != 'draft'`
+        )
+      );
+    }
+
+    // Process investment proposal statistics
+    const investmentStats = this.processProposalStats(investmentData, 'investment');
+    const cashStats = this.processProposalStats(cashData, 'cash');
+
+    // Process risk profile distribution
+    const riskStats = this.processRiskProfileStats(investmentData);
+
+    // Process value distribution
+    const valueStats = this.processValueDistributionStats(investmentData);
+
+    // Get decision support metrics
+    const decisionStats = await this.getDecisionSupportStats(userId, userRole);
+
+    return {
+      proposalSummary: {
+        investment: investmentStats,
+        cash: cashStats,
+      },
+      riskProfile: riskStats,
+      valueDistribution: valueStats,
+      decisionSupport: decisionStats,
+    };
+  }
+
+  private processProposalStats(data: any[], type: 'investment' | 'cash'): {
+    draft: { count: number; value: number };
+    pendingManager: { count: number; value: number };
+    pendingCommittee: { count: number; value: number };
+    pendingFinance: { count: number; value: number };
+    approved: { count: number; value: number };
+    rejected: { count: number; value: number };
+    total: { count: number; value: number };
+  } {
+    const amountField = type === 'investment' ? 'investmentAmount' : 'amount';
+    
+    const stats = {
+      draft: { count: 0, value: 0 },
+      pendingManager: { count: 0, value: 0 },
+      pendingCommittee: { count: 0, value: 0 },
+      pendingFinance: { count: 0, value: 0 },
+      approved: { count: 0, value: 0 },
+      rejected: { count: 0, value: 0 },
+      total: { count: 0, value: 0 },
+    };
+
+    data.forEach(item => {
+      const status = item.status;
+      const value = item[amountField] || 0;
+
+      // Map database status to dashboard categories
+      if (status === 'draft') {
+        stats.draft.count++;
+        stats.draft.value += value;
+      } else if (status === 'pending' || status === 'Manager pending') {
+        stats.pendingManager.count++;
+        stats.pendingManager.value += value;
+      } else if (status === 'Manager approved' || status === 'Committee pending') {
+        stats.pendingCommittee.count++;
+        stats.pendingCommittee.value += value;
+      } else if (status === 'Committee approved' || status === 'Finance pending') {
+        stats.pendingFinance.count++;
+        stats.pendingFinance.value += value;
+      } else if (status === 'approved') {
+        stats.approved.count++;
+        stats.approved.value += value;
+      } else if (status.includes('rejected') || status === 'rejected') {
+        stats.rejected.count++;
+        stats.rejected.value += value;
+      }
+
+      stats.total.count++;
+      stats.total.value += value;
+    });
+
+    return stats;
+  }
+
+  private processRiskProfileStats(data: any[]): {
+    low: { count: number; value: number };
+    medium: { count: number; value: number };
+    high: { count: number; value: number };
+  } {
+    const stats = {
+      low: { count: 0, value: 0 },
+      medium: { count: 0, value: 0 },
+      high: { count: 0, value: 0 },
+    };
+
+    data.forEach(item => {
+      const riskLevel = item.riskLevel?.toLowerCase();
+      const value = item.investmentAmount || 0;
+
+      if (riskLevel === 'low') {
+        stats.low.count++;
+        stats.low.value += value;
+      } else if (riskLevel === 'medium') {
+        stats.medium.count++;
+        stats.medium.value += value;
+      } else if (riskLevel === 'high') {
+        stats.high.count++;
+        stats.high.value += value;
+      }
+    });
+
+    return stats;
+  }
+
+  private processValueDistributionStats(data: any[]): {
+    small: { count: number; value: number };
+    medium: { count: number; value: number };
+    large: { count: number; value: number };
+    extraLarge: { count: number; value: number };
+  } {
+    const stats = {
+      small: { count: 0, value: 0 },
+      medium: { count: 0, value: 0 },
+      large: { count: 0, value: 0 },
+      extraLarge: { count: 0, value: 0 },
+    };
+
+    data.forEach(item => {
+      const amount = item.investmentAmount || 0;
+
+      if (amount <= 1000000) { // 0-1M
+        stats.small.count++;
+        stats.small.value += amount;
+      } else if (amount <= 5000000) { // 1-5M
+        stats.medium.count++;
+        stats.medium.value += amount;
+      } else if (amount <= 10000000) { // 5-10M
+        stats.large.count++;
+        stats.large.value += amount;
+      } else { // 10M+
+        stats.extraLarge.count++;
+        stats.extraLarge.value += amount;
+      }
+    });
+
+    return stats;
+  }
+
+  private async getDecisionSupportStats(userId: number, userRole?: string): Promise<{
+    urgentApprovals: number;
+    overdueItems: number;
+    avgProcessingTime: number;
+    complianceAlerts: number;
+  }> {
+    // Get urgent approvals (due within 24 hours)
+    const urgentDate = new Date();
+    urgentDate.setHours(urgentDate.getHours() + 24);
+    
+    const [urgentApprovals] = await db.select({ count: sql<number>`count(*)` })
+      .from(tasks)
+      .where(and(
+        eq(tasks.assigneeId, userId),
+        eq(tasks.status, 'pending'),
+        sql`${tasks.dueDate} <= ${urgentDate.toISOString()}`
+      ));
+
+    // Get overdue items
+    const [overdueItems] = await db.select({ count: sql<number>`count(*)` })
+      .from(tasks)
+      .where(and(
+        eq(tasks.assigneeId, userId),
+        eq(tasks.status, 'overdue')
+      ));
+
+    // Calculate average processing time (in hours)
+    const avgProcessingResult = await db.select({
+      avgTime: sql<number>`AVG(EXTRACT(EPOCH FROM (${tasks.updatedAt} - ${tasks.createdAt})) / 3600)`
+    }).from(tasks)
+      .where(and(
+        eq(tasks.assigneeId, userId),
+        sql`${tasks.status} IN ('completed', 'approved')`
+      ));
+
+    const avgProcessingTime = avgProcessingResult[0]?.avgTime || 0;
+
+    // Get compliance alerts (SLA breaches + overdue items)
+    const [complianceAlerts] = await db.select({ count: sql<number>`count(*)` })
+      .from(tasks)
+      .where(and(
+        eq(tasks.assigneeId, userId),
+        or(
+          eq(tasks.status, 'overdue'),
+          sql`${tasks.dueDate} < NOW()`
+        )
+      ));
+
+    return {
+      urgentApprovals: urgentApprovals.count,
+      overdueItems: overdueItems.count,
+      avgProcessingTime: Math.round(avgProcessingTime * 100) / 100,
+      complianceAlerts: complianceAlerts.count,
     };
   }
 

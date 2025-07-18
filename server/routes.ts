@@ -87,6 +87,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/dashboard/enhanced-stats', authMiddleware, async (req, res) => {
+    try {
+      const stats = await storage.getEnhancedDashboardStats(req.userId!);
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching enhanced dashboard stats:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   app.get('/api/dashboard/recent-requests', authMiddleware, async (req, res) => {
     try {
       // Get current user to check role
