@@ -33,7 +33,7 @@ async function testRoleBasedNavigation() {
       console.log(`\n📋 Navigation Menu Rules for ${user.role}:`);
       
       // Items that should be visible for all roles
-      console.log('✅ Always visible: Dashboard, My Tasks, My Investments, SLA Monitoring');
+      console.log('✅ Always visible: Dashboard, My Tasks, My Investments');
       
       // Items that should be visible for this role
       if (user.shouldSee && user.shouldSee.length > 0) {

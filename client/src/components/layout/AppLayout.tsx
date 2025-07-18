@@ -71,7 +71,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     { href: "/investments", label: "My Investments", icon: Briefcase, roles: ["all"] },
 
     { href: "/templates", label: "Templates", icon: FileText, roles: ["analyst", "admin"] },
-    { href: "/sla-monitoring", label: "SLA Monitoring", icon: BarChart3, roles: ["all"] },
   ];
 
   // Filter navigation items based on user role
