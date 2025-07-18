@@ -219,9 +219,8 @@ export default function Dashboard() {
   
   return (
     <div className="p-6 space-y-6">
-      <>
-        {/* Overview Section */}
-        <div id="overview" className="space-y-4">
+      {/* Overview Section */}
+      <div id="overview" className="space-y-4">
         <Collapsible 
             open={!sectionsCollapsed.overview} 
             onOpenChange={() => toggleSection('overview')}
@@ -282,7 +281,7 @@ export default function Dashboard() {
 
         {/* Enhanced Dashboard Content */}
         {enhancedStats && (
-          <>
+          <div className="space-y-4">
             {/* Proposal Summary Section */}
             <div id="proposal-summary" className="space-y-4">
               <Collapsible 
@@ -752,7 +751,8 @@ export default function Dashboard() {
                 </CollapsibleContent>
               </Collapsible>
             </div>
-      </>
+          </div>
+        )}
     </div>
   );
 }
