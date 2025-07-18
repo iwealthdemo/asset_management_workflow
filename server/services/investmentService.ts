@@ -77,14 +77,24 @@ export class InvestmentService {
         throw new Error('Unauthorized to submit this request');
       }
       
-      if (existingRequest.status.toLowerCase() !== 'draft') {
-        throw new Error('Only draft requests can be submitted');
+      if (existingRequest.status.toLowerCase() !== 'draft' && existingRequest.status.toLowerCase() !== 'changes_requested') {
+        throw new Error('Only draft or changes_requested requests can be submitted');
       }
       
-      // Update status to New and start workflow
+      // Update status to New and reset approval stage
       const updatedRequest = await storage.updateInvestmentRequest(requestId, {
         status: 'New',
+        currentApprovalStage: 0,
       });
+
+      // If this was a changes_requested proposal, clear existing approval records
+      if (existingRequest.status.toLowerCase() === 'changes_requested') {
+        // Clear any existing approval records for this request
+        const existingApprovals = await storage.getApprovalsByRequest('investment', requestId);
+        for (const approval of existingApprovals) {
+          await storage.deleteApproval(approval.id);
+        }
+      }
 
       // Start the approval workflow
       await workflowService.startApprovalWorkflow('investment', requestId);

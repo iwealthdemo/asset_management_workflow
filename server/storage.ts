@@ -37,6 +37,7 @@ export interface IStorage {
   // Approval operations
   createApproval(approval: InsertApproval): Promise<Approval>;
   updateApproval(id: number, approval: Partial<InsertApproval>): Promise<Approval>;
+  deleteApproval(id: number): Promise<void>;
   getApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]>;
   getApprovalsByUser(userId: number): Promise<Approval[]>;
   
@@ -214,6 +215,10 @@ export class DatabaseStorage implements IStorage {
   async updateApproval(id: number, approval: Partial<InsertApproval>): Promise<Approval> {
     const [updated] = await db.update(approvals).set(approval).where(eq(approvals.id, id)).returning();
     return updated;
+  }
+
+  async deleteApproval(id: number): Promise<void> {
+    await db.delete(approvals).where(eq(approvals.id, id));
   }
 
   async getApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]> {

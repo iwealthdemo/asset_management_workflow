@@ -101,7 +101,9 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Draft submitted for approval successfully",
+        description: investmentDetails?.status.toLowerCase() === 'changes_requested' ? 
+          "Proposal resubmitted for approval successfully" : 
+          "Draft submitted for approval successfully",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
     },
@@ -175,6 +177,8 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
       case 'Committee rejected':
       case 'Finance rejected':
       case 'rejected':
+        return <AlertTriangle className="w-4 h-4" />;
+      case 'changes_requested':
         return <AlertTriangle className="w-4 h-4" />;
       case 'pending':
         return <Clock className="w-4 h-4" />;
@@ -269,7 +273,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                 </div>
                 
                 {/* Draft Actions */}
-                {investmentDetails.status.toLowerCase() === 'draft' && (
+                {(investmentDetails.status.toLowerCase() === 'draft' || investmentDetails.status.toLowerCase() === 'changes_requested') && (
                   <div className="mt-4 flex gap-2">
                     <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                       <DialogTrigger asChild>
@@ -419,7 +423,8 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                       className="flex items-center gap-2"
                     >
                       <Send className="h-4 w-4" />
-                      {submitDraftMutation.isPending ? 'Submitting...' : 'Submit for Approval'}
+                      {submitDraftMutation.isPending ? 'Submitting...' : 
+                       investmentDetails.status.toLowerCase() === 'changes_requested' ? 'Resubmit for Approval' : 'Submit for Approval'}
                     </Button>
                   </div>
                 )}
