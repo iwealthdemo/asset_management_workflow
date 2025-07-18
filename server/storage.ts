@@ -452,9 +452,25 @@ export class DatabaseStorage implements IStorage {
       const currentUser = await this.getUser(userId);
       const userRole = currentUser?.role;
       
-      // Use existing working methods to get basic data
-      const investmentData = await this.getInvestmentRequests({ userId: userRole === 'analyst' ? userId : undefined });
-      const cashData = await this.getCashRequests({ userId: userRole === 'analyst' ? userId : undefined });
+      // Use existing working methods to get basic data with role-based filtering
+      let investmentData = [];
+      let cashData = [];
+      
+      if (userRole === 'analyst') {
+        // Analysts can only see their own proposals
+        investmentData = await this.getInvestmentRequests({ userId: userId });
+        cashData = await this.getCashRequests({ userId: userId });
+      } else {
+        // Managers, committee members, finance, and admin can see all non-draft proposals
+        investmentData = await this.getInvestmentRequests();
+        cashData = await this.getCashRequests();
+        
+        // Filter out draft proposals for non-analysts (except admin)
+        if (userRole !== 'admin') {
+          investmentData = investmentData.filter(item => item.status !== 'draft');
+          cashData = cashData.filter(item => item.status !== 'draft');
+        }
+      }
 
       // Process investment proposal statistics
       const investmentStats = this.processProposalStats(investmentData, 'investment');
@@ -553,7 +569,7 @@ export class DatabaseStorage implements IStorage {
       if (status === 'draft') {
         stats.draft.count++;
         stats.draft.value += value;
-      } else if (status === 'pending' || status === 'Manager pending') {
+      } else if (status === 'pending' || status === 'Manager pending' || status === 'New') {
         stats.pendingManager.count++;
         stats.pendingManager.value += value;
       } else if (status === 'Manager approved' || status === 'Committee pending') {
