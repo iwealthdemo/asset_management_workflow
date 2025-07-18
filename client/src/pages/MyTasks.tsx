@@ -14,6 +14,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DocumentAnalysisCard from '@/components/documents/DocumentAnalysisCard';
+import CrossDocumentQuery from '@/components/documents/CrossDocumentQuery';
+import WebSearchQuery from '@/components/documents/WebSearchQuery';
 
 export default function MyTasks() {
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
@@ -403,19 +405,42 @@ function TaskCard({
               </div>
             </div>
 
-            {/* Document Analysis Cards */}
-            {documents && documents.length > 0 && (
-              <div className="space-y-4">
-                {documents.map((document: any) => (
-                  <DocumentAnalysisCard
-                    key={document.id}
-                    document={document}
-                    requestType={task.requestType}
-                    requestId={task.requestId}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Documents and AI Analysis */}
+            <div className="space-y-6">
+              <h4 className="font-semibold flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Documents & AI Analysis ({documents?.length || 0})
+              </h4>
+              
+              {/* Cross-Document Query */}
+              {documents && documents.length > 0 && (
+                <CrossDocumentQuery
+                  requestType={task.requestType}
+                  requestId={task.requestId}
+                  documentCount={documents.length}
+                />
+              )}
+              
+              {/* Web Search Query */}
+              <WebSearchQuery
+                requestType={task.requestType}
+                requestId={task.requestId}
+              />
+              
+              {/* Individual Document Analysis Cards */}
+              {documents && documents.length > 0 && (
+                <div className="space-y-4">
+                  {documents.map((document: any) => (
+                    <DocumentAnalysisCard
+                      key={document.id}
+                      document={document}
+                      requestType={task.requestType}
+                      requestId={task.requestId}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Approval History */}
             <div className="bg-gray-50 p-4 rounded-lg">
