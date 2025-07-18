@@ -331,21 +331,166 @@ class WorkflowValidator {
     }
   }
 
+  async validateChangesRequestedWorkflow() {
+    console.log('\n🔍 Validating Changes Requested Workflow...\n');
+    
+    // Create investment
+    const investmentData = {
+      targetCompany: 'Changes Requested Test Company',
+      investmentType: 'equity',
+      amount: '750000',
+      expectedReturn: '12',
+      riskLevel: 'medium',
+      description: 'Test investment for changes requested validation'
+    };
+
+    const createResponse = await this.makeRequest('POST', '/api/investments', investmentData, this.cookies.analyst1);
+    
+    if (!createResponse.ok) {
+      console.log('❌ Failed to create investment for changes requested test');
+      return false;
+    }
+
+    const investment = await createResponse.json();
+    console.log(`✅ Created investment for changes requested: ${investment.requestId}`);
+
+    // Submit for approval
+    const submitResponse = await this.makeRequest('POST', `/api/investments/${investment.id}/submit`, {}, this.cookies.analyst1);
+    
+    if (!submitResponse.ok) {
+      console.log('❌ Failed to submit investment for approval');
+      return false;
+    }
+
+    console.log('✅ Investment submitted for approval');
+
+    // Get manager task
+    const managerTasksResponse = await this.makeRequest('GET', '/api/tasks', null, this.cookies.manager1);
+    const managerTasks = await managerTasksResponse.json();
+    const managerTask = managerTasks.find(t => t.requestId === investment.id);
+    
+    if (!managerTask) {
+      console.log('❌ Manager task not found');
+      return false;
+    }
+
+    // Manager requests changes
+    const changesResponse = await this.makeRequest('POST', `/api/approvals`, {
+      requestType: managerTask.requestType,
+      requestId: managerTask.requestId,
+      action: 'changes_requested',
+      comments: 'Please provide more financial details - test validation'
+    }, this.cookies.manager1);
+
+    if (!changesResponse.ok) {
+      console.log('❌ Manager changes request failed');
+      return false;
+    }
+
+    console.log('✅ Manager requested changes successfully');
+
+    // Check investment status should be "changes_requested"
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const statusResponse = await this.makeRequest('GET', `/api/investments/${investment.id}`, null, this.cookies.admin);
+    const investmentStatus = await statusResponse.json();
+    
+    if (investmentStatus.status !== 'changes_requested') {
+      console.log(`❌ Expected 'changes_requested', got '${investmentStatus.status}'`);
+      return false;
+    }
+
+    console.log('✅ Investment status correctly set to changes_requested');
+
+    // Now analyst should be able to modify and resubmit
+    const modifyResponse = await this.makeRequest('PUT', `/api/investments/${investment.id}`, {
+      targetCompany: 'Changes Requested Test Company - Updated',
+      investmentType: 'equity',
+      amount: '750000',
+      expectedReturn: '15', // Updated expected return
+      riskLevel: 'medium',
+      description: 'Updated test investment with more financial details per manager request'
+    }, this.cookies.analyst1);
+
+    if (!modifyResponse.ok) {
+      console.log('❌ Failed to modify investment after changes requested');
+      return false;
+    }
+
+    console.log('✅ Investment modified successfully');
+
+    // Resubmit for approval
+    const resubmitResponse = await this.makeRequest('POST', `/api/investments/${investment.id}/submit`, {}, this.cookies.analyst1);
+    
+    if (!resubmitResponse.ok) {
+      console.log('❌ Failed to resubmit investment after changes');
+      return false;
+    }
+
+    console.log('✅ Investment resubmitted for approval');
+
+    // Verify new manager task is created
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const newManagerTasksResponse = await this.makeRequest('GET', '/api/tasks', null, this.cookies.manager1);
+    const newManagerTasks = await newManagerTasksResponse.json();
+    const newManagerTask = newManagerTasks.find(t => t.requestId === investment.id && t.status === 'pending');
+    
+    if (!newManagerTask) {
+      console.log('❌ New manager task not found after resubmission');
+      return false;
+    }
+
+    console.log('✅ New manager task created after resubmission');
+
+    // Manager approves the updated request
+    const finalApprovalResponse = await this.makeRequest('POST', `/api/approvals`, {
+      requestType: newManagerTask.requestType,
+      requestId: newManagerTask.requestId,
+      action: 'approve',
+      comments: 'Approved - changes look good'
+    }, this.cookies.manager1);
+
+    if (!finalApprovalResponse.ok) {
+      console.log('❌ Manager final approval failed');
+      return false;
+    }
+
+    console.log('✅ Manager approved the updated request');
+
+    // Check final status should show progression
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const finalStatusResponse = await this.makeRequest('GET', `/api/investments/${investment.id}`, null, this.cookies.admin);
+    const finalInvestment = await finalStatusResponse.json();
+    const finalStatus = finalInvestment.status;
+
+    if (finalStatus === 'Manager approved') {
+      console.log('✅ Changes requested workflow completed successfully');
+      return true;
+    } else {
+      console.log(`❌ Expected 'Manager approved' after changes workflow, got '${finalStatus}'`);
+      return false;
+    }
+  }
+
   async run() {
     console.log('🚀 Starting Approval Workflow Validation\n');
     
     const approvalResult = await this.validateBasicWorkflow();
     const rejectionResult = await this.validateRejectionWorkflow();
+    const changesResult = await this.validateChangesRequestedWorkflow();
 
     console.log('\n📊 Validation Results:');
     console.log('========================');
     console.log(`Complete Approval Workflow: ${approvalResult ? '✅ PASSED' : '❌ FAILED'}`);
     console.log(`Rejection Workflow: ${rejectionResult ? '✅ PASSED' : '❌ FAILED'}`);
+    console.log(`Changes Requested Workflow: ${changesResult ? '✅ PASSED' : '❌ FAILED'}`);
     
-    const totalPassed = (approvalResult ? 1 : 0) + (rejectionResult ? 1 : 0);
-    console.log(`\n📈 Overall: ${totalPassed}/2 workflows validated`);
+    const totalPassed = (approvalResult ? 1 : 0) + (rejectionResult ? 1 : 0) + (changesResult ? 1 : 0);
+    console.log(`\n📈 Overall: ${totalPassed}/3 workflows validated`);
 
-    if (totalPassed === 2) {
+    if (totalPassed === 3) {
       console.log('🎉 All workflows validated successfully!');
     } else {
       console.log('⚠️  Some workflows failed validation.');
