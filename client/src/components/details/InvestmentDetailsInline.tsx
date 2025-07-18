@@ -219,7 +219,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
             <Card>
               <CardContent className="pt-6">
                 <h4 className="font-semibold mb-4">Request Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Request ID</p>
                     <p className="text-lg font-semibold">{investmentDetails.requestId}</p>
@@ -229,6 +229,12 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                     <Badge className={getStatusColor(investmentDetails.status)}>
                       {getStatusIcon(investmentDetails.status)}
                       <span className="ml-1">{investmentDetails.status}</span>
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Risk Level</p>
+                    <Badge className={getRiskColor(investmentDetails.riskLevel)}>
+                      {investmentDetails.riskLevel}
                     </Badge>
                   </div>
                   <div>
@@ -246,12 +252,6 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                   <div>
                     <p className="text-sm font-medium text-gray-600">Investment Type</p>
                     <p className="text-lg font-semibold">{investmentDetails.investmentType}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Risk Level</p>
-                    <Badge className={getRiskColor(investmentDetails.riskLevel)}>
-                      {investmentDetails.riskLevel}
-                    </Badge>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">Created Date</p>

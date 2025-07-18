@@ -366,7 +366,7 @@ function TaskCard({
             {/* Request Details */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <h4 className="font-semibold mb-4">Request Details</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Request ID</p>
                   <p className="text-lg font-semibold">{requestData.requestId}</p>
@@ -381,6 +381,18 @@ function TaskCard({
                       : `$${requestData.amount}`}
                   </p>
                 </div>
+                {task.requestType === 'investment' && requestData.riskLevel && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Risk Level</p>
+                    <Badge className={
+                      requestData.riskLevel === 'high' ? 'bg-red-100 text-red-800' :
+                      requestData.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-green-100 text-green-800'
+                    }>
+                      {requestData.riskLevel} risk
+                    </Badge>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm font-medium text-gray-600">Amount</p>
                   <p className="text-lg font-semibold">${requestData.amount}</p>
@@ -403,19 +415,6 @@ function TaskCard({
                   {requestData.description || 'No description provided by the analyst'}
                 </p>
               </div>
-
-              {task.requestType === 'investment' && requestData.riskLevel && (
-                <div className="mt-4">
-                  <p className="text-sm font-medium text-gray-600 mb-2">Risk Level</p>
-                  <Badge className={
-                    requestData.riskLevel === 'high' ? 'bg-red-100 text-red-800' :
-                    requestData.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
-                  }>
-                    {requestData.riskLevel} risk
-                  </Badge>
-                </div>
-              )}
             </div>
 
             {/* Document Analysis Cards */}
