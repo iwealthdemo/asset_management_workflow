@@ -576,6 +576,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Found document to delete: ${document.originalName}`);
       
+      // First, delete any related background jobs to avoid foreign key constraint
+      await db.delete(backgroundJobs).where(eq(backgroundJobs.documentId, parseInt(documentId)));
+      console.log(`Deleted background jobs for document: ${documentId}`);
+      
       // Delete the file from disk
       const filePath = path.join(process.cwd(), document.fileUrl);
       try {
