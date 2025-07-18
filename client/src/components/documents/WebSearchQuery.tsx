@@ -31,15 +31,27 @@ interface WebSearchQueryItem {
 
 // Helper function to parse markdown formatting and OpenAI source references
 const parseMarkdown = (text: string): string => {
+  // Convert headers (## Header) to <h3>
+  let converted = text.replace(/^## (.*?)$/gm, '<h3 style="font-size: 1.125rem; font-weight: 600; margin: 1rem 0 0.5rem 0;">$1</h3>');
+  
+  // Convert headers (### Header) to <h4>
+  converted = converted.replace(/^### (.*?)$/gm, '<h4 style="font-size: 1rem; font-weight: 600; margin: 0.75rem 0 0.5rem 0;">$1</h4>');
+  
   // Convert **bold** to <strong>
-  const boldConverted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  converted = converted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  // Convert *italic* to <em>
+  converted = converted.replace(/\*(.*?)\*/g, '<em>$1</em>');
   
   // Convert OpenAI source references like 【4:0†source】 to readable format
-  const sourceConverted = boldConverted.replace(/【(\d+):(\d+)†([^】]+)】/g, (match, page, section, source) => {
+  converted = converted.replace(/【(\d+):(\d+)†([^】]+)】/g, (match, page, section, source) => {
     return `<span style="color: #3b82f6; font-weight: 500;">[Source: Page ${page}, Section ${section}]</span>`;
   });
 
-  return sourceConverted;
+  // Convert web source references like ([domain.com](url)) to readable format
+  converted = converted.replace(/\(\[([^\]]+)\]\([^)]+\)\)/g, '<span style="color: #3b82f6; font-weight: 500;">[Source: $1]</span>');
+
+  return converted;
 };
 
 export default function WebSearchQuery({ requestType, requestId }: WebSearchQueryProps) {

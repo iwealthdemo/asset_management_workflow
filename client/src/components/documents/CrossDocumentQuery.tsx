@@ -105,8 +105,17 @@ const CrossDocumentQuery: React.FC<CrossDocumentQueryProps> = ({
 
   // Format markdown in response
   const formatResponse = (response: string) => {
+    // Convert headers (## Header) to <h3>
+    let formatted = response.replace(/^## (.*?)$/gm, '<h3 style="font-size: 1.125rem; font-weight: 600; margin: 1rem 0 0.5rem 0;">$1</h3>');
+    
+    // Convert headers (### Header) to <h4>
+    formatted = formatted.replace(/^### (.*?)$/gm, '<h4 style="font-size: 1rem; font-weight: 600; margin: 0.75rem 0 0.5rem 0;">$1</h4>');
+    
     // Convert bold text **text** to <strong>text</strong>
-    let formatted = response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Convert *italic* to <em>
+    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
     
     // Convert source references 【4:0†source】 to readable format
     formatted = formatted.replace(/【(\d+):(\d+)†source】/g, '<span class="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs font-medium ml-1">[Source: Page $1, Section $2]</span>');

@@ -29,42 +29,61 @@ const parseMarkdown = (text: string): JSX.Element => {
     return '[Source: Document]';
   });
   
-  // Split by double asterisks for bold text
-  const parts = processedText.split(/(\*\*.*?\*\*)/g);
+  // Split text by lines to handle headers
+  const lines = processedText.split('\n');
+  const processedLines = lines.map((line, lineIndex) => {
+    // Handle headers
+    if (line.startsWith('## ')) {
+      return <h3 key={lineIndex} className="text-lg font-semibold mt-4 mb-2">{line.slice(3)}</h3>;
+    }
+    if (line.startsWith('### ')) {
+      return <h4 key={lineIndex} className="text-base font-semibold mt-3 mb-2">{line.slice(4)}</h4>;
+    }
+    
+    // Process inline formatting (bold, italic, sources)
+    const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+    
+    return (
+      <div key={lineIndex} className="mb-1">
+        {parts.map((part, index) => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            // Remove the asterisks and make it bold
+            const boldText = part.slice(2, -2);
+            return <strong key={index}>{boldText}</strong>;
+          }
+          if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
+            // Remove the asterisks and make it italic
+            const italicText = part.slice(1, -1);
+            return <em key={index}>{italicText}</em>;
+          }
+          // Check if this part contains source references and style them
+          if (part.includes('[Source:')) {
+            return (
+              <span key={index}>
+                {part.split(/(\[Source:.*?\])/g).map((subPart, subIndex) => {
+                  if (subPart.startsWith('[Source:')) {
+                    return (
+                      <span 
+                        key={subIndex} 
+                        className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs ml-1"
+                        title="This information came from the analyzed document"
+                      >
+                        {subPart}
+                      </span>
+                    );
+                  }
+                  return <span key={subIndex}>{subPart}</span>;
+                })}
+              </span>
+            );
+          }
+          return <span key={index}>{part}</span>;
+        })}
+      </div>
+    );
+  });
   
-  return (
-    <>
-      {parts.map((part, index) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          // Remove the asterisks and make it bold
-          const boldText = part.slice(2, -2);
-          return <strong key={index}>{boldText}</strong>;
-        }
-        // Check if this part contains source references and style them
-        if (part.includes('[Source:')) {
-          return (
-            <span key={index}>
-              {part.split(/(\[Source:.*?\])/g).map((subPart, subIndex) => {
-                if (subPart.startsWith('[Source:')) {
-                  return (
-                    <span 
-                      key={subIndex} 
-                      className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs ml-1"
-                      title="This information came from the analyzed document"
-                    >
-                      {subPart}
-                    </span>
-                  );
-                }
-                return <span key={subIndex}>{subPart}</span>;
-              })}
-            </span>
-          );
-        }
-        return <span key={index}>{part}</span>;
-      })}
-    </>
-  );
+  return <>{processedLines}</>;
 };
 
 const QueryCard: React.FC<QueryCardProps> = ({ query, index }) => {
