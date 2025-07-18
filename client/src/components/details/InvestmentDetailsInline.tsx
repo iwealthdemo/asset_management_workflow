@@ -351,13 +351,19 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                           <p className="text-sm font-medium text-gray-600">Request ID</p>
                           <p className="text-lg font-semibold">{investmentDetails.requestId}</p>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-600">Status</p>
-                          <Badge className={getStatusColor(investmentDetails.status)}>
-                            {getStatusIcon(investmentDetails.status)}
-                            <span className="ml-1">{investmentDetails.status}</span>
-                          </Badge>
-                        </div>
+                        <FormField
+                          control={editForm.control}
+                          name="targetCompany"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Target Company</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter company name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         <FormField
                           control={editForm.control}
                           name="riskLevel"
@@ -406,19 +412,13 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={editForm.control}
-                          name="targetCompany"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Target Company</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Enter company name" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Status</p>
+                          <Badge className={getStatusColor(investmentDetails.status)}>
+                            {getStatusIcon(investmentDetails.status)}
+                            <span className="ml-1">{investmentDetails.status}</span>
+                          </Badge>
+                        </div>
                         <FormField
                           control={editForm.control}
                           name="investmentType"
@@ -477,11 +477,8 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                         <p className="text-lg font-semibold">{investmentDetails.requestId}</p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Status</p>
-                        <Badge className={getStatusColor(investmentDetails.status)}>
-                          {getStatusIcon(investmentDetails.status)}
-                          <span className="ml-1">{investmentDetails.status}</span>
-                        </Badge>
+                        <p className="text-sm font-medium text-gray-600">Target Company</p>
+                        <p className="text-lg font-semibold">{investmentDetails.targetCompany}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Risk Level</p>
@@ -498,8 +495,11 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                         <p className="text-lg font-semibold">{investmentDetails.expectedReturn}%</p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Target Company</p>
-                        <p className="text-lg font-semibold">{investmentDetails.targetCompany}</p>
+                        <p className="text-sm font-medium text-gray-600">Status</p>
+                        <Badge className={getStatusColor(investmentDetails.status)}>
+                          {getStatusIcon(investmentDetails.status)}
+                          <span className="ml-1">{investmentDetails.status}</span>
+                        </Badge>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Investment Type</p>

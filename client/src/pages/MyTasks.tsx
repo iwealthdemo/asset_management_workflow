@@ -372,40 +372,26 @@ function TaskCard({
                   <p className="text-lg font-semibold">{requestData.requestId}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    {task.requestType === 'investment' ? 'Target Company' : 'Amount'}
-                  </p>
-                  <p className="text-lg font-semibold">
-                    {task.requestType === 'investment' 
-                      ? requestData.targetCompany 
-                      : `$${requestData.amount}`}
-                  </p>
+                  <p className="text-sm font-medium text-gray-600">Target Company</p>
+                  <p className="text-lg font-semibold">{requestData.targetCompany}</p>
                 </div>
-                {task.requestType === 'investment' && requestData.riskLevel && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Risk Level</p>
-                    <Badge className={
-                      requestData.riskLevel === 'high' ? 'bg-red-100 text-red-800' :
-                      requestData.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-green-100 text-green-800'
-                    }>
-                      {requestData.riskLevel} risk
-                    </Badge>
-                  </div>
-                )}
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Risk Level</p>
+                  <Badge className={
+                    requestData.riskLevel === 'high' ? 'bg-red-100 text-red-800' :
+                    requestData.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-green-100 text-green-800'
+                  }>
+                    {requestData.riskLevel} risk
+                  </Badge>
+                </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Amount</p>
                   <p className="text-lg font-semibold">${requestData.amount}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    {task.requestType === 'investment' ? 'Expected Return' : 'Payment Timeline'}
-                  </p>
-                  <p className="text-lg font-semibold">
-                    {task.requestType === 'investment' 
-                      ? `${requestData.expectedReturn}%` 
-                      : requestData.paymentTimeline}
-                  </p>
+                  <p className="text-sm font-medium text-gray-600">Expected Return</p>
+                  <p className="text-lg font-semibold">{requestData.expectedReturn}%</p>
                 </div>
               </div>
               
