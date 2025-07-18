@@ -218,83 +218,11 @@ export default function Dashboard() {
   }
   
   return (
-    <div className="relative">
-      {/* Section Navigation Icons in Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-semibold">Dashboard</h2>
-            <Badge variant="outline" className="text-xs">
-              {filteredProposals.length} proposals
-            </Badge>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => scrollToSection('overview')}
-              title="Overview"
-            >
-              <BarChart3 className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => scrollToSection('proposal-summary')}
-              title="Proposal Summary"
-            >
-              <Target className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => scrollToSection('decision-support')}
-              title="Decision Support"
-            >
-              <Shield className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => scrollToSection('analytics')}
-              title="Analytics"
-            >
-              <PieChart className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => scrollToSection('proposals')}
-              title="Proposals"
-            >
-              <Briefcase className="h-4 w-4" />
-            </Button>
-            {showQuickActions && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => scrollToSection('quick-actions')}
-                title="Quick Actions"
-              >
-                <PlusCircle className="h-4 w-4" />
-              </Button>
-            )}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => scrollToSection('tasks')}
-              title="Tasks"
-            >
-              <Clock className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
+      <>
         {/* Overview Section */}
         <div id="overview" className="space-y-4">
-          <Collapsible 
+        <Collapsible 
             open={!sectionsCollapsed.overview} 
             onOpenChange={() => toggleSection('overview')}
           >
@@ -824,9 +752,7 @@ export default function Dashboard() {
                 </CollapsibleContent>
               </Collapsible>
             </div>
-          </>
-        )}
-      </div>
+      </>
     </div>
   );
 }

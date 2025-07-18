@@ -28,7 +28,10 @@ import {
   Bell,
   Settings,
   Menu,
-  LogOut
+  LogOut,
+  Target,
+  Shield,
+  Clock
 } from "lucide-react";
 
 interface AppLayoutProps {
@@ -49,6 +52,17 @@ export function AppLayout({ children }: AppLayoutProps) {
       return tasks.filter((task: any) => task.status === 'pending').length;
     },
   });
+
+  // Dashboard navigation functions
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const isDashboard = location === '/';
+  const showQuickActions = user && ['analyst', 'admin'].includes(user.role);
 
   const { data: notifications = [] } = useQuery({
     queryKey: ["/api/notifications"],
@@ -245,6 +259,72 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
               
               <div className="flex items-center space-x-4">
+                {/* Dashboard Navigation Icons - Only show on dashboard */}
+                {isDashboard && (
+                  <>
+                    <div className="hidden md:flex items-center space-x-2 px-4 py-2 bg-muted rounded-lg">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => scrollToSection('overview')}
+                        title="Overview"
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => scrollToSection('proposal-summary')}
+                        title="Proposal Summary"
+                      >
+                        <Target className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => scrollToSection('decision-support')}
+                        title="Decision Support"
+                      >
+                        <Shield className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => scrollToSection('analytics')}
+                        title="Analytics"
+                      >
+                        <PieChart className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => scrollToSection('proposals')}
+                        title="Proposals"
+                      >
+                        <Briefcase className="h-4 w-4" />
+                      </Button>
+                      {showQuickActions && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => scrollToSection('quick-actions')}
+                          title="Quick Actions"
+                        >
+                          <PlusCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => scrollToSection('tasks')}
+                        title="Tasks"
+                      >
+                        <Clock className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </>
+                )}
+
                 {/* Notifications */}
                 <div className="relative">
                   <Button variant="ghost" size="icon">
