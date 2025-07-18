@@ -43,35 +43,71 @@ export class CrossDocumentQueryService {
 
   private async getRawResponse(userQuery: string): Promise<string> {
     try {
-      console.log('Sending cross-document query to OpenAI:', userQuery);
+      console.log('=== OPENAI API CALL DETAILS ===');
       
       // Get or create the persistent assistant
       const assistant = await this.getOrCreateAssistant();
+      console.log('Using Assistant ID:', assistant.id);
+      console.log('Assistant Model:', assistant.model);
+      console.log('Assistant Tools:', JSON.stringify(assistant.tools, null, 2));
+      console.log('Vector Store IDs:', assistant.tool_resources?.file_search?.vector_store_ids);
 
       // Create a thread
       const thread = await openai.beta.threads.create();
+      console.log('Created Thread ID:', thread.id);
 
       // Add the message to the thread
-      await openai.beta.threads.messages.create(thread.id, {
-        role: "user",
+      const messagePayload = {
+        role: "user" as const,
         content: userQuery
-      });
+      };
+      console.log('=== MESSAGE PAYLOAD ===');
+      console.log(JSON.stringify(messagePayload, null, 2));
+      
+      await openai.beta.threads.messages.create(thread.id, messagePayload);
 
       // Run the assistant with polling
-      const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
+      const runPayload = {
         assistant_id: assistant.id,
         instructions: "Please search through all documents in the vector store to find information relevant to this query. If information spans multiple documents, please synthesize the information and indicate which documents contain the relevant details."
-      });
+      };
+      console.log('=== RUN PAYLOAD ===');
+      console.log(JSON.stringify(runPayload, null, 2));
+      
+      const run = await openai.beta.threads.runs.createAndPoll(thread.id, runPayload);
+
+      console.log('Run Status:', run.status);
+      console.log('Run Details:', JSON.stringify(run, null, 2));
 
       if (run.status === 'completed') {
         const messages = await openai.beta.threads.messages.list(thread.id);
-        const assistantMessage = messages.data.find(msg => msg.role === 'assistant');
+        console.log('=== OPENAI RESPONSE MESSAGES ===');
+        console.log('Total Messages:', messages.data.length);
         
-        if (assistantMessage && assistantMessage.content[0].type === 'text') {
-          const content = assistantMessage.content[0].text.value;
-          console.log('Cross-document response received:', content ? content.substring(0, 200) + '...' : 'No content');
+        // Get the most recent assistant message (should be first in the list)
+        const assistantMessages = messages.data.filter(msg => msg.role === 'assistant');
+        console.log('Assistant Messages Found:', assistantMessages.length);
+        
+        if (assistantMessages.length > 0) {
+          const assistantMessage = assistantMessages[0]; // Most recent first
+          console.log('Message Content Type:', assistantMessage.content[0]?.type);
+          console.log('=== ASSISTANT MESSAGE CONTENT ===');
+          console.log('Content blocks:', assistantMessage.content.length);
           
-          return content;
+          if (assistantMessage.content[0] && assistantMessage.content[0].type === 'text') {
+            const content = assistantMessage.content[0].text.value;
+            console.log('Extracted Content Length:', content.length);
+            console.log('Content Preview:', content.substring(0, 300));
+            console.log('=== END CONTENT PREVIEW ===');
+            
+            return content;
+          } else {
+            console.log('Unexpected content type:', assistantMessage.content[0]?.type);
+            console.log('Full content:', JSON.stringify(assistantMessage.content, null, 2));
+          }
+        } else {
+          console.log('No assistant messages found');
+          console.log('All messages:', messages.data.map(m => ({ role: m.role, content_type: m.content[0]?.type })));
         }
       }
       
@@ -95,8 +131,17 @@ export class CrossDocumentQueryService {
     documentCount?: number;
   }> {
     try {
+      console.log('=== CROSS-DOCUMENT QUERY DEBUG ===');
+      console.log('Request Type:', requestType);
+      console.log('Request ID:', requestId);
+      console.log('User ID:', userId);
+      console.log('Original Query:', query);
+      console.log('Document IDs Filter:', documentIds);
+      
       // Get all documents for this request
       let documents = await storage.getDocumentsByRequest(requestType, requestId);
+      console.log('All Documents Found:', documents.length);
+      console.log('Document Details:', documents.map(d => ({ id: d.id, name: d.originalName, hasAnalysis: !!d.analysisResult })));
       
       if (documents.length === 0) {
         return {
@@ -107,7 +152,10 @@ export class CrossDocumentQueryService {
 
       // Filter to selected documents if documentIds are provided
       if (documentIds && documentIds.length > 0) {
+        console.log('Filtering documents to selected IDs:', documentIds);
         documents = documents.filter(doc => documentIds.includes(doc.id));
+        console.log('Documents after filtering:', documents.length);
+        console.log('Filtered Document Details:', documents.map(d => ({ id: d.id, name: d.originalName })));
         
         if (documents.length === 0) {
           return {
@@ -123,6 +171,16 @@ export class CrossDocumentQueryService {
         return analysisResult && analysisResult.openai_file_id;
       });
 
+      console.log('Ready Documents (with OpenAI file IDs):', readyDocuments.length);
+      console.log('Ready Document Details:', readyDocuments.map(d => {
+        const analysis = JSON.parse(d.analysisResult || '{}');
+        return { 
+          id: d.id, 
+          name: d.originalName, 
+          openai_file_id: analysis.openai_file_id 
+        };
+      }));
+
       if (readyDocuments.length === 0) {
         return {
           success: false,
@@ -132,6 +190,11 @@ export class CrossDocumentQueryService {
 
       // Create a comprehensive query that mentions specific documents to search
       const documentNames = readyDocuments.map(doc => doc.fileName || doc.originalName).join(', ');
+      const openaiFileIds = readyDocuments.map(doc => {
+        const analysis = JSON.parse(doc.analysisResult || '{}');
+        return analysis.openai_file_id;
+      }).filter(Boolean);
+      
       const enhancedQuery = `
 I have ${readyDocuments.length} specific documents that I want you to search: ${documentNames}
 
@@ -140,7 +203,12 @@ Please search ONLY within these ${readyDocuments.length} documents to answer the
 Important: Focus your search exclusively on the documents I mentioned above. Do not use information from any other documents in the vector store. If the answer requires information from multiple of these specific documents, please synthesize the information and clearly indicate which of these documents contain the relevant details.
 
 Document names to search: ${documentNames}
+OpenAI File IDs: ${openaiFileIds.join(', ')}
       `.trim();
+
+      console.log('=== ENHANCED QUERY SENT TO OPENAI ===');
+      console.log(enhancedQuery);
+      console.log('=== END ENHANCED QUERY ===');
 
       // Get response from OpenAI
       const answer = await this.getRawResponse(enhancedQuery);
