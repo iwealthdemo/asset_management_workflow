@@ -105,25 +105,11 @@ export default function ProposalSummaryCard({ data, userRole }: ProposalSummaryC
                 showForRole={['analyst', 'admin'].includes(userRole)}
               />
               <StatusCard 
-                title="Pending Manager"
-                count={data.investment.pendingManager.count}
-                value={data.investment.pendingManager.value}
+                title="Pending Approver"
+                count={data.investment.pendingManager.count + data.investment.pendingCommittee.count + data.investment.pendingFinance.count}
+                value={data.investment.pendingManager.value + data.investment.pendingCommittee.value + data.investment.pendingFinance.value}
                 status="pending"
-                showForRole={['manager', 'admin'].includes(userRole)}
-              />
-              <StatusCard 
-                title="Pending Committee"
-                count={data.investment.pendingCommittee.count}
-                value={data.investment.pendingCommittee.value}
-                status="pending"
-                showForRole={['committee_member', 'admin'].includes(userRole)}
-              />
-              <StatusCard 
-                title="Pending Finance"
-                count={data.investment.pendingFinance.count}
-                value={data.investment.pendingFinance.value}
-                status="pending"
-                showForRole={['finance', 'admin'].includes(userRole)}
+                showForRole={['manager', 'committee_member', 'finance', 'admin'].includes(userRole)}
               />
               <StatusCard 
                 title="Approved"
@@ -157,25 +143,11 @@ export default function ProposalSummaryCard({ data, userRole }: ProposalSummaryC
                 showForRole={['analyst', 'admin'].includes(userRole)}
               />
               <StatusCard 
-                title="Pending Manager"
-                count={data.cash.pendingManager.count}
-                value={data.cash.pendingManager.value}
+                title="Pending Approver"
+                count={data.cash.pendingManager.count + data.cash.pendingCommittee.count + data.cash.pendingFinance.count}
+                value={data.cash.pendingManager.value + data.cash.pendingCommittee.value + data.cash.pendingFinance.value}
                 status="pending"
-                showForRole={['manager', 'admin'].includes(userRole)}
-              />
-              <StatusCard 
-                title="Pending Committee"
-                count={data.cash.pendingCommittee.count}
-                value={data.cash.pendingCommittee.value}
-                status="pending"
-                showForRole={['committee_member', 'admin'].includes(userRole)}
-              />
-              <StatusCard 
-                title="Pending Finance"
-                count={data.cash.pendingFinance.count}
-                value={data.cash.pendingFinance.value}
-                status="pending"
-                showForRole={['finance', 'admin'].includes(userRole)}
+                showForRole={['manager', 'committee_member', 'finance', 'admin'].includes(userRole)}
               />
               <StatusCard 
                 title="Approved"
