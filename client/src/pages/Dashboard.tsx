@@ -97,21 +97,6 @@ export default function Dashboard() {
     queryKey: ["/api/tasks"],
   });
 
-  if (statsLoading || enhancedStatsLoading || requestsLoading || tasksLoading) {
-    return (
-      <div className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-card p-6 rounded-lg shadow animate-pulse">
-              <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-              <div className="h-8 bg-muted rounded w-1/2"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   const userRole = user?.role || 'analyst';
   
   // Show Quick Actions only for roles that can create proposals
@@ -216,6 +201,21 @@ export default function Dashboard() {
     if (proposalFilters.amountMin || proposalFilters.amountMax || (proposalFilters.amountRange[0] > 0 || proposalFilters.amountRange[1] < 10000000)) count++;
     return count;
   }, [proposalFilters]);
+
+  if (statsLoading || enhancedStatsLoading || requestsLoading || tasksLoading) {
+    return (
+      <div className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-card p-6 rounded-lg shadow animate-pulse">
+              <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+              <div className="h-8 bg-muted rounded w-1/2"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="relative">
