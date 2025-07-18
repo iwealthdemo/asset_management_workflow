@@ -303,7 +303,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
 
 
   return (
-    <Card className="w-full sticky top-4 z-10">
+    <Card className="w-full">
       <CardHeader className="cursor-pointer" onClick={() => setIsCollapsed(!isCollapsed)}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
