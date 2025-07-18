@@ -384,7 +384,7 @@ function TaskCard({
                     requestData.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                     'bg-green-100 text-green-800'
                   }>
-                    {requestData.riskLevel} risk
+                    {requestData.riskLevel}
                   </Badge>
                 </div>
                 <div>
@@ -394,6 +394,23 @@ function TaskCard({
                 <div>
                   <p className="text-sm font-medium text-gray-600">Expected Return</p>
                   <p className="text-lg font-semibold">{requestData.expectedReturn}%</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Status</p>
+                  <Badge className={getStatusColorForBadge(requestData.status)}>
+                    {getStatusIcon(requestData.status)}
+                    <span className="ml-1">{requestData.status}</span>
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Investment Type</p>
+                  <p className="text-lg font-semibold">{requestData.investmentType}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Created Date</p>
+                  <p className="text-lg font-semibold">
+                    {format(new Date(requestData.createdAt), 'MMM dd, yyyy')}
+                  </p>
                 </div>
               </div>
               
@@ -571,6 +588,48 @@ function getStatusColor(status: string) {
       return 'bg-red-100 text-red-800';
     default:
       return 'bg-gray-100 text-gray-800';
+  }
+}
+
+function getStatusColorForBadge(status: string) {
+  switch (status) {
+    case 'Manager approved':
+    case 'Committee approved':
+    case 'Finance approved':
+    case 'approved':
+      return 'bg-green-100 text-green-800';
+    case 'Manager rejected':
+    case 'Committee rejected':
+    case 'Finance rejected':
+    case 'rejected':
+      return 'bg-red-100 text-red-800';
+    case 'changes_requested':
+      return 'bg-orange-100 text-orange-800';
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+}
+
+function getStatusIcon(status: string) {
+  switch (status) {
+    case 'Manager approved':
+    case 'Committee approved':
+    case 'Finance approved':
+    case 'approved':
+      return <CheckCircle className="w-4 h-4" />;
+    case 'Manager rejected':
+    case 'Committee rejected':
+    case 'Finance rejected':
+    case 'rejected':
+      return <XCircle className="w-4 h-4" />;
+    case 'changes_requested':
+      return <AlertTriangle className="w-4 h-4" />;
+    case 'pending':
+      return <Clock className="w-4 h-4" />;
+    default:
+      return <Clock className="w-4 h-4" />;
   }
 }
 
