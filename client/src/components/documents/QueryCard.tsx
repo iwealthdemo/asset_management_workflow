@@ -18,7 +18,7 @@ interface QueryCardProps {
 }
 
 const QueryCard: React.FC<QueryCardProps> = ({ query, index }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   return (
     <Card className="border-l-4 border-l-green-500 bg-gray-50 dark:bg-gray-900">
