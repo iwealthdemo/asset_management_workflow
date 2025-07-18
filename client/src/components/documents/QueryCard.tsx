@@ -17,10 +17,20 @@ interface QueryCardProps {
   index: number;
 }
 
-// Simple markdown parser for basic formatting
+// Enhanced markdown parser for formatting and source references
 const parseMarkdown = (text: string): JSX.Element => {
+  // First handle source references - convert them to a more readable format
+  let processedText = text.replace(/【\d+:\d+†source】/g, (match) => {
+    // Extract the numbers from the source reference
+    const numbers = match.match(/\d+/g);
+    if (numbers && numbers.length >= 2) {
+      return `[Source: Page ${numbers[0]}, Section ${numbers[1]}]`;
+    }
+    return '[Source: Document]';
+  });
+  
   // Split by double asterisks for bold text
-  const parts = text.split(/(\*\*.*?\*\*)/g);
+  const parts = processedText.split(/(\*\*.*?\*\*)/g);
   
   return (
     <>
@@ -29,6 +39,27 @@ const parseMarkdown = (text: string): JSX.Element => {
           // Remove the asterisks and make it bold
           const boldText = part.slice(2, -2);
           return <strong key={index}>{boldText}</strong>;
+        }
+        // Check if this part contains source references and style them
+        if (part.includes('[Source:')) {
+          return (
+            <span key={index}>
+              {part.split(/(\[Source:.*?\])/g).map((subPart, subIndex) => {
+                if (subPart.startsWith('[Source:')) {
+                  return (
+                    <span 
+                      key={subIndex} 
+                      className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs ml-1"
+                      title="This information came from the analyzed document"
+                    >
+                      {subPart}
+                    </span>
+                  );
+                }
+                return <span key={subIndex}>{subPart}</span>;
+              })}
+            </span>
+          );
         }
         return <span key={index}>{part}</span>;
       })}
