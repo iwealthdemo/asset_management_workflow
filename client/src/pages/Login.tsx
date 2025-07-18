@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLogin } from "@/lib/auth";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function Login() {
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin123");
+  const [, setLocation] = useLocation();
   const login = useLogin();
   const { toast } = useToast();
 
@@ -25,6 +27,8 @@ export default function Login() {
         title: "Login successful",
         description: "Welcome to the Investment Portal",
       });
+      // Explicitly navigate to Dashboard after successful login
+      setLocation("/");
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
