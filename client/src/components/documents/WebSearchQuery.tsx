@@ -50,7 +50,7 @@ export default function WebSearchQuery({ requestType, requestId }: WebSearchQuer
 
   // Fetch web search query history
   const { data: queryHistory = [], refetch } = useQuery({
-    queryKey: ['/api/documents/web-search', requestType, requestId],
+    queryKey: [`/api/documents/web-search/${requestType}/${requestId}`],
     enabled: isExpanded,
   });
 
@@ -63,7 +63,7 @@ export default function WebSearchQuery({ requestType, requestId }: WebSearchQuer
       setQuery('');
       refetch();
       queryClient.invalidateQueries({
-        queryKey: ['/api/documents/web-search', requestType, requestId],
+        queryKey: [`/api/documents/web-search/${requestType}/${requestId}`],
       });
     },
   });
