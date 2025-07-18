@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, AlertTriangle, Clock, Eye, ChevronDown, ChevronUp, Edit, Send, FileText } from "lucide-react";
+import { CheckCircle, AlertTriangle, Clock, Eye, ChevronDown, ChevronUp, Edit, Send, FileText, Upload, X, Save } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -38,6 +38,9 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isInlineEditing, setIsInlineEditing] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [filesToDelete, setFilesToDelete] = useState<number[]>([]);
 
   // Fetch detailed investment data when expanded
   const { data: investmentDetails, isLoading: isInvestmentLoading } = useQuery({
@@ -116,6 +119,58 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
     },
   });
 
+  // File upload mutation
+  const uploadFilesMutation = useMutation({
+    mutationFn: async (files: File[]) => {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append('documents', file);
+      });
+      
+      return fetch(`/api/documents/investment/${investmentDetails?.id}`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      }).then(res => res.json());
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Documents uploaded successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investmentDetails?.id}`] });
+      setUploadedFiles([]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: "Failed to upload documents",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete document mutation
+  const deleteDocumentMutation = useMutation({
+    mutationFn: async (documentId: number) => {
+      return apiRequest('DELETE', `/api/documents/${documentId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Document deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investmentDetails?.id}`] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete document",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmitDraft = () => {
     if (investmentDetails?.id) {
       submitDraftMutation.mutate(investmentDetails.id);
@@ -138,6 +193,72 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
 
   const onEditSubmit = (data: z.infer<typeof editFormSchema>) => {
     editDraftMutation.mutate(data);
+  };
+
+  // Handle inline edit
+  const handleInlineEdit = () => {
+    if (investmentDetails) {
+      editForm.reset({
+        targetCompany: investmentDetails.targetCompany || "",
+        investmentType: investmentDetails.investmentType || "equity",
+        amount: investmentDetails.amount || "",
+        expectedReturn: investmentDetails.expectedReturn || "",
+        description: investmentDetails.description || "",
+        riskLevel: investmentDetails.riskLevel || "medium",
+      });
+      setIsInlineEditing(true);
+    }
+  };
+
+  // Handle cancel inline edit
+  const handleCancelInlineEdit = () => {
+    setIsInlineEditing(false);
+    setUploadedFiles([]);
+    setFilesToDelete([]);
+  };
+
+  // Handle save inline edit
+  const handleSaveInlineEdit = async () => {
+    const formData = editForm.getValues();
+    
+    // First save the form changes
+    await editDraftMutation.mutateAsync(formData);
+    
+    // Then handle document deletions
+    for (const docId of filesToDelete) {
+      await deleteDocumentMutation.mutateAsync(docId);
+    }
+    
+    // Finally upload new documents
+    if (uploadedFiles.length > 0) {
+      await uploadFilesMutation.mutateAsync(uploadedFiles);
+    }
+    
+    // Reset state
+    setIsInlineEditing(false);
+    setUploadedFiles([]);
+    setFilesToDelete([]);
+  };
+
+  // Handle file upload
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    setUploadedFiles(prev => [...prev, ...files]);
+  };
+
+  // Handle file removal
+  const handleRemoveUploadedFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Handle delete existing document
+  const handleDeleteDocument = (documentId: number) => {
+    setFilesToDelete(prev => [...prev, documentId]);
+  };
+
+  // Handle undo delete
+  const handleUndoDelete = (documentId: number) => {
+    setFilesToDelete(prev => prev.filter(id => id !== documentId));
   };
 
   const getStatusColor = (status: string) => {
@@ -223,58 +344,224 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
             <Card>
               <CardContent className="pt-6">
                 <h4 className="font-semibold mb-4">Request Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Request ID</p>
-                    <p className="text-lg font-semibold">{investmentDetails.requestId}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Status</p>
-                    <Badge className={getStatusColor(investmentDetails.status)}>
-                      {getStatusIcon(investmentDetails.status)}
-                      <span className="ml-1">{investmentDetails.status}</span>
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Risk Level</p>
-                    <Badge className={getRiskColor(investmentDetails.riskLevel)}>
-                      {investmentDetails.riskLevel}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Amount</p>
-                    <p className="text-lg font-semibold">${investmentDetails.amount}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Expected Return</p>
-                    <p className="text-lg font-semibold">{investmentDetails.expectedReturn}%</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Target Company</p>
-                    <p className="text-lg font-semibold">{investmentDetails.targetCompany}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Investment Type</p>
-                    <p className="text-lg font-semibold">{investmentDetails.investmentType}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Created Date</p>
-                    <p className="text-lg font-semibold">
-                      {format(new Date(investmentDetails.createdAt), 'MMM dd, yyyy')}
-                    </p>
-                  </div>
-                </div>
                 
-                <div className="mt-4">
-                  <p className="text-sm font-medium text-gray-600 mb-2">Investment Rationale / Description</p>
-                  <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px]">
-                    {investmentDetails.description || 'No description provided by the analyst'}
-                  </p>
-                </div>
+                {isInlineEditing ? (
+                  <Form {...editForm}>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Request ID</p>
+                          <p className="text-lg font-semibold">{investmentDetails.requestId}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Status</p>
+                          <Badge className={getStatusColor(investmentDetails.status)}>
+                            {getStatusIcon(investmentDetails.status)}
+                            <span className="ml-1">{investmentDetails.status}</span>
+                          </Badge>
+                        </div>
+                        <FormField
+                          control={editForm.control}
+                          name="riskLevel"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Risk Level</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select risk level" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="low">Low</SelectItem>
+                                  <SelectItem value="medium">Medium</SelectItem>
+                                  <SelectItem value="high">High</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={editForm.control}
+                          name="amount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Investment Amount</FormLabel>
+                              <FormControl>
+                                <Input type="number" placeholder="Enter amount" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={editForm.control}
+                          name="expectedReturn"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Expected Return (%)</FormLabel>
+                              <FormControl>
+                                <Input type="number" step="0.1" placeholder="Enter expected return" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={editForm.control}
+                          name="targetCompany"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Target Company</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter company name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={editForm.control}
+                          name="investmentType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Investment Type</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select investment type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="equity">Equity</SelectItem>
+                                  <SelectItem value="debt">Debt</SelectItem>
+                                  <SelectItem value="real_estate">Real Estate</SelectItem>
+                                  <SelectItem value="alternative">Alternative</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Created Date</p>
+                          <p className="text-lg font-semibold">
+                            {format(new Date(investmentDetails.createdAt), 'MMM dd, yyyy')}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <FormField
+                        control={editForm.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Investment Rationale / Description</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Enter investment rationale and description" 
+                                className="min-h-[80px]"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </Form>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Request ID</p>
+                        <p className="text-lg font-semibold">{investmentDetails.requestId}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Status</p>
+                        <Badge className={getStatusColor(investmentDetails.status)}>
+                          {getStatusIcon(investmentDetails.status)}
+                          <span className="ml-1">{investmentDetails.status}</span>
+                        </Badge>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Risk Level</p>
+                        <Badge className={getRiskColor(investmentDetails.riskLevel)}>
+                          {investmentDetails.riskLevel}
+                        </Badge>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Amount</p>
+                        <p className="text-lg font-semibold">${investmentDetails.amount}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Expected Return</p>
+                        <p className="text-lg font-semibold">{investmentDetails.expectedReturn}%</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Target Company</p>
+                        <p className="text-lg font-semibold">{investmentDetails.targetCompany}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Investment Type</p>
+                        <p className="text-lg font-semibold">{investmentDetails.investmentType}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Created Date</p>
+                        <p className="text-lg font-semibold">
+                          {format(new Date(investmentDetails.createdAt), 'MMM dd, yyyy')}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-gray-600 mb-2">Investment Rationale / Description</p>
+                      <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px]">
+                        {investmentDetails.description || 'No description provided by the analyst'}
+                      </p>
+                    </div>
+                  </>
+                )}
                 
                 {/* Draft Actions */}
                 {(investmentDetails.status.toLowerCase() === 'draft' || investmentDetails.status.toLowerCase() === 'changes_requested') && (
                   <div className="mt-4 flex gap-2">
+                    {isInlineEditing ? (
+                      <>
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSaveInlineEdit}
+                          disabled={editDraftMutation.isPending || uploadFilesMutation.isPending || deleteDocumentMutation.isPending}
+                          className="flex items-center gap-2"
+                        >
+                          <Save className="h-4 w-4" />
+                          {editDraftMutation.isPending ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                        <Button 
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCancelInlineEdit}
+                          disabled={editDraftMutation.isPending || uploadFilesMutation.isPending || deleteDocumentMutation.isPending}
+                          className="flex items-center gap-2"
+                        >
+                          <X className="h-4 w-4" />
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleInlineEdit}
+                        className="flex items-center gap-2"
+                      >
+                        <Edit className="h-4 w-4" />
+                        Edit Draft
+                      </Button>
+                    )}
+                    
                     <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                       <DialogTrigger asChild>
                         <Button 
@@ -282,9 +569,10 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                           size="sm"
                           onClick={handleEditDraft}
                           className="flex items-center gap-2"
+                          style={{ display: isInlineEditing ? 'none' : 'flex' }}
                         >
                           <Edit className="h-4 w-4" />
-                          Edit Draft
+                          Edit in Dialog
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-md">
@@ -426,6 +714,116 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                       {submitDraftMutation.isPending ? 'Submitting...' : 
                        investmentDetails.status.toLowerCase() === 'changes_requested' ? 'Resubmit for Approval' : 'Submit for Approval'}
                     </Button>
+                  </div>
+                )}
+                
+                {/* Document Management - shown during inline editing */}
+                {isInlineEditing && (
+                  <div className="mt-6 p-4 border rounded-lg bg-gray-50">
+                    <h5 className="font-medium mb-3">Document Management</h5>
+                    
+                    {/* File Upload */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-2">Upload New Documents</label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          multiple
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+                          onChange={handleFileUpload}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.querySelector('input[type="file"]')?.click()}
+                          className="flex items-center gap-2"
+                        >
+                          <Upload className="h-4 w-4" />
+                          Browse
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* New Files Preview */}
+                    {uploadedFiles.length > 0 && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2">New Files to Upload</label>
+                        <div className="space-y-2">
+                          {uploadedFiles.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded border">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-blue-600" />
+                                <span className="text-sm">{file.name}</span>
+                                <span className="text-xs text-gray-500">({(file.size / 1024 / 1024).toFixed(1)} MB)</span>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveUploadedFile(index)}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Existing Documents */}
+                    {documents && documents.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Existing Documents</label>
+                        <div className="space-y-2">
+                          {documents.map((doc: any) => (
+                            <div key={doc.id} className={`flex items-center justify-between p-2 rounded border ${
+                              filesToDelete.includes(doc.id) ? 'bg-red-50 border-red-200' : 'bg-white'
+                            }`}>
+                              <div className="flex items-center gap-2">
+                                <FileText className={`h-4 w-4 ${filesToDelete.includes(doc.id) ? 'text-red-600' : 'text-gray-600'}`} />
+                                <span className={`text-sm ${filesToDelete.includes(doc.id) ? 'line-through text-red-600' : ''}`}>
+                                  {doc.fileName}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {filesToDelete.includes(doc.id) ? (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleUndoDelete(doc.id)}
+                                    className="text-green-600 hover:text-green-800"
+                                  >
+                                    Undo
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteDocument(doc.id)}
+                                    className="text-red-600 hover:text-red-800"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {uploadedFiles.length > 0 && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded border">
+                        <p className="text-sm text-blue-700">
+                          <strong>Note:</strong> New documents will be automatically processed by AI for analysis and insights generation after upload.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>

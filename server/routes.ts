@@ -408,6 +408,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Investment document upload endpoint
+  app.post('/api/documents/investment/:investmentId', authMiddleware, fileUpload.array('documents'), async (req, res) => {
+    try {
+      const { investmentId } = req.params;
+      const files = req.files as Express.Multer.File[];
+      
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: 'No files uploaded' });
+      }
+      
+      const documents = [];
+      for (const file of files) {
+        const document = await storage.createDocument({
+          fileName: file.filename,
+          originalName: file.originalname,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+          fileUrl: file.path,
+          uploaderId: req.userId!,
+          requestType: 'investment',
+          requestId: parseInt(investmentId),
+        });
+        documents.push(document);
+        
+        // Queue background job for AI processing
+        const currentUser = await storage.getUser(req.userId!);
+        if (currentUser) {
+          console.log(`Queueing background AI preparation for ${currentUser.role}: ${document.fileName}`);
+          await backgroundJobService.addJob({
+            jobType: 'prepare-ai',
+            documentId: document.id,
+            requestType: 'investment',
+            requestId: parseInt(investmentId),
+            priority: 'high'
+          });
+        }
+      }
+      
+      res.json(documents);
+    } catch (error) {
+      console.error('Investment document upload error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Add preview endpoint (must come before the general documents route)
   app.get('/api/documents/preview/:documentId', authMiddleware, async (req, res) => {
     try {
@@ -504,6 +549,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!res.headersSent) {
         res.status(500).json({ message: 'Internal server error' });
       }
+    }
+  });
+
+  // Delete document endpoint
+  app.delete('/api/documents/:documentId', authMiddleware, async (req, res) => {
+    try {
+      const { documentId } = req.params;
+      const document = await storage.getDocument(parseInt(documentId));
+      
+      if (!document) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+      
+      // Delete the file from disk
+      const filePath = path.join(process.cwd(), document.fileUrl);
+      try {
+        await fs.promises.unlink(filePath);
+        console.log(`File deleted from disk: ${filePath}`);
+      } catch (error) {
+        console.log(`File not found on disk, continuing with database deletion: ${filePath}`);
+      }
+      
+      // Delete from database
+      await storage.deleteDocument(parseInt(documentId));
+      
+      res.json({ message: 'Document deleted successfully' });
+    } catch (error) {
+      console.error('Delete document error:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
   });
 
