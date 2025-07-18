@@ -234,12 +234,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/investments/:id', authMiddleware, async (req, res) => {
     try {
+      console.log('Investment update request received:', req.params.id);
       const id = parseInt(req.params.id);
       const updateData = req.body;
       
+      console.log('Update data:', updateData);
+      
       const request = await storage.updateInvestmentRequest(id, updateData);
+      console.log('Investment update successful:', request.id);
       res.json(request);
     } catch (error) {
+      console.error('Investment update error:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
@@ -411,6 +416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Investment document upload endpoint
   app.post('/api/documents/investment/:investmentId', authMiddleware, fileUpload.array('documents'), async (req, res) => {
     try {
+      console.log('Investment document upload request received:', req.params);
       const { investmentId } = req.params;
       const files = req.files as Express.Multer.File[];
       
@@ -418,8 +424,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'No files uploaded' });
       }
       
+      console.log(`Processing ${files.length} files for investment ${investmentId}`);
+      
       const documents = [];
       for (const file of files) {
+        console.log(`Creating document record for: ${file.originalname}`);
         const document = await storage.createDocument({
           fileName: file.filename,
           originalName: file.originalname,
@@ -446,6 +455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      console.log(`Successfully processed ${documents.length} documents`);
       res.json(documents);
     } catch (error) {
       console.error('Investment document upload error:', error);
@@ -555,12 +565,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete document endpoint
   app.delete('/api/documents/:documentId', authMiddleware, async (req, res) => {
     try {
+      console.log('Delete document request received for ID:', req.params.documentId);
       const { documentId } = req.params;
       const document = await storage.getDocument(parseInt(documentId));
       
       if (!document) {
+        console.log(`Document not found in database: ${documentId}`);
         return res.status(404).json({ message: 'Document not found' });
       }
+      
+      console.log(`Found document to delete: ${document.originalName}`);
       
       // Delete the file from disk
       const filePath = path.join(process.cwd(), document.fileUrl);
@@ -573,6 +587,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Delete from database
       await storage.deleteDocument(parseInt(documentId));
+      console.log(`Document deleted from database: ${documentId}`);
       
       res.json({ message: 'Document deleted successfully' });
     } catch (error) {

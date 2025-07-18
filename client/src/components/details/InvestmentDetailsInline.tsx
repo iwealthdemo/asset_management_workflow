@@ -219,25 +219,39 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
 
   // Handle save inline edit
   const handleSaveInlineEdit = async () => {
-    const formData = editForm.getValues();
-    
-    // First save the form changes
-    await editDraftMutation.mutateAsync(formData);
-    
-    // Then handle document deletions
-    for (const docId of filesToDelete) {
-      await deleteDocumentMutation.mutateAsync(docId);
+    try {
+      const formData = editForm.getValues();
+      
+      // First save the form changes
+      await editDraftMutation.mutateAsync(formData);
+      
+      // Then handle document deletions
+      for (const docId of filesToDelete) {
+        await deleteDocumentMutation.mutateAsync(docId);
+      }
+      
+      // Finally upload new documents
+      if (uploadedFiles.length > 0) {
+        await uploadFilesMutation.mutateAsync(uploadedFiles);
+      }
+      
+      // Reset state
+      setIsInlineEditing(false);
+      setUploadedFiles([]);
+      setFilesToDelete([]);
+      
+      toast({
+        title: "Success",
+        description: "Investment details saved successfully",
+      });
+    } catch (error: any) {
+      console.error('Error saving inline edit:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save changes",
+        variant: "destructive",
+      });
     }
-    
-    // Finally upload new documents
-    if (uploadedFiles.length > 0) {
-      await uploadFilesMutation.mutateAsync(uploadedFiles);
-    }
-    
-    // Reset state
-    setIsInlineEditing(false);
-    setUploadedFiles([]);
-    setFilesToDelete([]);
   };
 
   // Handle file upload
