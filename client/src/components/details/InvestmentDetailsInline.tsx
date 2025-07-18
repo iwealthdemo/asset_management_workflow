@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,7 +39,7 @@ interface InvestmentDetailsInlineProps {
 export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: InvestmentDetailsInlineProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
   const [isInlineEditing, setIsInlineEditing] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [filesToDelete, setFilesToDelete] = useState<number[]>([]);
@@ -87,7 +87,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
       });
       queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
       queryClient.invalidateQueries({ queryKey: [`/api/investments/${investmentDetails?.id}`] });
-      setIsEditDialogOpen(false);
+      setIsInlineEditing(false);
     },
     onError: (error: any) => {
       toast({
@@ -177,24 +177,6 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
     if (investmentDetails?.id) {
       submitDraftMutation.mutate(investmentDetails.id);
     }
-  };
-
-  const handleEditDraft = () => {
-    if (investmentDetails) {
-      editForm.reset({
-        targetCompany: investmentDetails.targetCompany || "",
-        investmentType: investmentDetails.investmentType || "equity",
-        amount: investmentDetails.amount || "",
-        expectedReturn: investmentDetails.expectedReturn || "",
-        description: investmentDetails.description || "",
-        riskLevel: investmentDetails.riskLevel || "medium",
-      });
-      setIsEditDialogOpen(true);
-    }
-  };
-
-  const onEditSubmit = (data: z.infer<typeof editFormSchema>) => {
-    editDraftMutation.mutate(data);
   };
 
   // Handle inline edit
@@ -578,147 +560,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                       </Button>
                     )}
                     
-                    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleEditDraft}
-                          className="flex items-center gap-2"
-                          style={{ display: isInlineEditing ? 'none' : 'flex' }}
-                        >
-                          <Edit className="h-4 w-4" />
-                          Edit in Dialog
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-md">
-                        <DialogHeader>
-                          <DialogTitle>Edit Draft Proposal</DialogTitle>
-                        </DialogHeader>
-                        <Form {...editForm}>
-                          <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
-                            <FormField
-                              control={editForm.control}
-                              name="targetCompany"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Target Company</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Enter company name" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={editForm.control}
-                              name="investmentType"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Investment Type</FormLabel>
-                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select investment type" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="equity">Equity</SelectItem>
-                                      <SelectItem value="debt">Debt</SelectItem>
-                                      <SelectItem value="real_estate">Real Estate</SelectItem>
-                                      <SelectItem value="alternative">Alternative</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={editForm.control}
-                              name="amount"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Investment Amount</FormLabel>
-                                  <FormControl>
-                                    <Input type="number" placeholder="Enter amount" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={editForm.control}
-                              name="expectedReturn"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Expected Return (%)</FormLabel>
-                                  <FormControl>
-                                    <Input type="number" placeholder="Enter expected return" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={editForm.control}
-                              name="riskLevel"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Risk Level</FormLabel>
-                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select risk level" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="low">Low</SelectItem>
-                                      <SelectItem value="medium">Medium</SelectItem>
-                                      <SelectItem value="high">High</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={editForm.control}
-                              name="description"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Description</FormLabel>
-                                  <FormControl>
-                                    <Textarea placeholder="Enter description" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <div className="flex justify-end gap-2">
-                              <Button 
-                                type="button" 
-                                variant="outline" 
-                                onClick={() => setIsEditDialogOpen(false)}
-                              >
-                                Cancel
-                              </Button>
-                              <Button 
-                                type="submit" 
-                                disabled={editDraftMutation.isPending}
-                              >
-                                {editDraftMutation.isPending ? 'Updating...' : 'Update Draft'}
-                              </Button>
-                            </div>
-                          </form>
-                        </Form>
-                      </DialogContent>
-                    </Dialog>
+
                     
                     <Button 
                       size="sm"
