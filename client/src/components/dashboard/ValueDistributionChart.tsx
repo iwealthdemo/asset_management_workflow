@@ -14,13 +14,16 @@ interface ValueDistributionChartProps {
 }
 
 export default function ValueDistributionChart({ data }: ValueDistributionChartProps) {
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `$${(amount / 1000000).toFixed(1)}M`;
-    } else if (amount >= 1000) {
-      return `$${(amount / 1000).toFixed(1)}K`;
+  const formatCurrency = (amount: number | string) => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(numAmount)) return '$0';
+    
+    if (numAmount >= 1000000) {
+      return `$${(numAmount / 1000000).toFixed(1)}M`;
+    } else if (numAmount >= 1000) {
+      return `$${(numAmount / 1000).toFixed(1)}K`;
     } else {
-      return `$${amount.toFixed(0)}`;
+      return `$${numAmount.toFixed(0)}`;
     }
   };
 
@@ -29,34 +32,37 @@ export default function ValueDistributionChart({ data }: ValueDistributionChartP
       name: '0-1M',
       range: 'Small',
       count: data.small.count,
-      value: data.small.value,
+      value: typeof data.small.value === 'string' ? parseFloat(data.small.value) : data.small.value,
       color: '#3b82f6'
     },
     {
       name: '1-5M',
       range: 'Medium',
       count: data.medium.count,
-      value: data.medium.value,
+      value: typeof data.medium.value === 'string' ? parseFloat(data.medium.value) : data.medium.value,
       color: '#10b981'
     },
     {
       name: '5-10M',
       range: 'Large',
       count: data.large.count,
-      value: data.large.value,
+      value: typeof data.large.value === 'string' ? parseFloat(data.large.value) : data.large.value,
       color: '#f59e0b'
     },
     {
       name: '10M+',
       range: 'Extra Large',
       count: data.extraLarge.count,
-      value: data.extraLarge.value,
+      value: typeof data.extraLarge.value === 'string' ? parseFloat(data.extraLarge.value) : data.extraLarge.value,
       color: '#ef4444'
     }
   ];
 
   const totalCount = data.small.count + data.medium.count + data.large.count + data.extraLarge.count;
-  const totalValue = data.small.value + data.medium.value + data.large.value + data.extraLarge.value;
+  const totalValue = (typeof data.small.value === 'string' ? parseFloat(data.small.value) : data.small.value) +
+                    (typeof data.medium.value === 'string' ? parseFloat(data.medium.value) : data.medium.value) +
+                    (typeof data.large.value === 'string' ? parseFloat(data.large.value) : data.large.value) +
+                    (typeof data.extraLarge.value === 'string' ? parseFloat(data.extraLarge.value) : data.extraLarge.value);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
