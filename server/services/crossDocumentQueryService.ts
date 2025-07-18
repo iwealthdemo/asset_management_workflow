@@ -41,79 +41,83 @@ export class CrossDocumentQueryService {
     }
   }
 
-  private async getRawResponse(userQuery: string): Promise<string> {
+  private async getRawResponse(userQuery: string, vectorStoreId: string = VECTOR_STORE_ID): Promise<string> {
     try {
-      console.log('=== OPENAI API CALL DETAILS ===');
+      console.log('=== OPENAI RESPONSES API CALL DETAILS ===');
+      console.log('Using Vector Store ID:', vectorStoreId);
+      console.log('Query:', userQuery);
       
+      // Use OpenAI Responses API with file_search tool (same format as web search)
+      const responsePayload = {
+        model: "gpt-4o",
+        tools: [{"type": "file_search"}],
+        vector_store_ids: [vectorStoreId],
+        input: userQuery
+      };
+      
+      console.log('=== RESPONSES API PAYLOAD ===');
+      console.log(JSON.stringify(responsePayload, null, 2));
+      
+      // Test if this format works
+      console.log('Attempting OpenAI Responses API call...');
+      const response = await openai.responses.create(responsePayload);
+      
+      console.log('=== OPENAI RESPONSES API RESPONSE ===');
+      console.log('Response ID:', response.id);
+      console.log('Model:', response.model);
+      console.log('Usage:', JSON.stringify(response.usage, null, 2));
+      
+      const responseText = response.output_text;
+      console.log('Output Text Length:', responseText?.length || 0);
+      console.log('Content Preview:', responseText ? responseText.substring(0, 300) + '...' : 'No content');
+      console.log('=== END RESPONSES API RESPONSE ===');
+      
+      return responseText || 'No response received from document search';
+    } catch (error) {
+      console.error('Error in Responses API call:', error);
+      
+      // Fallback to Assistant API if Responses API fails
+      console.log('Falling back to Assistant API...');
+      return await this.fallbackToAssistantAPI(userQuery);
+    }
+  }
+
+  private async fallbackToAssistantAPI(userQuery: string): Promise<string> {
+    try {
       // Get or create the persistent assistant
       const assistant = await this.getOrCreateAssistant();
-      console.log('Using Assistant ID:', assistant.id);
-      console.log('Assistant Model:', assistant.model);
-      console.log('Assistant Tools:', JSON.stringify(assistant.tools, null, 2));
-      console.log('Vector Store IDs:', assistant.tool_resources?.file_search?.vector_store_ids);
+      console.log('Fallback: Using Assistant ID:', assistant.id);
 
       // Create a thread
       const thread = await openai.beta.threads.create();
-      console.log('Created Thread ID:', thread.id);
 
       // Add the message to the thread
-      const messagePayload = {
-        role: "user" as const,
+      await openai.beta.threads.messages.create(thread.id, {
+        role: "user",
         content: userQuery
-      };
-      console.log('=== MESSAGE PAYLOAD ===');
-      console.log(JSON.stringify(messagePayload, null, 2));
-      
-      await openai.beta.threads.messages.create(thread.id, messagePayload);
+      });
 
       // Run the assistant with polling
-      const runPayload = {
+      const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
         assistant_id: assistant.id,
         instructions: "Please search through all documents in the vector store to find information relevant to this query. If information spans multiple documents, please synthesize the information and indicate which documents contain the relevant details."
-      };
-      console.log('=== RUN PAYLOAD ===');
-      console.log(JSON.stringify(runPayload, null, 2));
-      
-      const run = await openai.beta.threads.runs.createAndPoll(thread.id, runPayload);
-
-      console.log('Run Status:', run.status);
-      console.log('Run Details:', JSON.stringify(run, null, 2));
+      });
 
       if (run.status === 'completed') {
         const messages = await openai.beta.threads.messages.list(thread.id);
-        console.log('=== OPENAI RESPONSE MESSAGES ===');
-        console.log('Total Messages:', messages.data.length);
-        
-        // Get the most recent assistant message (should be first in the list)
         const assistantMessages = messages.data.filter(msg => msg.role === 'assistant');
-        console.log('Assistant Messages Found:', assistantMessages.length);
         
         if (assistantMessages.length > 0) {
-          const assistantMessage = assistantMessages[0]; // Most recent first
-          console.log('Message Content Type:', assistantMessage.content[0]?.type);
-          console.log('=== ASSISTANT MESSAGE CONTENT ===');
-          console.log('Content blocks:', assistantMessage.content.length);
-          
+          const assistantMessage = assistantMessages[0];
           if (assistantMessage.content[0] && assistantMessage.content[0].type === 'text') {
-            const content = assistantMessage.content[0].text.value;
-            console.log('Extracted Content Length:', content.length);
-            console.log('Content Preview:', content.substring(0, 300));
-            console.log('=== END CONTENT PREVIEW ===');
-            
-            return content;
-          } else {
-            console.log('Unexpected content type:', assistantMessage.content[0]?.type);
-            console.log('Full content:', JSON.stringify(assistantMessage.content, null, 2));
+            return assistantMessage.content[0].text.value;
           }
-        } else {
-          console.log('No assistant messages found');
-          console.log('All messages:', messages.data.map(m => ({ role: m.role, content_type: m.content[0]?.type })));
         }
       }
       
-      throw new Error(`OpenAI assistant run failed with status: ${run.status}`);
+      throw new Error(`Assistant API fallback failed with status: ${run.status}`);
     } catch (error) {
-      console.error('Error in cross-document getRawResponse:', error);
+      console.error('Error in Assistant API fallback:', error);
       throw error;
     }
   }
