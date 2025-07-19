@@ -18,7 +18,8 @@ import {
   Loader2,
   ChevronUp,
   ChevronDown,
-  Eye
+  Eye,
+  MessageSquare
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { apiRequest } from '@/lib/queryClient';
