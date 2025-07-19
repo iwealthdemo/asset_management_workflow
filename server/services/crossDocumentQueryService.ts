@@ -47,23 +47,43 @@ export class CrossDocumentQueryService {
       console.log('Using Vector Store ID:', vectorStoreId);
       console.log('Query:', userQuery);
       
-      // Use OpenAI Responses API - note: direct file ID filtering not supported
-      // For document-specific searches, we rely on enhanced query instructions and Assistant API fallback
-      const responsePayload = {
-        model: "gpt-4o",
-        tools: [{
-          type: "file_search",
-          vector_store_ids: [vectorStoreId]
-        }],
-        input: userQuery
+      // Use OpenAI Responses API with proper file_id filtering structure
+      const fileSearchTool: any = {
+        type: "file_search",
+        vector_store_ids: [vectorStoreId]
       };
       
+      // Add file ID filtering if specific files are requested
       if (openaiFileIds && openaiFileIds.length > 0) {
-        console.log('Document-specific search requested for file IDs:', openaiFileIds);
-        console.log('Note: Using enhanced query instructions + Assistant API fallback for precise document filtering');
+        if (openaiFileIds.length === 1) {
+          // Single file filtering
+          fileSearchTool.filters = {
+            type: "eq",
+            key: "file_id",
+            value: openaiFileIds[0]
+          };
+          console.log('Using single file ID filtering for:', openaiFileIds[0]);
+        } else {
+          // Multiple files filtering with OR logic
+          fileSearchTool.filters = {
+            type: "or",
+            filters: openaiFileIds.map(fileId => ({
+              type: "eq",
+              key: "file_id",
+              value: fileId
+            }))
+          };
+          console.log('Using multiple file ID filtering for:', openaiFileIds);
+        }
       } else {
         console.log('Searching all files in vector store');
       }
+      
+      const responsePayload = {
+        model: "gpt-4o",
+        tools: [fileSearchTool],
+        input: userQuery
+      };
       
       console.log('=== RESPONSES API PAYLOAD ===');
       console.log(JSON.stringify(responsePayload, null, 2));
