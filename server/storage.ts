@@ -10,7 +10,7 @@ import {
   type CrossDocumentQuery, type InsertCrossDocumentQuery, type WebSearchQuery, type InsertWebSearchQuery
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, sql, ne } from "drizzle-orm";
+import { eq, desc, and, or, sql, ne, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -140,10 +140,12 @@ export interface IStorage {
   // Cross-document query operations
   saveCrossDocumentQuery(query: InsertCrossDocumentQuery): Promise<CrossDocumentQuery>;
   getCrossDocumentQueries(requestType: string, requestId: number): Promise<CrossDocumentQuery[]>;
+  getLastResponseId(requestType: string, requestId: number, userId: number): Promise<string | null>;
   
   // Web search query operations
   saveWebSearchQuery(query: InsertWebSearchQuery): Promise<WebSearchQuery>;
   getWebSearchQueries(requestType: string, requestId: number): Promise<WebSearchQuery[]>;
+  getLastWebSearchResponseId(requestType: string, requestId: number, userId: number): Promise<string | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -838,6 +840,29 @@ export class DatabaseStorage implements IStorage {
     return saved;
   }
 
+  async getLastResponseId(requestType: string, requestId: number, userId: number): Promise<string | null> {
+    try {
+      const [lastQuery] = await db
+        .select({ openaiResponseId: crossDocumentQueries.openaiResponseId })
+        .from(crossDocumentQueries)
+        .where(
+          and(
+            eq(crossDocumentQueries.requestType, requestType),
+            eq(crossDocumentQueries.requestId, requestId),
+            eq(crossDocumentQueries.userId, userId),
+            isNotNull(crossDocumentQueries.openaiResponseId)
+          )
+        )
+        .orderBy(desc(crossDocumentQueries.createdAt))
+        .limit(1);
+      
+      return lastQuery?.openaiResponseId || null;
+    } catch (error) {
+      console.error('Error getting last response ID:', error);
+      return null;
+    }
+  }
+
   async getCrossDocumentQueries(requestType: string, requestId: number): Promise<CrossDocumentQuery[]> {
     try {
       const queries = await db
@@ -878,6 +903,29 @@ export class DatabaseStorage implements IStorage {
   async saveWebSearchQuery(query: InsertWebSearchQuery): Promise<WebSearchQuery> {
     const [saved] = await db.insert(webSearchQueries).values(query).returning();
     return saved;
+  }
+
+  async getLastWebSearchResponseId(requestType: string, requestId: number, userId: number): Promise<string | null> {
+    try {
+      const [lastQuery] = await db
+        .select({ openaiResponseId: webSearchQueries.openaiResponseId })
+        .from(webSearchQueries)
+        .where(
+          and(
+            eq(webSearchQueries.requestType, requestType),
+            eq(webSearchQueries.requestId, requestId),
+            eq(webSearchQueries.userId, userId),
+            isNotNull(webSearchQueries.openaiResponseId)
+          )
+        )
+        .orderBy(desc(webSearchQueries.createdAt))
+        .limit(1);
+      
+      return lastQuery?.openaiResponseId || null;
+    } catch (error) {
+      console.error('Error getting last web search response ID:', error);
+      return null;
+    }
   }
 
   async getWebSearchQueries(requestType: string, requestId: number): Promise<WebSearchQuery[]> {

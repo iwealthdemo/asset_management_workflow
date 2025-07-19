@@ -13,17 +13,25 @@ const openai = new OpenAI({
 });
 
 export class WebSearchService {
-  private async getRawResponse(userQuery: string): Promise<{text: string, metadata: any}> {
+  private async getRawResponse(userQuery: string, previousResponseId?: string): Promise<{text: string, metadata: any}> {
     try {
       console.log('Sending web search query to OpenAI Responses API:', userQuery);
       
       // Use OpenAI Responses API with web_search_preview tool
       const startTime = Date.now();
-      const response = await openai.responses.create({
+      const requestPayload: any = {
         model: "gpt-4o",
         tools: [{"type": "web_search_preview"}],
         input: userQuery
-      });
+      };
+
+      // Add previous response ID for conversation continuity
+      if (previousResponseId) {
+        requestPayload.previous_response_id = previousResponseId;
+        console.log('Using previous web search response ID for context:', previousResponseId);
+      }
+
+      const response = await openai.responses.create(requestPayload);
       const processingTime = Date.now() - startTime;
 
       const responseText = response.output_text;
@@ -99,8 +107,16 @@ Please search the web for current information related to: ${query}
 Context: This is for a ${requestType} request analysis. Please provide up-to-date information from reliable sources and include any relevant news, market data, or industry insights.
       `.trim();
 
-      // Get response from OpenAI with web search
-      const responseData = await this.getRawResponse(enhancedQuery);
+      // Get previous response ID for conversation continuity
+      const previousResponseId = await storage.getLastWebSearchResponseId(requestType, requestId, userId);
+      if (previousResponseId) {
+        console.log('Found previous web search response ID for context:', previousResponseId);
+      } else {
+        console.log('No previous web search response ID found - starting new conversation');
+      }
+
+      // Get response from OpenAI with web search and conversation context
+      const responseData = await this.getRawResponse(enhancedQuery, previousResponseId);
 
       // Save the query and response to database with metadata
       await storage.saveWebSearchQuery({

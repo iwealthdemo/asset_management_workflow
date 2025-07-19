@@ -41,7 +41,7 @@ export class CrossDocumentQueryService {
     }
   }
 
-  private async getRawResponse(userQuery: string, vectorStoreId: string = VECTOR_STORE_ID, openaiFileIds?: string[]): Promise<{text: string, metadata: any}> {
+  private async getRawResponse(userQuery: string, vectorStoreId: string = VECTOR_STORE_ID, openaiFileIds?: string[], previousResponseId?: string): Promise<{text: string, metadata: any}> {
     try {
       console.log('=== OPENAI RESPONSES API CALL DETAILS ===');
       console.log('Using Vector Store ID:', vectorStoreId);
@@ -79,11 +79,17 @@ export class CrossDocumentQueryService {
         console.log('Searching all files in vector store');
       }
       
-      const responsePayload = {
+      const responsePayload: any = {
         model: "gpt-4o",
         tools: [fileSearchTool],
         input: userQuery
       };
+
+      // Add previous response ID for conversation continuity
+      if (previousResponseId) {
+        responsePayload.previous_response_id = previousResponseId;
+        console.log('Using previous response ID for context:', previousResponseId);
+      }
       
       console.log('=== RESPONSES API PAYLOAD ===');
       console.log(JSON.stringify(responsePayload, null, 2));
@@ -281,8 +287,16 @@ OpenAI File IDs: ${openaiFileIds.join(', ')}
       console.log(enhancedQuery);
       console.log('=== END ENHANCED QUERY ===');
 
-      // Get response from OpenAI with file ID filtering
-      const responseData = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds);
+      // Get previous response ID for conversation continuity
+      const previousResponseId = await storage.getLastResponseId(requestType, requestId, userId);
+      if (previousResponseId) {
+        console.log('Found previous response ID for context:', previousResponseId);
+      } else {
+        console.log('No previous response ID found - starting new conversation');
+      }
+
+      // Get response from OpenAI with file ID filtering and conversation context
+      const responseData = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds, previousResponseId);
 
       // Save the query and response to database with metadata
       await storage.saveCrossDocumentQuery({
