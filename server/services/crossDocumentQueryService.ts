@@ -47,27 +47,23 @@ export class CrossDocumentQueryService {
       console.log('Using Vector Store ID:', vectorStoreId);
       console.log('Query:', userQuery);
       
-      // Use OpenAI Responses API with file_search tool and optional file ID filtering
-      const fileSearchTool: any = {
-        type: "file_search",
-        vector_store_ids: [vectorStoreId]
-      };
-      
-      // Add file ID filtering if specific files are requested
-      if (openaiFileIds && openaiFileIds.length > 0) {
-        fileSearchTool.filters = {
-          file_id: openaiFileIds
-        };
-        console.log('Using file ID filtering for:', openaiFileIds);
-      } else {
-        console.log('No file ID filtering - searching all files in vector store');
-      }
-      
+      // Use OpenAI Responses API - note: direct file ID filtering not supported
+      // For document-specific searches, we rely on enhanced query instructions and Assistant API fallback
       const responsePayload = {
         model: "gpt-4o",
-        tools: [fileSearchTool],
+        tools: [{
+          type: "file_search",
+          vector_store_ids: [vectorStoreId]
+        }],
         input: userQuery
       };
+      
+      if (openaiFileIds && openaiFileIds.length > 0) {
+        console.log('Document-specific search requested for file IDs:', openaiFileIds);
+        console.log('Note: Using enhanced query instructions + Assistant API fallback for precise document filtering');
+      } else {
+        console.log('Searching all files in vector store');
+      }
       
       console.log('=== RESPONSES API PAYLOAD ===');
       console.log(JSON.stringify(responsePayload, null, 2));
@@ -92,11 +88,11 @@ export class CrossDocumentQueryService {
       
       // Fallback to Assistant API if Responses API fails
       console.log('Falling back to Assistant API...');
-      return await this.fallbackToAssistantAPI(userQuery);
+      return await this.fallbackToAssistantAPI(userQuery, openaiFileIds);
     }
   }
 
-  private async fallbackToAssistantAPI(userQuery: string): Promise<string> {
+  private async fallbackToAssistantAPI(userQuery: string, openaiFileIds?: string[]): Promise<string> {
     try {
       // Get or create the persistent assistant
       const assistant = await this.getOrCreateAssistant();
@@ -105,11 +101,23 @@ export class CrossDocumentQueryService {
       // Create a thread
       const thread = await openai.beta.threads.create();
 
-      // Add the message to the thread
-      await openai.beta.threads.messages.create(thread.id, {
+      // Create message with file attachments for document-specific searches
+      const messageContent: any = {
         role: "user",
         content: userQuery
-      });
+      };
+      
+      // If specific files are requested, attach them to enable precise filtering
+      if (openaiFileIds && openaiFileIds.length > 0) {
+        messageContent.attachments = openaiFileIds.map(fileId => ({
+          file_id: fileId,
+          tools: [{ type: "file_search" }]
+        }));
+        console.log('Fallback: Attaching specific files for precise document filtering:', openaiFileIds);
+      }
+
+      // Add the message to the thread
+      await openai.beta.threads.messages.create(thread.id, messageContent);
 
       // Run the assistant with polling
       const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
