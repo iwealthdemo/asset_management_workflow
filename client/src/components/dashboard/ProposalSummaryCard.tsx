@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Users, DollarSign } from "lucide-react";
+import { getStatusColorDark } from "@/lib/utils";
 
 interface ProposalSummaryData {
   investment: {
@@ -38,15 +39,7 @@ export default function ProposalSummaryCard({ data, userRole }: ProposalSummaryC
     }).format(amount);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft': return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100';
-      case 'approved': return 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100';
-      case 'rejected': return 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100';
-      default: return 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100';
-    }
-  };
+  // getStatusColor function now imported from @/lib/utils
 
   const StatusCard = ({ 
     title, 
@@ -70,7 +63,7 @@ export default function ProposalSummaryCard({ data, userRole }: ProposalSummaryC
           <p className="text-2xl font-bold">{count}</p>
           <p className="text-sm text-muted-foreground">{formatCurrency(value)}</p>
         </div>
-        <Badge variant="secondary" className={getStatusColor(status)}>
+        <Badge variant="secondary" className={getStatusColorDark(status)}>
           {status.charAt(0).toUpperCase() + status.slice(1)}
         </Badge>
       </div>

@@ -7,6 +7,7 @@ import { CashRequestForm } from "@/components/forms/CashRequestForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PlusCircle, DollarSign, Calendar, User } from "lucide-react";
 import { format } from "date-fns";
+import { getStatusColor } from "@/lib/utils";
 
 export default function CashRequests() {
   const [isNewRequestOpen, setIsNewRequestOpen] = useState(false);
@@ -15,20 +16,7 @@ export default function CashRequests() {
     queryKey: ["/api/cash-requests"],
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'approved':
-        return 'bg-green-100 text-green-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      case 'processed':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // getStatusColor function imported from @/lib/utils
 
   if (isLoading) {
     return (

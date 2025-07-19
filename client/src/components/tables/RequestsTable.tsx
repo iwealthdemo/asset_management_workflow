@@ -7,6 +7,7 @@ import { Briefcase, DollarSign, Clock, CheckCircle, AlertTriangle, Eye } from "l
 import { format } from "date-fns"
 import { useState } from "react"
 import { InvestmentDetailsInline } from "@/components/details/InvestmentDetailsInline"
+import { getStatusColor, getStatusIcon } from "@/lib/utils"
 
 interface RequestsTableProps {
   requests: RecentRequest[]
@@ -19,54 +20,7 @@ export function RequestsTable({ requests }: RequestsTableProps) {
     setExpandedRequest(expandedRequest === requestId ? null : requestId)
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Manager approved':
-      case 'Committee approved':
-      case 'Finance approved':
-      case 'approved':
-        return <CheckCircle className="h-4 w-4 text-green-600" />
-      case 'Manager rejected':
-      case 'Committee rejected':
-      case 'Finance rejected':
-      case 'rejected':
-        return <AlertTriangle className="h-4 w-4 text-red-600" />
-      case 'pending':
-        return <Clock className="h-4 w-4 text-yellow-600" />
-      case 'overdue':
-        return <AlertTriangle className="h-4 w-4 text-red-600" />
-      default:
-        return <Clock className="h-4 w-4 text-gray-600" />
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Draft':
-        return 'bg-gray-100 text-gray-800'
-      case 'New':
-      case 'Modified':
-        return 'bg-blue-100 text-blue-800'
-      case 'Manager approved':
-      case 'Committee approved':
-      case 'Finance approved':
-      case 'approved':
-        return 'bg-green-100 text-green-800'
-      case 'Manager rejected':
-      case 'Committee rejected':
-      case 'Finance rejected':
-      case 'rejected':
-        return 'bg-red-100 text-red-800'
-      case 'changes_requested':
-        return 'bg-orange-100 text-orange-800'
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'overdue':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
+  // Utility functions now imported from @/lib/utils
 
   const getTypeIcon = (type: string) => {
     return type === 'investment' ? 

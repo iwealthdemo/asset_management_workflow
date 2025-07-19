@@ -15,6 +15,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DocumentAnalysisCard from '@/components/documents/DocumentAnalysisCard';
 import UnifiedSearchInterface from '@/components/documents/UnifiedSearchInterface';
+import { getStatusColor, getPriorityColor, getTaskIcon, getFileIcon, getStatusIcon, handleDocumentDownload } from "@/lib/utils";
 
 export default function MyTasks() {
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
@@ -28,44 +29,7 @@ export default function MyTasks() {
     queryKey: ["/api/tasks"],
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'overdue':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-red-100 text-red-800';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'low':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getTaskIcon = (taskType: string) => {
-    switch (taskType) {
-      case 'approval':
-        return CheckSquare;
-      case 'review':
-        return Clock;
-      case 'changes_requested':
-        return AlertTriangle;
-      default:
-        return CheckSquare;
-    }
-  };
 
   const handleTaskAction = (task: any) => {
     setExpandedTask(expandedTask === task.id ? null : task.id);
@@ -396,7 +360,7 @@ function TaskCard({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Status</p>
-                  <Badge className={getStatusColorForBadge(requestData.status)}>
+                  <Badge className={getStatusColor(requestData.status)}>
                     {getStatusIcon(requestData.status)}
                     <span className="ml-1">{requestData.status}</span>
                   </Badge>
@@ -546,92 +510,4 @@ function TaskCard({
   );
 }
 
-function getTaskIcon(taskType: string) {
-  switch (taskType) {
-    case 'approval':
-      return CheckSquare;
-    case 'review':
-      return Clock;
-    case 'changes_requested':
-      return AlertTriangle;
-    default:
-      return CheckSquare;
-  }
-}
-
-function getStatusColor(status: string) {
-  switch (status) {
-    case 'pending':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'completed':
-    case 'approved':
-    case 'approve':
-    case 'Manager approved':
-    case 'Committee approved':
-    case 'Finance approved':
-      return 'bg-green-100 text-green-800';
-    case 'overdue':
-    case 'rejected':
-    case 'Manager rejected':
-    case 'Committee rejected':
-    case 'Finance rejected':
-      return 'bg-red-100 text-red-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-}
-
-function getStatusColorForBadge(status: string) {
-  switch (status) {
-    case 'Manager approved':
-    case 'Committee approved':
-    case 'Finance approved':
-    case 'approved':
-      return 'bg-green-100 text-green-800';
-    case 'Manager rejected':
-    case 'Committee rejected':
-    case 'Finance rejected':
-    case 'rejected':
-      return 'bg-red-100 text-red-800';
-    case 'changes_requested':
-      return 'bg-orange-100 text-orange-800';
-    case 'pending':
-      return 'bg-yellow-100 text-yellow-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-}
-
-function getStatusIcon(status: string) {
-  switch (status) {
-    case 'Manager approved':
-    case 'Committee approved':
-    case 'Finance approved':
-    case 'approved':
-      return <CheckCircle className="w-4 h-4" />;
-    case 'Manager rejected':
-    case 'Committee rejected':
-    case 'Finance rejected':
-    case 'rejected':
-      return <XCircle className="w-4 h-4" />;
-    case 'changes_requested':
-      return <AlertTriangle className="w-4 h-4" />;
-    case 'pending':
-      return <Clock className="w-4 h-4" />;
-    default:
-      return <Clock className="w-4 h-4" />;
-  }
-}
-
-function getPriorityColor(priority: string) {
-  switch (priority) {
-    case 'high':
-      return 'bg-red-100 text-red-800';
-    case 'medium':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'low':
-      return 'bg-blue-100 text-blue-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-}
+// All utility functions now imported from @/lib/utils

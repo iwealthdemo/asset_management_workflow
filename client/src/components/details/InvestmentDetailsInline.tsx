@@ -18,6 +18,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DocumentAnalysisCard from "@/components/documents/DocumentAnalysisCard";
 import UnifiedSearchInterface from "@/components/documents/UnifiedSearchInterface";
+import { getStatusColor, getFileIconForUpload, formatFileSize, handleDocumentDownload, getStatusIcon, getRiskColor } from "@/lib/utils";
 
 // Edit form schema
 const editFormSchema = z.object({
@@ -258,65 +259,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
     setFilesToDelete(prev => prev.filter(id => id !== documentId));
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Draft':
-        return 'bg-gray-100 text-gray-800';
-      case 'New':
-      case 'Modified':
-        return 'bg-blue-100 text-blue-800';
-      case 'Manager approved':
-      case 'Committee approved':
-      case 'Finance approved':
-      case 'approved':
-        return 'bg-green-100 text-green-800';
-      case 'Manager rejected':
-      case 'Committee rejected':
-      case 'Finance rejected':
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      case 'changes_requested':
-        return 'bg-orange-100 text-orange-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Manager approved':
-      case 'Committee approved':
-      case 'Finance approved':
-      case 'approved':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'Manager rejected':
-      case 'Committee rejected':
-      case 'Finance rejected':
-      case 'rejected':
-        return <AlertTriangle className="w-4 h-4" />;
-      case 'changes_requested':
-        return <AlertTriangle className="w-4 h-4" />;
-      case 'pending':
-        return <Clock className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
-    }
-  };
-
-  const getRiskColor = (risk: string) => {
-    switch (risk) {
-      case 'high':
-        return 'bg-red-100 text-red-800';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'low':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // All utility functions now imported from @/lib/utils
 
   return (
     <Collapsible open={isExpanded} onOpenChange={onToggle}>

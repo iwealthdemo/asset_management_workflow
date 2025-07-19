@@ -26,6 +26,7 @@ import {
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import { InvestmentDetailsInline } from "@/components/details/InvestmentDetailsInline";
+import { getStatusColor, getStatusIcon, getRiskColor } from "@/lib/utils";
 
 // Filter interfaces
 interface InvestmentFilters {
@@ -151,48 +152,7 @@ export default function MyInvestments() {
     return count;
   }, [filters]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'approved':
-        return 'bg-green-100 text-green-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      case 'changes_requested':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Clock className="w-4 h-4" />;
-      case 'approved':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'rejected':
-        return <AlertTriangle className="w-4 h-4" />;
-      case 'changes_requested':
-        return <Eye className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
-    }
-  };
-
-  const getRiskColor = (risk: string) => {
-    switch (risk) {
-      case 'high':
-        return 'bg-red-100 text-red-800';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'low':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // All utility functions now imported from @/lib/utils
 
   if (isLoading) {
     return (
