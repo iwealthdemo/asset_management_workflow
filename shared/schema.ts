@@ -189,6 +189,13 @@ export const crossDocumentQueries = pgTable("cross_document_queries", {
   query: text("query").notNull(),
   response: text("response").notNull(),
   documentCount: integer("document_count").notNull().default(0), // number of documents searched
+  // OpenAI response metadata
+  openaiResponseId: text("openai_response_id"), // OpenAI response ID (e.g., resp_xyz...)
+  openaiModel: text("openai_model"), // Model used (e.g., gpt-4o-2024-08-06)
+  inputTokens: integer("input_tokens"), // Tokens used for input
+  outputTokens: integer("output_tokens"), // Tokens used for output  
+  totalTokens: integer("total_tokens"), // Total tokens used
+  processingTimeMs: integer("processing_time_ms"), // Processing time in milliseconds
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -201,6 +208,13 @@ export const webSearchQueries = pgTable("web_search_queries", {
   query: text("query").notNull(),
   response: text("response").notNull(),
   searchType: text("search_type").notNull().default("web_search"), // for future extensibility
+  // OpenAI response metadata
+  openaiResponseId: text("openai_response_id"), // OpenAI response ID (e.g., resp_xyz...)
+  openaiModel: text("openai_model"), // Model used (e.g., gpt-4o-2024-08-06)
+  inputTokens: integer("input_tokens"), // Tokens used for input
+  outputTokens: integer("output_tokens"), // Tokens used for output  
+  totalTokens: integer("total_tokens"), // Total tokens used
+  processingTimeMs: integer("processing_time_ms"), // Processing time in milliseconds
   createdAt: timestamp("created_at").defaultNow(),
 });
 

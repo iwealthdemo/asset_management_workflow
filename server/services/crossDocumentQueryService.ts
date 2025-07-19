@@ -41,7 +41,7 @@ export class CrossDocumentQueryService {
     }
   }
 
-  private async getRawResponse(userQuery: string, vectorStoreId: string = VECTOR_STORE_ID, openaiFileIds?: string[]): Promise<string> {
+  private async getRawResponse(userQuery: string, vectorStoreId: string = VECTOR_STORE_ID, openaiFileIds?: string[]): Promise<{text: string, metadata: any}> {
     try {
       console.log('=== OPENAI RESPONSES API CALL DETAILS ===');
       console.log('Using Vector Store ID:', vectorStoreId);
@@ -90,25 +90,50 @@ export class CrossDocumentQueryService {
       
       // Test if this format works
       console.log('Attempting OpenAI Responses API call...');
+      const startTime = Date.now();
       const response = await openai.responses.create(responsePayload);
+      const processingTime = Date.now() - startTime;
       
       console.log('=== OPENAI RESPONSES API RESPONSE ===');
       console.log('Response ID:', response.id);
       console.log('Model:', response.model);
       console.log('Usage:', JSON.stringify(response.usage, null, 2));
+      console.log('Processing Time:', processingTime + 'ms');
       
       const responseText = response.output_text;
       console.log('Output Text Length:', responseText?.length || 0);
       console.log('Content Preview:', responseText ? responseText.substring(0, 300) + '...' : 'No content');
       console.log('=== END RESPONSES API RESPONSE ===');
       
-      return responseText || 'No response received from document search';
+      // Return response data with metadata
+      return {
+        text: responseText || 'No response received from document search',
+        metadata: {
+          openaiResponseId: response.id,
+          openaiModel: response.model,
+          inputTokens: response.usage?.input_tokens || 0,
+          outputTokens: response.usage?.output_tokens || 0,
+          totalTokens: response.usage?.total_tokens || 0,
+          processingTimeMs: processingTime
+        }
+      };
     } catch (error) {
       console.error('Error in Responses API call:', error);
       
       // Fallback to Assistant API if Responses API fails
       console.log('Falling back to Assistant API...');
-      return await this.fallbackToAssistantAPI(userQuery, openaiFileIds);
+      const fallbackResult = await this.fallbackToAssistantAPI(userQuery, openaiFileIds);
+      return {
+        text: fallbackResult,
+        metadata: {
+          openaiResponseId: null,
+          openaiModel: 'fallback-assistant-api',
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          processingTimeMs: 0
+        }
+      };
     }
   }
 
@@ -257,21 +282,27 @@ OpenAI File IDs: ${openaiFileIds.join(', ')}
       console.log('=== END ENHANCED QUERY ===');
 
       // Get response from OpenAI with file ID filtering
-      const answer = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds);
+      const responseData = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds);
 
-      // Save the query and response to database
+      // Save the query and response to database with metadata
       await storage.saveCrossDocumentQuery({
         requestType,
         requestId,
         userId,
         query,
-        response: answer,
-        documentCount: readyDocuments.length
+        response: responseData.text,
+        documentCount: readyDocuments.length,
+        openaiResponseId: responseData.metadata.openaiResponseId,
+        openaiModel: responseData.metadata.openaiModel,
+        inputTokens: responseData.metadata.inputTokens,
+        outputTokens: responseData.metadata.outputTokens,
+        totalTokens: responseData.metadata.totalTokens,
+        processingTimeMs: responseData.metadata.processingTimeMs
       });
 
       return {
         success: true,
-        answer,
+        answer: responseData.text,
         documentCount: readyDocuments.length
       };
 

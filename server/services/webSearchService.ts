@@ -13,27 +13,43 @@ const openai = new OpenAI({
 });
 
 export class WebSearchService {
-  private async getRawResponse(userQuery: string): Promise<string> {
+  private async getRawResponse(userQuery: string): Promise<{text: string, metadata: any}> {
     try {
       console.log('Sending web search query to OpenAI Responses API:', userQuery);
       
       // Use OpenAI Responses API with web_search_preview tool
+      const startTime = Date.now();
       const response = await openai.responses.create({
         model: "gpt-4o",
         tools: [{"type": "web_search_preview"}],
         input: userQuery
       });
+      const processingTime = Date.now() - startTime;
 
       const responseText = response.output_text;
       console.log('Web search response received:', responseText ? responseText.substring(0, 200) + '...' : 'No content');
+      console.log('Web search response ID:', response.id);
+      console.log('Web search usage:', JSON.stringify(response.usage, null, 2));
+      console.log('Web search processing time:', processingTime + 'ms');
       
-      return responseText || 'No response received from web search';
+      return {
+        text: responseText || 'No response received from web search',
+        metadata: {
+          openaiResponseId: response.id,
+          openaiModel: response.model,
+          inputTokens: response.usage?.input_tokens || 0,
+          outputTokens: response.usage?.output_tokens || 0,
+          totalTokens: response.usage?.total_tokens || 0,
+          processingTimeMs: processingTime
+        }
+      };
     } catch (error) {
       console.error('Error in web search getRawResponse:', error);
       
       // Fallback to regular OpenAI response if web search fails
       console.log('Falling back to regular OpenAI response...');
       
+      const startTime = Date.now();
       const fallbackResponse = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
@@ -48,9 +64,20 @@ export class WebSearchService {
         ],
         max_tokens: 1000
       });
+      const processingTime = Date.now() - startTime;
 
       const fallbackContent = fallbackResponse.choices[0].message.content;
-      return fallbackContent || 'Unable to process web search query';
+      return {
+        text: fallbackContent || 'Unable to process web search query',
+        metadata: {
+          openaiResponseId: fallbackResponse.id || null,
+          openaiModel: fallbackResponse.model || 'gpt-4o-fallback',
+          inputTokens: fallbackResponse.usage?.prompt_tokens || 0,
+          outputTokens: fallbackResponse.usage?.completion_tokens || 0,
+          totalTokens: fallbackResponse.usage?.total_tokens || 0,
+          processingTimeMs: processingTime
+        }
+      };
     }
   }
 
@@ -73,21 +100,27 @@ Context: This is for a ${requestType} request analysis. Please provide up-to-dat
       `.trim();
 
       // Get response from OpenAI with web search
-      const answer = await this.getRawResponse(enhancedQuery);
+      const responseData = await this.getRawResponse(enhancedQuery);
 
-      // Save the query and response to database
+      // Save the query and response to database with metadata
       await storage.saveWebSearchQuery({
         requestType,
         requestId,
         userId,
         query,
-        response: answer,
-        searchType: 'web_search'
+        response: responseData.text,
+        searchType: 'web_search',
+        openaiResponseId: responseData.metadata.openaiResponseId,
+        openaiModel: responseData.metadata.openaiModel,
+        inputTokens: responseData.metadata.inputTokens,
+        outputTokens: responseData.metadata.outputTokens,
+        totalTokens: responseData.metadata.totalTokens,
+        processingTimeMs: responseData.metadata.processingTimeMs
       });
 
       return {
         success: true,
-        answer
+        answer: responseData.text
       };
 
     } catch (error) {
