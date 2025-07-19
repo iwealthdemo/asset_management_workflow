@@ -297,6 +297,22 @@ OpenAI File IDs: ${openaiFileIds.join(', ')}
 
       // Get response from OpenAI with file ID filtering and conversation context
       const responseData = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds, previousResponseId);
+      
+      // Check if the response is generic/unhelpful and use local document analysis as fallback
+      let finalResponse = responseData.text;
+      const isGenericResponse = responseData.text.includes("unable to find") || 
+                               responseData.text.includes("unable to retrieve") ||
+                               responseData.text.includes("manual search") ||
+                               responseData.text.length < 100;
+      
+      if (isGenericResponse) {
+        console.log('OpenAI returned generic response, using local document analysis fallback...');
+        const localAnalysis = this.getLocalDocumentAnalysis(readyDocuments, query);
+        if (localAnalysis) {
+          finalResponse = `Based on the available document analysis:\n\n${localAnalysis}\n\n*Note: This information was extracted from our document analysis system when automated search was unable to locate specific details.*`;
+          console.log('Using local analysis fallback response');
+        }
+      }
 
       // Save the query and response to database with metadata
       await storage.saveCrossDocumentQuery({
@@ -304,7 +320,7 @@ OpenAI File IDs: ${openaiFileIds.join(', ')}
         requestId,
         userId,
         query,
-        response: responseData.text,
+        response: finalResponse,
         documentCount: readyDocuments.length,
         openaiResponseId: responseData.metadata.openaiResponseId,
         openaiModel: responseData.metadata.openaiModel,
@@ -316,7 +332,7 @@ OpenAI File IDs: ${openaiFileIds.join(', ')}
 
       return {
         success: true,
-        answer: responseData.text,
+        answer: finalResponse,
         documentCount: readyDocuments.length
       };
 
@@ -326,6 +342,82 @@ OpenAI File IDs: ${openaiFileIds.join(', ')}
         success: false,
         error: error.message
       };
+    }
+  }
+
+  // Helper method to extract relevant information from local document analysis
+  private getLocalDocumentAnalysis(documents: any[], query: string): string | null {
+    try {
+      console.log('Searching local document analysis for query:', query);
+      
+      const queryLower = query.toLowerCase();
+      const isFinancialQuery = queryLower.includes('profit') || queryLower.includes('revenue') || 
+                              queryLower.includes('growth') || queryLower.includes('margin') ||
+                              queryLower.includes('financial') || queryLower.includes('performance');
+      
+      let results: string[] = [];
+      
+      for (const doc of documents) {
+        try {
+          const analysis = JSON.parse(doc.analysisResult || '{}');
+          const summary = analysis.summary || '';
+          const insights = analysis.insights || '';
+          
+          console.log(`Checking document: ${doc.originalName}`);
+          
+          // For financial queries, look for specific financial metrics
+          if (isFinancialQuery) {
+            const combinedText = `${summary} ${insights}`;
+            
+            // Extract financial information with regex patterns
+            const profitMatch = combinedText.match(/(?:net profit|profit after tax)[^₹]*₹([0-9,]+(?:\.[0-9]+)?)\s*crore/gi);
+            const revenueMatch = combinedText.match(/(?:revenue|income)[^₹]*₹([0-9,]+(?:\.[0-9]+)?)\s*crore/gi);
+            const growthMatch = combinedText.match(/([0-9]+(?:\.[0-9]+)?%)\s*(?:increase|growth)/gi);
+            
+            if (profitMatch || revenueMatch || growthMatch) {
+              let docResult = `**${doc.originalName}:**\n`;
+              
+              if (profitMatch) {
+                docResult += `- Net profit: ${profitMatch[0]}\n`;
+              }
+              if (revenueMatch) {
+                docResult += `- Revenue: ${revenueMatch[0]}\n`;
+              }
+              if (growthMatch) {
+                docResult += `- Growth: ${growthMatch.join(', ')}\n`;
+              }
+              
+              // Add relevant excerpt from summary/insights
+              if (queryLower.includes('profit') && summary.includes('profit')) {
+                const sentences = summary.split(/[.!?]+/);
+                const relevantSentence = sentences.find(s => s.toLowerCase().includes('profit'));
+                if (relevantSentence) {
+                  docResult += `- Context: ${relevantSentence.trim()}.\n`;
+                }
+              }
+              
+              results.push(docResult);
+            }
+          } else {
+            // For general queries, search in summary and insights
+            if (summary.toLowerCase().includes(queryLower.substring(0, 10)) || 
+                insights.toLowerCase().includes(queryLower.substring(0, 10))) {
+              results.push(`**${doc.originalName}:**\n${summary.substring(0, 300)}...\n`);
+            }
+          }
+        } catch (docError) {
+          console.error(`Error processing document ${doc.id}:`, docError);
+        }
+      }
+      
+      if (results.length > 0) {
+        return results.join('\n');
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error in getLocalDocumentAnalysis:', error);
+      return null;
     }
   }
 }
