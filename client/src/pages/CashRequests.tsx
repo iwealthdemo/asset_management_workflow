@@ -16,7 +16,7 @@ export default function CashRequests() {
     queryKey: ["/api/cash-requests"],
   });
 
-  // getStatusColor function imported from @/lib/utils
+
 
   if (isLoading) {
     return (

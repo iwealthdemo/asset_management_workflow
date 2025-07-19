@@ -14,14 +14,10 @@ import {
   DollarSign, 
   Calendar, 
   TrendingUp, 
-  Eye, 
   Filter, 
   X, 
   ChevronDown, 
-  ChevronUp,
-  Clock,
-  CheckCircle,
-  AlertTriangle
+  ChevronUp
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";

@@ -13,12 +13,9 @@ import {
   AlertTriangle, 
   CheckCircle,
   Clock,
-  Eye,
   Download,
   Send,
-  MessageCircle,
   Loader2,
-  MessageSquare,
   ChevronUp,
   ChevronDown
 } from 'lucide-react';

@@ -4,10 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { useState, useEffect } from "react";
-import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye } from "lucide-react";
+import { useState } from "react";
+import { CheckSquare, AlertTriangle, Calendar, User, Download, FileText, ChevronDown, ChevronUp, CheckCircle, XCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,12 +14,12 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DocumentAnalysisCard from '@/components/documents/DocumentAnalysisCard';
 import UnifiedSearchInterface from '@/components/documents/UnifiedSearchInterface';
-import { getStatusColor, getPriorityColor, getTaskIcon, getFileIcon, getStatusIcon, handleDocumentDownload } from "@/lib/utils";
+import { getStatusColor, getPriorityColor, getTaskIcon, handleDocumentDownload } from "@/lib/utils";
 
 export default function MyTasks() {
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
   const [comments, setComments] = useState("");
-  // Remove previewDocument state as we're using new tab approach
+
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -28,8 +27,6 @@ export default function MyTasks() {
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["/api/tasks"],
   });
-
-
 
   const handleTaskAction = (task: any) => {
     setExpandedTask(expandedTask === task.id ? null : task.id);

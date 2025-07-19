@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { CheckCircle, XCircle, Clock, User, Download, FileText, File } from "lucide-react"
+import { CheckCircle, XCircle, Clock, User, Download, FileText } from "lucide-react"
 import { format } from "date-fns"
 import { getStatusColor, getFileIcon, formatFileSize, handleDocumentDownload, getStatusIcon } from "@/lib/utils"
 

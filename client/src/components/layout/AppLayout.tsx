@@ -26,7 +26,6 @@ import {
   Table, 
   PieChart,
   Bell,
-  Settings,
   Menu,
   LogOut,
   Target,
@@ -92,8 +91,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     const shouldShow = item.roles.includes(user.role);
     return shouldShow;
   });
-
-
 
   const adminItems = [
     { href: "/user-management", label: "User Management", icon: Users },

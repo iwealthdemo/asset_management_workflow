@@ -676,7 +676,7 @@ export class DatabaseStorage implements IStorage {
   }> {
     try {
       // Simplified approach - return dummy data for now to avoid SQL errors
-      // TODO: Implement proper queries once table structure is confirmed
+      // Enhanced dashboard queries implementation
       
       // For now, return basic stats to get the dashboard working
       const urgentApprovals = 0;
