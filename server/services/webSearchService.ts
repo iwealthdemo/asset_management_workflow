@@ -136,7 +136,8 @@ Context: This is for a ${requestType} request analysis. Please provide up-to-dat
 
       return {
         success: true,
-        answer: responseData.text
+        answer: responseData.text,
+        responseId: responseData.metadata.openaiResponseId
       };
 
     } catch (error) {

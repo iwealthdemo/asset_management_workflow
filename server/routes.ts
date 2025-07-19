@@ -969,6 +969,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Unified Web Search Routes (for UnifiedSearchInterface)
+  app.post('/api/web-search-queries', authMiddleware, async (req, res) => {
+    try {
+      console.log('=== WEB SEARCH API HIT ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('User ID:', req.userId);
+      
+      const { requestType, requestId, query } = req.body;
+      
+      if (!requestType || !requestId || !query || typeof query !== 'string') {
+        console.log('❌ Validation failed');
+        return res.status(400).json({ 
+          error: 'Missing required fields: requestType, requestId, query',
+          message: 'Invalid request format' 
+        });
+      }
+      
+      // Import web search service
+      const { webSearchService } = await import('./services/webSearchService');
+      
+      // Process web search query
+      const result = await webSearchService.processWebSearchQuery(
+        requestType,
+        requestId,
+        req.userId!,
+        query
+      );
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: result.error,
+          message: 'Failed to process web search query' 
+        });
+      }
+      
+      res.json({
+        answer: result.answer,
+        responseId: result.responseId,
+        success: true
+      });
+      
+    } catch (error) {
+      console.error('Web search query failed:', error);
+      res.status(500).json({ 
+        error: 'Failed to process web search query',
+        message: error.message 
+      });
+    }
+  });
+
+  app.get('/api/web-search-queries', authMiddleware, async (req, res) => {
+    try {
+      const { requestId } = req.query;
+      
+      if (!requestId) {
+        return res.status(400).json({ 
+          error: 'Missing requestId parameter',
+          message: 'Request ID is required' 
+        });
+      }
+      
+      // Get web search query history for this request
+      const queries = await storage.getWebSearchQueries('investment_request', parseInt(requestId as string));
+      
+      // Transform data to match UnifiedSearchInterface format
+      const transformedQueries = queries.map(query => ({
+        id: query.id,
+        query: query.query,
+        response: query.response,
+        searchType: 'web' as const,
+        createdAt: query.createdAt,
+        user: query.user
+      }));
+      
+      res.json(transformedQueries);
+    } catch (error) {
+      console.error('Error getting web search queries:', error);
+      res.status(500).json({ message: 'Failed to get web search history' });
+    }
+  });
+
   // Legacy cross-document query history endpoint
   app.get('/api/documents/cross-query/:requestType/:requestId', authMiddleware, async (req, res) => {
     try {
