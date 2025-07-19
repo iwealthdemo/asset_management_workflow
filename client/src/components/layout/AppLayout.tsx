@@ -30,7 +30,8 @@ import {
   LogOut,
   Target,
   Shield,
-  Clock
+  Clock,
+  Settings
 } from "lucide-react";
 
 interface AppLayoutProps {
