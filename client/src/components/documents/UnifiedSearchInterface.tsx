@@ -79,11 +79,15 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
 
   // Document search mutation
   const documentSearchMutation = useMutation({
-    mutationFn: ({ query, documentIds }: { query: string; documentIds: number[] }) =>
-      apiRequest(`/api/cross-document-queries`, {
-        method: 'POST',
-        body: { requestId, query, documentIds }
-      }),
+    mutationFn: async ({ query, documentIds }: { query: string; documentIds: number[] }) => {
+      const response = await apiRequest('POST', '/api/cross-document-queries', {
+        requestType: 'investment_request',
+        requestId,
+        query,
+        documentIds
+      });
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/cross-document-queries/${requestId}`] });
       setQuery('');
@@ -92,11 +96,14 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
 
   // Web search mutation
   const webSearchMutation = useMutation({
-    mutationFn: ({ query }: { query: string }) =>
-      apiRequest(`/api/web-search-queries`, {
-        method: 'POST',
-        body: { requestId, query }
-      }),
+    mutationFn: async ({ query }: { query: string }) => {
+      const response = await apiRequest('POST', '/api/web-search-queries', {
+        requestType: 'investment_request',
+        requestId,
+        query
+      });
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/web-search-queries', requestId] });
       setQuery('');
