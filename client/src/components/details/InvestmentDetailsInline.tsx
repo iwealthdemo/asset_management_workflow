@@ -77,7 +77,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   // Edit draft mutation
   const editDraftMutation = useMutation({
     mutationFn: async (data: z.infer<typeof editFormSchema>) => {
-      return apiRequest('PUT', `/api/investments/${investmentDetails?.id}`, data);
+      return apiRequest('PUT', `/api/investments/${investment?.id}`, data);
     },
     onSuccess: () => {
       toast({
@@ -85,7 +85,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
         description: "Draft updated successfully",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/investments/${investmentDetails?.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/investments/${investment?.id}`] });
       setIsInlineEditing(false);
     },
     onError: (error: any) => {
@@ -105,17 +105,17 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
     onSuccess: () => {
       toast({
         title: "Success",
-        description: investmentDetails?.status.toLowerCase() === 'changes_requested' ? 
+        description: (investmentDetails || investment)?.status.toLowerCase() === 'changes_requested' ? 
           "Proposal resubmitted for approval successfully" : 
           "Draft submitted for approval successfully",
       });
       // Invalidate all relevant cache keys to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/investments/${investmentDetails?.id}`] });
-      queryClient.invalidateQueries({ queryKey: ['investment-details', investmentDetails?.id] });
+      queryClient.invalidateQueries({ queryKey: [`/api/investments/${investment?.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['investment-details', investment?.id] });
       // Force refetch of the current investment
-      if (investmentDetails?.id) {
-        queryClient.refetchQueries({ queryKey: [`/api/investments/${investmentDetails.id}`] });
+      if (investment?.id) {
+        queryClient.refetchQueries({ queryKey: [`/api/investments/${investment.id}`] });
       }
     },
     onError: (error: any) => {
@@ -135,7 +135,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
         formData.append('documents', file);
       });
       
-      return fetch(`/api/documents/investment/${investmentDetails?.id}`, {
+      return fetch(`/api/documents/investment/${investment?.id}`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -146,7 +146,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
         title: "Success",
         description: "Documents uploaded successfully",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investmentDetails?.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment?.id}`] });
       setUploadedFiles([]);
     },
     onError: (error: any) => {
@@ -168,7 +168,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
         title: "Success",
         description: "Document deleted successfully",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investmentDetails?.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment?.id}`] });
     },
     onError: (error: any) => {
       toast({
@@ -180,21 +180,22 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   });
 
   const handleSubmitDraft = () => {
-    if (investmentDetails?.id) {
-      submitDraftMutation.mutate(investmentDetails.id);
+    if (investment?.id) {
+      submitDraftMutation.mutate(investment.id);
     }
   };
 
   // Handle inline edit
   const handleInlineEdit = () => {
-    if (investmentDetails) {
+    const details = investmentDetails || investment;
+    if (details) {
       editForm.reset({
-        targetCompany: investmentDetails.targetCompany || "",
-        investmentType: investmentDetails.investmentType || "equity",
-        amount: investmentDetails.amount || "",
-        expectedReturn: investmentDetails.expectedReturn || "",
-        description: investmentDetails.description || "",
-        riskLevel: investmentDetails.riskLevel || "medium",
+        targetCompany: details.targetCompany || "",
+        investmentType: details.investmentType || "equity",
+        amount: details.amount || "",
+        expectedReturn: details.expectedReturn || "",
+        description: details.description || "",
+        riskLevel: details.riskLevel || "medium",
       });
       setIsInlineEditing(true);
     }
