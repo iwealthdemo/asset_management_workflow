@@ -562,8 +562,896 @@ class DocumentService:
             return {'success': False, 'error': str(e)}
 ```
 
-Continue reading for remaining files...
+## services/chat_service.py
+```python
+"""
+Chat Service - Handles conversational AI interactions
+"""
+
+import logging
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+class ChatService:
+    def __init__(self, openai_client, anthropic_client=None):
+        self.openai_client = openai_client
+        self.anthropic_client = anthropic_client
+        
+    def completion(self, messages, model="gpt-4o", context=None):
+        """
+        Generate chat completion with optional context
+        
+        Args:
+            messages (list): List of message objects with role and content
+            model (str): Model to use for completion
+            context (dict): Additional context information
+            
+        Returns:
+            dict: Completion response with metadata
+        """
+        try:
+            # Add context to system message if provided
+            if context and context.get('system_prompt'):
+                system_message = {'role': 'system', 'content': context['system_prompt']}
+                if messages and messages[0]['role'] != 'system':
+                    messages.insert(0, system_message)
+                    
+            response = self.openai_client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=context.get('temperature', 0.7) if context else 0.7,
+                max_tokens=context.get('max_tokens', 2000) if context else 2000
+            )
+            
+            return {
+                'success': True,
+                'response': response.choices[0].message.content,
+                'model': response.model,
+                'usage': {
+                    'input_tokens': response.usage.prompt_tokens,
+                    'output_tokens': response.usage.completion_tokens,
+                    'total_tokens': response.usage.total_tokens
+                },
+                'finish_reason': response.choices[0].finish_reason
+            }
+            
+        except Exception as e:
+            logger.error(f"Chat completion error: {str(e)}")
+            return {'success': False, 'error': str(e)}
+            
+    def document_qa(self, question, document_ids, vector_store_id, context=None):
+        """
+        Answer questions using document context
+        
+        Args:
+            question (str): Question to answer
+            document_ids (list): List of document IDs to search
+            vector_store_id (str): Vector store ID
+            context (dict): Additional context
+            
+        Returns:
+            dict: Answer with supporting information
+        """
+        try:
+            # Prepare file filters for specific documents
+            if document_ids:
+                if len(document_ids) == 1:
+                    file_filter = {
+                        "type": "eq",
+                        "key": "file_id",
+                        "value": document_ids[0]
+                    }
+                else:
+                    file_filter = {
+                        "type": "or", 
+                        "filters": [
+                            {"type": "eq", "key": "file_id", "value": doc_id}
+                            for doc_id in document_ids
+                        ]
+                    }
+            else:
+                file_filter = None
+                
+            # Build tools configuration
+            tools = [{
+                "type": "file_search",
+                "file_search": {
+                    "vector_store_ids": [vector_store_id]
+                }
+            }]
+            
+            if file_filter:
+                tools[0]["file_search"]["file_filter"] = file_filter
+                
+            instructions = f"""
+            You are a knowledgeable document analyst. Answer the user's question using the provided documents.
+            
+            Provide:
+            1. A clear, direct answer
+            2. Supporting evidence from the documents
+            3. Source references when available
+            4. Note any limitations or uncertainties
+            
+            Question: {question}
+            """
+            
+            response = self.openai_client.responses.create(
+                model="gpt-4o",
+                messages=[{
+                    "role": "user",
+                    "content": question
+                }],
+                instructions=instructions,
+                tools=tools,
+                temperature=0.3
+            )
+            
+            return {
+                'success': True,
+                'answer': response.choices[0].message.content,
+                'model': response.model,
+                'usage': {
+                    'input_tokens': response.usage.prompt_tokens,
+                    'output_tokens': response.usage.completion_tokens,
+                    'total_tokens': response.usage.total_tokens
+                },
+                'context': {
+                    'question': question,
+                    'document_ids': document_ids,
+                    'vector_store_id': vector_store_id
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Document Q&A error: {str(e)}")
+            return {'success': False, 'error': str(e)}
+```
+
+## services/analysis_service.py
+```python
+"""
+Analysis Service - Handles document analysis and insights generation
+"""
+
+import logging
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+class AnalysisService:
+    def __init__(self, openai_client, anthropic_client=None):
+        self.openai_client = openai_client
+        self.anthropic_client = anthropic_client
+        
+    def analyze_document(self, document_id, analysis_type="general", context=None):
+        """
+        Analyze a specific document for insights
+        
+        Args:
+            document_id (str): OpenAI file ID to analyze
+            analysis_type (str): Type of analysis (general, investment, risk, etc.)
+            context (dict): Additional context for analysis
+            
+        Returns:
+            dict: Analysis results with insights
+        """
+        try:
+            # Define analysis prompts based on type
+            analysis_prompts = {
+                'general': "Provide a comprehensive analysis of this document including key points, themes, and insights.",
+                'investment': """Analyze this investment document focusing on:
+                1. Investment opportunity and market potential
+                2. Financial projections and key metrics
+                3. Risk factors and mitigation strategies
+                4. Management team and competitive advantages
+                5. Recommendation and key concerns""",
+                'risk': """Conduct a risk analysis focusing on:
+                1. Identified risk factors
+                2. Risk severity and probability
+                3. Mitigation strategies
+                4. Residual risk assessment
+                5. Risk monitoring recommendations""",
+                'financial': """Analyze the financial aspects including:
+                1. Revenue and profitability trends
+                2. Cash flow analysis
+                3. Balance sheet strength
+                4. Key financial ratios
+                5. Financial outlook and concerns"""
+            }
+            
+            prompt = analysis_prompts.get(analysis_type, analysis_prompts['general'])
+            
+            # Use file_search tool to analyze the specific document
+            tools = [{
+                "type": "file_search",
+                "file_search": {
+                    "file_filter": {
+                        "type": "eq",
+                        "key": "file_id",
+                        "value": document_id
+                    }
+                }
+            }]
+            
+            instructions = f"""
+            You are an expert analyst. {prompt}
+            
+            Structure your response with clear sections and actionable insights.
+            Include specific references to the document content where relevant.
+            """
+            
+            response = self.openai_client.responses.create(
+                model="gpt-4o",
+                messages=[{
+                    "role": "user",
+                    "content": f"Please analyze this document with focus on: {analysis_type}"
+                }],
+                instructions=instructions,
+                tools=tools,
+                temperature=0.3
+            )
+            
+            return {
+                'success': True,
+                'analysis': response.choices[0].message.content,
+                'analysis_type': analysis_type,
+                'document_id': document_id,
+                'model': response.model,
+                'usage': {
+                    'input_tokens': response.usage.prompt_tokens,
+                    'output_tokens': response.usage.completion_tokens,
+                    'total_tokens': response.usage.total_tokens
+                },
+                'timestamp': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Document analysis error: {str(e)}")
+            return {'success': False, 'error': str(e)}
+            
+    def summarize(self, content=None, document_id=None, summary_type="general"):
+        """
+        Summarize text content or document
+        
+        Args:
+            content (str): Text content to summarize
+            document_id (str): Document ID to summarize
+            summary_type (str): Type of summary (brief, detailed, executive)
+            
+        Returns:
+            dict: Summary results
+        """
+        try:
+            if document_id:
+                # Summarize document using file_search
+                tools = [{
+                    "type": "file_search",
+                    "file_search": {
+                        "file_filter": {
+                            "type": "eq",
+                            "key": "file_id", 
+                            "value": document_id
+                        }
+                    }
+                }]
+                
+                summary_instructions = {
+                    'brief': "Provide a concise 2-3 sentence summary of the key points.",
+                    'detailed': "Provide a comprehensive summary covering all major sections and key insights.",
+                    'executive': "Provide an executive summary suitable for senior management decision-making."
+                }
+                
+                instruction = summary_instructions.get(summary_type, summary_instructions['detailed'])
+                
+                response = self.openai_client.responses.create(
+                    model="gpt-4o",
+                    messages=[{
+                        "role": "user",
+                        "content": f"Please summarize this document: {instruction}"
+                    }],
+                    tools=tools,
+                    temperature=0.3
+                )
+                
+                summary_content = response.choices[0].message.content
+                usage = {
+                    'input_tokens': response.usage.prompt_tokens,
+                    'output_tokens': response.usage.completion_tokens,
+                    'total_tokens': response.usage.total_tokens
+                }
+                
+            elif content:
+                # Summarize provided text content
+                response = self.openai_client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{
+                        "role": "user",
+                        "content": f"Please provide a {summary_type} summary of the following content:\n\n{content}"
+                    }],
+                    temperature=0.3
+                )
+                
+                summary_content = response.choices[0].message.content
+                usage = {
+                    'input_tokens': response.usage.prompt_tokens,
+                    'output_tokens': response.usage.completion_tokens,
+                    'total_tokens': response.usage.total_tokens
+                }
+            else:
+                return {'success': False, 'error': 'Either content or document_id is required'}
+                
+            return {
+                'success': True,
+                'summary': summary_content,
+                'summary_type': summary_type,
+                'usage': usage,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Summarization error: {str(e)}")
+            return {'success': False, 'error': str(e)}
+            
+    def investment_insights(self, document_ids, analysis_focus="general", context=None):
+        """
+        Generate investment-specific insights from multiple documents
+        
+        Args:
+            document_ids (list): List of document IDs to analyze
+            analysis_focus (str): Focus area for analysis
+            context (dict): Additional context
+            
+        Returns:
+            dict: Investment insights and recommendations
+        """
+        try:
+            # Prepare file filters for multiple documents
+            if len(document_ids) == 1:
+                file_filter = {
+                    "type": "eq",
+                    "key": "file_id",
+                    "value": document_ids[0]
+                }
+            else:
+                file_filter = {
+                    "type": "or",
+                    "filters": [
+                        {"type": "eq", "key": "file_id", "value": doc_id}
+                        for doc_id in document_ids
+                    ]
+                }
+                
+            tools = [{
+                "type": "file_search",
+                "file_search": {
+                    "file_filter": file_filter
+                }
+            }]
+            
+            focus_prompts = {
+                'general': "Provide comprehensive investment insights covering opportunity, risks, and recommendations.",
+                'risk_assessment': "Focus on risk analysis, risk factors, and risk mitigation strategies.",
+                'financial_analysis': "Focus on financial performance, projections, and financial health.",
+                'market_opportunity': "Focus on market size, growth potential, and competitive positioning.",
+                'due_diligence': "Provide due diligence insights covering all critical investment factors."
+            }
+            
+            prompt = focus_prompts.get(analysis_focus, focus_prompts['general'])
+            
+            instructions = f"""
+            You are a senior investment analyst. Analyze the provided documents and generate actionable investment insights.
+            
+            {prompt}
+            
+            Structure your response with:
+            1. Executive Summary
+            2. Key Investment Highlights  
+            3. Risk Assessment
+            4. Financial Analysis
+            5. Market Opportunity
+            6. Investment Recommendation
+            7. Next Steps
+            
+            Provide specific evidence from the documents to support your analysis.
+            """
+            
+            response = self.openai_client.responses.create(
+                model="gpt-4o",
+                messages=[{
+                    "role": "user",
+                    "content": f"Generate comprehensive investment insights focusing on: {analysis_focus}"
+                }],
+                instructions=instructions,
+                tools=tools,
+                temperature=0.3
+            )
+            
+            return {
+                'success': True,
+                'insights': response.choices[0].message.content,
+                'analysis_focus': analysis_focus,
+                'document_ids': document_ids,
+                'model': response.model,
+                'usage': {
+                    'input_tokens': response.usage.prompt_tokens,
+                    'output_tokens': response.usage.completion_tokens,
+                    'total_tokens': response.usage.total_tokens
+                },
+                'timestamp': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Investment insights error: {str(e)}")
+            return {'success': False, 'error': str(e)}
+```
+
+## services/concurrency_manager.py
+```python
+"""
+Concurrency Manager - Handles concurrent requests and rate limiting
+"""
+
+import asyncio
+import threading
+import time
+from collections import defaultdict, deque
+from functools import wraps
+import logging
+from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
+
+class ConcurrencyManager:
+    def __init__(self, max_concurrent_requests=10, rate_limit_per_minute=100):
+        self.max_concurrent_requests = max_concurrent_requests
+        self.rate_limit_per_minute = rate_limit_per_minute
+        
+        # Semaphore for controlling concurrent requests
+        self.semaphore = threading.Semaphore(max_concurrent_requests)
+        
+        # Rate limiting per API key
+        self.request_history = defaultdict(deque)
+        self.rate_limit_lock = threading.Lock()
+        
+        # Active request tracking
+        self.active_requests = {}
+        self.request_counter = 0
+        self.request_lock = threading.Lock()
+        
+        # Metrics
+        self.metrics = {
+            'total_requests': 0,
+            'concurrent_requests': 0,
+            'rate_limited_requests': 0,
+            'max_concurrent_reached': 0,
+            'average_response_time': 0
+        }
+        
+    def limit_concurrent_requests(self, timeout=300):
+        """
+        Decorator to limit concurrent requests
+        """
+        def decorator(func):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                request_id = self._get_request_id()
+                
+                # Try to acquire semaphore
+                acquired = self.semaphore.acquire(timeout=timeout)
+                if not acquired:
+                    logger.warning(f"Request {request_id} timed out waiting for semaphore")
+                    return {
+                        'success': False, 
+                        'error': 'Service is busy, please try again later',
+                        'retry_after': 30
+                    }
+                
+                try:
+                    # Track active request
+                    start_time = time.time()
+                    self._track_request_start(request_id)
+                    
+                    # Execute the function
+                    result = func(*args, **kwargs)
+                    
+                    # Update metrics
+                    end_time = time.time()
+                    self._track_request_end(request_id, end_time - start_time)
+                    
+                    return result
+                    
+                finally:
+                    # Always release semaphore
+                    self.semaphore.release()
+                    
+            return wrapper
+        return decorator
+        
+    def rate_limit_by_api_key(self, api_key):
+        """
+        Check if API key has exceeded rate limit
+        
+        Returns:
+            tuple: (allowed, wait_time)
+        """
+        with self.rate_limit_lock:
+            now = datetime.now()
+            cutoff = now - timedelta(minutes=1)
+            
+            # Clean old requests
+            history = self.request_history[api_key]
+            while history and history[0] < cutoff:
+                history.popleft()
+                
+            # Check rate limit
+            if len(history) >= self.rate_limit_per_minute:
+                oldest_request = history[0]
+                wait_time = (oldest_request + timedelta(minutes=1) - now).total_seconds()
+                
+                self.metrics['rate_limited_requests'] += 1
+                logger.warning(f"Rate limit exceeded for API key: {api_key[:8]}...")
+                
+                return False, max(0, wait_time)
+            
+            # Add current request
+            history.append(now)
+            return True, 0
+            
+    def _get_request_id(self):
+        """Generate unique request ID"""
+        with self.request_lock:
+            self.request_counter += 1
+            return f"req_{self.request_counter}_{int(time.time())}"
+            
+    def _track_request_start(self, request_id):
+        """Track request start"""
+        with self.request_lock:
+            self.active_requests[request_id] = {
+                'start_time': time.time(),
+                'thread_id': threading.current_thread().ident
+            }
+            
+            concurrent = len(self.active_requests)
+            self.metrics['concurrent_requests'] = concurrent
+            self.metrics['total_requests'] += 1
+            
+            if concurrent > self.metrics['max_concurrent_reached']:
+                self.metrics['max_concurrent_reached'] = concurrent
+                
+            logger.info(f"Request {request_id} started. Active requests: {concurrent}")
+            
+    def _track_request_end(self, request_id, duration):
+        """Track request completion"""
+        with self.request_lock:
+            if request_id in self.active_requests:
+                del self.active_requests[request_id]
+                
+            # Update average response time
+            total = self.metrics['total_requests']
+            current_avg = self.metrics['average_response_time']
+            self.metrics['average_response_time'] = (current_avg * (total - 1) + duration) / total
+            
+            self.metrics['concurrent_requests'] = len(self.active_requests)
+            
+            logger.info(f"Request {request_id} completed in {duration:.2f}s")
+            
+    def get_metrics(self):
+        """Get current concurrency metrics"""
+        with self.request_lock:
+            return {
+                **self.metrics,
+                'current_concurrent_requests': len(self.active_requests),
+                'available_slots': self.max_concurrent_requests - len(self.active_requests),
+                'timestamp': datetime.now().isoformat()
+            }
+            
+    def get_active_requests(self):
+        """Get information about active requests"""
+        with self.request_lock:
+            current_time = time.time()
+            return {
+                request_id: {
+                    'duration': current_time - info['start_time'],
+                    'thread_id': info['thread_id']
+                }
+                for request_id, info in self.active_requests.items()
+            }
+
+# Global concurrency manager instance
+concurrency_manager = ConcurrencyManager(
+    max_concurrent_requests=20,  # Adjust based on your server capacity
+    rate_limit_per_minute=200    # Adjust based on your needs
+)
+```
+
+## utils/auth.py
+```python
+"""
+Authentication utilities
+"""
+
+import os
+from functools import wraps
+from flask import request, jsonify
+
+def require_api_key(func):
+    """
+    Decorator to require API key authentication
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Get API key from various sources
+        api_key = (
+            request.headers.get('Authorization', '').replace('Bearer ', '') or
+            request.headers.get('X-API-Key') or
+            request.args.get('api_key')
+        )
+        
+        expected_key = os.getenv('SERVICE_API_KEY', 'dev-key-change-in-production')
+        
+        if not api_key:
+            return jsonify({
+                'success': False,
+                'error': 'API key required',
+                'message': 'Provide API key in Authorization header, X-API-Key header, or api_key parameter'
+            }), 401
+            
+        if api_key != expected_key:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid API key'
+            }), 403
+            
+        return func(*args, **kwargs)
+        
+    return wrapper
+```
+
+## utils/metadata_extractor.py
+```python
+"""
+Metadata extraction utilities
+"""
+
+import re
+from datetime import datetime
+from pathlib import Path
+
+def extract_metadata_from_filename(filename):
+    """
+    Extract metadata from filename using patterns
+    
+    Args:
+        filename (str): Original filename
+        
+    Returns:
+        dict: Extracted metadata attributes
+    """
+    if not filename:
+        return {}
+        
+    metadata = {
+        'original_filename': filename,
+        'file_extension': Path(filename).suffix.lower().lstrip('.'),
+        'extraction_timestamp': datetime.now().isoformat()
+    }
+    
+    filename_lower = filename.lower()
+    
+    # Document type classification
+    if any(term in filename_lower for term in ['annual', 'report', 'yearly']):
+        metadata['document_type'] = 'annual_report'
+    elif any(term in filename_lower for term in ['financial', 'statement', 'balance', 'income']):
+        metadata['document_type'] = 'financial_statement'
+    elif any(term in filename_lower for term in ['investment', 'proposal', 'pitch', 'deck']):
+        metadata['document_type'] = 'investment_proposal'
+    elif any(term in filename_lower for term in ['contract', 'agreement', 'legal']):
+        metadata['document_type'] = 'legal_document'
+    elif any(term in filename_lower for term in ['research', 'analysis', 'market']):
+        metadata['document_type'] = 'research_report'
+    else:
+        metadata['document_type'] = 'general_document'
+    
+    # Extract year from filename
+    year_match = re.search(r'(20\d{2})', filename)
+    if year_match:
+        metadata['year'] = year_match.group(1)
+        
+    # Extract company names (basic patterns)
+    # Look for capitalized words that might be company names
+    company_pattern = r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b'
+    potential_companies = re.findall(company_pattern, filename)
+    if potential_companies:
+        metadata['potential_company'] = potential_companies[0]
+        
+    # Category based on file extension and content hints
+    ext = metadata['file_extension']
+    if ext in ['pdf']:
+        metadata['category'] = 'document'
+    elif ext in ['xlsx', 'xls', 'csv']:
+        metadata['category'] = 'spreadsheet'
+    elif ext in ['jpg', 'jpeg', 'png', 'gif']:
+        metadata['category'] = 'image'
+    elif ext in ['doc', 'docx']:
+        metadata['category'] = 'word_document'
+    elif ext in ['ppt', 'pptx']:
+        metadata['category'] = 'presentation'
+    else:
+        metadata['category'] = 'unknown'
+        
+    return metadata
+```
+
+## README.md
+```md
+# LLM API Service
+
+A dedicated microservice for AI/LLM operations including document processing, chat completion, and analysis.
+
+## Features
+
+- **Document Processing**: Upload, vectorize, and analyze documents
+- **Advanced Search**: Vector-based document search with AI responses  
+- **Chat Completion**: Conversational AI with context support
+- **Investment Analysis**: Specialized investment insight generation
+- **Concurrency Management**: Production-ready request handling
+- **Rate Limiting**: Per-API-key usage controls
+- **Multi-Provider Support**: OpenAI and Anthropic integration
+
+## Quick Start
+
+1. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Set environment variables**:
+   ```bash
+   OPENAI_API_KEY=your-openai-key-here
+   SERVICE_API_KEY=your-secure-service-key
+   DEFAULT_VECTOR_STORE_ID=your-vector-store-id
+   ```
+
+3. **Run the service**:
+   ```bash
+   python main.py
+   ```
+
+4. **Test the service**:
+   ```bash
+   curl -X GET http://localhost:5000/health
+   ```
+
+## API Endpoints
+
+### Health & Info
+- `GET /health` - Service health check
+- `GET /info` - Service capabilities and information
+- `GET /metrics` - Real-time service metrics
+
+### Documents
+- `POST /documents/upload-and-vectorize` - Upload file to vector store
+- `POST /documents/analyze` - Analyze document content
+- `POST /documents/search` - Search across documents
+
+### Chat
+- `POST /chat/completion` - Generate chat completions
+- `POST /chat/document-qa` - Document-based Q&A
+
+### Analysis  
+- `POST /analysis/summarize` - Summarize content
+- `POST /analysis/investment-insights` - Investment analysis
+
+## Authentication
+
+Include your API key in requests:
+
+```bash
+# Header method (recommended)
+curl -H "X-API-Key: your-api-key" ...
+
+# Authorization header  
+curl -H "Authorization: Bearer your-api-key" ...
+
+# Query parameter
+curl "https://api.example.com/endpoint?api_key=your-api-key"
+```
+
+## Configuration
+
+### Environment Variables
+- `OPENAI_API_KEY` - OpenAI API key (required)
+- `ANTHROPIC_API_KEY` - Anthropic API key (optional)  
+- `SERVICE_API_KEY` - Service authentication key (required)
+- `DEFAULT_VECTOR_STORE_ID` - Default vector store for documents
+- `PORT` - Service port (default: 5000)
+- `FLASK_ENV` - Environment (development/production)
+
+### Concurrency Settings
+- `MAX_CONCURRENT_REQUESTS` - Maximum simultaneous requests (default: 20)
+- `RATE_LIMIT_PER_MINUTE` - Requests per minute per API key (default: 200)
+
+## Production Deployment
+
+1. **Set secure API key**:
+   ```bash
+   SERVICE_API_KEY=super-secure-random-key-here
+   ```
+
+2. **Configure production settings**:
+   ```bash
+   FLASK_ENV=production
+   MAX_CONCURRENT_REQUESTS=30
+   RATE_LIMIT_PER_MINUTE=500
+   ```
+
+3. **Deploy to Replit**:
+   - Click "Deploy" button
+   - Service will be available at your-repl-name.replit.app
+
+## Usage Examples
+
+### Document Upload
+```python
+import requests
+
+response = requests.post('https://your-service.replit.app/documents/upload-and-vectorize', 
+  headers={'X-API-Key': 'your-api-key'},
+  json={
+    'file_content': 'base64-encoded-file-content',
+    'filename': 'investment-report-2024.pdf',
+    'attributes': {
+      'company': 'TechCorp',
+      'document_type': 'annual_report'
+    }
+  }
+)
+```
+
+### Document Search  
+```python
+response = requests.post('https://your-service.replit.app/documents/search',
+  headers={'X-API-Key': 'your-api-key'},
+  json={
+    'query': 'What are the main risk factors?',
+    'document_ids': ['file-abc123', 'file-def456']
+  }
+)
+```
+
+## Monitoring
+
+Monitor service health and performance:
+
+```bash
+# Service health
+curl https://your-service.replit.app/health
+
+# Real-time metrics
+curl https://your-service.replit.app/metrics
+```
+
+## Support
+
+For support and questions, refer to the API documentation or contact the development team.
+```
 
 ---
 
-**To use this**: Create your new Replit project, then copy each section into the corresponding file. I have all the remaining files ready - would you like me to continue with the rest of the service files?
+Great! You now have all the essential files. Next steps:
+
+1. **Create these remaining files** in your new Replit project:
+   - `services/chat_service.py`
+   - `services/analysis_service.py` 
+   - `services/concurrency_manager.py`
+   - `utils/auth.py`
+   - `utils/metadata_extractor.py`
+   - `README.md`
+
+2. **Set up environment secrets** in your new project:
+   - `OPENAI_API_KEY` - Your OpenAI API key
+   - `SERVICE_API_KEY` - Generate a secure random key
+   - `DEFAULT_VECTOR_STORE_ID` - Your existing vector store ID
+
+Would you like me to help with the next steps once you've copied these files?
