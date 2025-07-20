@@ -295,13 +295,79 @@ OpenAI File IDs: ${openaiFileIds.join(', ')}
         console.log('No previous response ID found - starting new conversation');
       }
 
-      // Get response from OpenAI with file ID filtering and conversation context
-      const responseData = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds, previousResponseId);
+      // Try Assistant API first due to better search accuracy for financial documents
+      console.log('Using Assistant API for improved document search accuracy...');
+      try {
+        const assistantResult = await this.fallbackToAssistantAPI(enhancedQuery, openaiFileIds);
+        const responseData = {
+          text: assistantResult,
+          metadata: {
+            openaiResponseId: null,
+            openaiModel: 'assistant-api-primary',
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+            processingTimeMs: 0
+          }
+        };
+        
+        // Only use Responses API if Assistant API fails
+        if (!assistantResult || assistantResult.includes('unable to find') || assistantResult.includes('couldn\'t find')) {
+          console.log('Assistant API returned generic response, trying Responses API...');
+          const responsesResult = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds, previousResponseId);
+          if (responsesResult.text && !responsesResult.text.includes('unable to find')) {
+            return responsesResult;
+          }
+        }
+        
+        // Save the query and response to database with metadata
+        await storage.saveCrossDocumentQuery({
+          requestType,
+          requestId,
+          userId,
+          query,
+          response: responseData.text,
+          documentCount: readyDocuments.length,
+          openaiResponseId: responseData.metadata.openaiResponseId,
+          openaiModel: responseData.metadata.openaiModel,
+          inputTokens: responseData.metadata.inputTokens,
+          outputTokens: responseData.metadata.outputTokens,
+          totalTokens: responseData.metadata.totalTokens,
+          processingTimeMs: responseData.metadata.processingTimeMs
+        });
 
-      // Save the query and response to database with metadata
-      await storage.saveCrossDocumentQuery({
-        requestType,
-        requestId,
+        return {
+          success: true,
+          answer: responseData.text,
+          documentCount: readyDocuments.length
+        };
+        
+      } catch (error) {
+        console.error('Assistant API failed, falling back to Responses API:', error);
+        const responsesResult = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds, previousResponseId);
+        
+        // Save the query and response to database with metadata
+        await storage.saveCrossDocumentQuery({
+          requestType,
+          requestId,
+          userId,
+          query,
+          response: responsesResult.text,
+          documentCount: readyDocuments.length,
+          openaiResponseId: responsesResult.metadata.openaiResponseId,
+          openaiModel: responsesResult.metadata.openaiModel,
+          inputTokens: responsesResult.metadata.inputTokens,
+          outputTokens: responsesResult.metadata.outputTokens,
+          totalTokens: responsesResult.metadata.totalTokens,
+          processingTimeMs: responsesResult.metadata.processingTimeMs
+        });
+
+        return {
+          success: true,
+          answer: responsesResult.text,
+          documentCount: readyDocuments.length
+        };
+      }
         userId,
         query,
         response: responseData.text,
