@@ -1,228 +1,489 @@
-# File Transfer Integration Examples
+# LLM API Service Integration Examples
 
-## Problem: Cross-Service File Handling
-When the Investment Portal uploads files and the LLM API service needs to process them, we have several approaches depending on your deployment architecture.
+## 🔌 **Basic Integration Setup**
 
-## Solution Options
+### **1. Environment Configuration**
 
-### Option 1: Base64 File Transfer (Recommended)
-**Best for**: Separate deployments, different servers, cloud services
+Add these to your Investment Portal `.env` or Replit Secrets:
 
-**Investment Portal Side:**
-```javascript
-import fs from 'fs';
-import path from 'path';
-
-// After user uploads file in Investment Portal
-app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
-    try {
-        const filePath = req.file.path;
-        
-        // Read file and convert to base64
-        const fileBuffer = fs.readFileSync(filePath);
-        const fileContent = fileBuffer.toString('base64');
-        const filename = req.file.originalname;
-        
-        // Call LLM service with base64 content
-        const llmResponse = await fetch('https://llm-service.replit.app/documents/upload-and-vectorize', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': process.env.LLM_SERVICE_API_KEY
-            },
-            body: JSON.stringify({
-                file_content: fileContent,
-                filename: filename,
-                attributes: {
-                    user_id: req.user.id,
-                    request_id: req.body.request_id,
-                    source: 'investment_portal'
-                }
-            })
-        });
-        
-        const result = await llmResponse.json();
-        
-        if (result.success) {
-            // Save OpenAI file ID to database
-            await storage.updateDocument(req.body.document_id, {
-                openai_file_id: result.file.id,
-                processing_status: 'completed'
-            });
-        }
-        
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-```
-
-**LLM Service Side** (already implemented):
-```python
-@app.route('/documents/upload-and-vectorize', methods=['POST'])
-def upload_and_vectorize():
-    data = request.get_json()
-    file_content = data.get('file_content')  # Base64 string
-    filename = data.get('filename')
-    
-    # Service handles base64 decoding and temporary file creation
-    result = document_service.upload_and_vectorize(
-        file_content=file_content,
-        filename=filename,
-        custom_attributes=data.get('attributes', {})
-    )
-    return jsonify(result)
-```
-
-### Option 2: Shared File Storage
-**Best for**: Same cloud provider, shared network storage
-
-```javascript
-// Investment Portal - save to shared location
-const sharedPath = `/shared/uploads/${filename}`;
-fs.copyFileSync(tempPath, sharedPath);
-
-// Call LLM service with shared path
-const response = await fetch('https://llm-service.replit.app/documents/upload-and-vectorize', {
-    method: 'POST',
-    headers: { 'X-API-Key': process.env.LLM_SERVICE_API_KEY },
-    body: JSON.stringify({
-        file_path: sharedPath,
-        attributes: { user_id: user.id }
-    })
-});
-```
-
-### Option 3: Direct Upload Endpoint
-**Best for**: Simple integration, small files
-
-```javascript
-// LLM Service provides direct upload endpoint
-const formData = new FormData();
-formData.append('file', fileStream);
-formData.append('attributes', JSON.stringify(attributes));
-
-const response = await fetch('https://llm-service.replit.app/documents/upload-direct', {
-    method: 'POST',
-    headers: { 'X-API-Key': process.env.LLM_SERVICE_API_KEY },
-    body: formData
-});
-```
-
-## Implementation Recommendations
-
-### For Replit Deployments (Base64 Approach)
-```javascript
-// In your Investment Portal background job service
-export class BackgroundJobService {
-    async processDocumentWithLLMService(job) {
-        try {
-            const document = await storage.getDocument(job.document_id);
-            const filePath = path.join('./uploads', document.filename);
-            
-            // Convert to base64 and send to LLM service
-            const fileBuffer = fs.readFileSync(filePath);
-            const fileContent = fileBuffer.toString('base64');
-            
-            const llmResult = await llmApiClient.uploadAndVectorizeBase64(
-                filePath, 
-                {
-                    user_id: job.user_id,
-                    request_id: job.request_id,
-                    document_id: job.document_id,
-                    source: 'investment_portal'
-                }
-            );
-            
-            if (llmResult.success) {
-                // Update document with OpenAI file ID
-                await storage.updateDocumentAnalysis(job.document_id, {
-                    openai_file_id: llmResult.file.id,
-                    status: 'processed',
-                    metadata: llmResult.applied_attributes
-                });
-            }
-            
-            return llmResult;
-        } catch (error) {
-            console.error('Background job processing error:', error);
-            throw error;
-        }
-    }
-}
-```
-
-### Environment Configuration
 ```bash
-# Investment Portal .env
-LLM_SERVICE_URL=https://your-llm-service.replit.app
-LLM_SERVICE_API_KEY=your-secure-api-key
-LLM_SERVICE_TIMEOUT=300000  # 5 minutes for large files
+# LLM Service Configuration
+LLM_SERVICE_URL=https://your-llm-service-name.replit.app
+LLM_SERVICE_API_KEY=your-secure-api-key-here
 
-# LLM Service .env  
-SERVICE_API_KEY=your-secure-api-key
-OPENAI_API_KEY=sk-...
-DEFAULT_VECTOR_STORE_ID=vs-...
+# Optional: Timeout and retry settings
+LLM_SERVICE_TIMEOUT=300000
+LLM_SERVICE_RETRIES=3
 ```
 
-## Error Handling & Fallbacks
+### **2. Import and Initialize**
 
-```javascript
-export class LLMServiceClient {
-    async uploadWithFallback(filePath, attributes) {
-        // Try base64 method first
-        try {
-            const result = await this.uploadAndVectorizeBase64(filePath, attributes);
-            if (result.success) return result;
-        } catch (error) {
-            console.warn('Base64 upload failed, trying path method:', error);
-        }
-        
-        // Fallback to path method (if shared storage available)
-        try {
-            return await this.uploadAndVectorizePath(filePath, attributes);
-        } catch (error) {
-            console.error('All upload methods failed:', error);
-            return { success: false, error: 'Upload failed on all methods' };
-        }
+```typescript
+import { llmApiService, processDocumentViaAPI } from '@/services/llmApiService';
+
+// Check service health
+const health = await llmApiService.healthCheck();
+if (health.status !== 'healthy') {
+  console.error('LLM service unavailable');
+}
+```
+
+## 📄 **Document Processing Examples**
+
+### **Example 1: Upload and Analyze Investment Document**
+
+```typescript
+async function processInvestmentDocument(filePath: string, filename: string, requestId: string) {
+  try {
+    // Upload and get immediate analysis
+    const result = await processDocumentViaAPI(
+      filePath,
+      filename,
+      'investment', // Analysis type
+      {
+        request_id: requestId,
+        document_type: 'investment_proposal',
+        company: 'TechCorp Inc',
+        year: '2024'
+      }
+    );
+
+    if (result.uploadResult.success) {
+      console.log('Document uploaded:', result.uploadResult.file?.id);
+      console.log('Vector store status:', result.uploadResult.vector_store_file?.status);
+      
+      if (result.analysisResult?.success) {
+        console.log('Analysis completed:', result.analysisResult.analysis);
+      }
     }
+
+    return result;
+  } catch (error) {
+    console.error('Document processing failed:', error);
+    throw error;
+  }
 }
 ```
 
-## Performance Considerations
+### **Example 2: Replace Background Job Service**
 
-### File Size Limits
-- **Base64**: ~35MB max (due to encoding overhead)
-- **Shared storage**: No size limit
-- **Direct upload**: Depends on server configuration
+**Old Python-based background job:**
+```typescript
+// OLD: Python service call
+await backgroundJobService.processDocument(documentId, requestId);
+```
 
-### Optimization Tips
-```javascript
-// Compress large files before base64 encoding
-import zlib from 'zlib';
+**New LLM API service call:**
+```typescript
+// NEW: LLM API service call
+const result = await llmApiService.uploadAndVectorize(
+  filePath,
+  filename,
+  {
+    request_id: requestId,
+    user_id: userId,
+    document_type: 'investment_proposal'
+  }
+);
 
-function compressAndEncode(filePath) {
-    const fileBuffer = fs.readFileSync(filePath);
-    const compressed = zlib.gzipSync(fileBuffer);
-    return compressed.toString('base64');
-}
-
-// LLM service should decompress
-function decodeAndDecompress(base64Data) {
-    const compressed = Buffer.from(base64Data, 'base64');
-    return zlib.gunzipSync(compressed);
+if (result.success && result.file?.id) {
+  // Follow up with analysis
+  const analysis = await llmApiService.analyzeDocument(
+    result.file.id,
+    'investment',
+    { request_id: requestId }
+  );
 }
 ```
 
-## Summary
+## 🔍 **Search and Q&A Examples**
 
-**For your architecture**, I recommend the **Base64 approach** because:
+### **Example 3: Cross-Document Search**
 
-1. ✅ Works with separate Replit deployments
-2. ✅ No shared storage requirements  
-3. ✅ Simple to implement and debug
-4. ✅ Handles authentication cleanly
-5. ✅ Works across different cloud providers
+```typescript
+async function searchAcrossDocuments(query: string, documentIds: string[]) {
+  const result = await llmApiService.searchDocuments(
+    query,
+    documentIds,
+    {
+      user_id: 'user123',
+      search_type: 'cross_document',
+      context: 'investment_analysis'
+    }
+  );
 
-The LLM service I created already supports both file path and base64 methods, so you can choose based on your deployment needs.
+  if (result.success) {
+    return {
+      answer: result.response,
+      sources: result.search_context,
+      usage: result.usage
+    };
+  }
+
+  throw new Error(result.error || 'Search failed');
+}
+
+// Usage in API route
+app.post('/api/cross-document-queries', async (req, res) => {
+  try {
+    const { query, document_ids } = req.body;
+    const result = await searchAcrossDocuments(query, document_ids);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+```
+
+### **Example 4: Document Q&A with Context**
+
+```typescript
+async function askDocumentQuestion(question: string, documentId: string, userContext: any) {
+  const result = await llmApiService.documentQA(
+    question,
+    [documentId],
+    {
+      user_role: userContext.role,
+      investment_id: userContext.investmentId,
+      previous_questions: userContext.history || []
+    }
+  );
+
+  if (result.success) {
+    // Save to conversation history
+    await saveConversationHistory({
+      question,
+      answer: result.answer,
+      document_id: documentId,
+      user_id: userContext.userId
+    });
+
+    return result.answer;
+  }
+
+  throw new Error(result.error || 'Q&A failed');
+}
+```
+
+## 💬 **Chat and Analysis Examples**
+
+### **Example 5: Investment Insights Generation**
+
+```typescript
+async function generateInvestmentInsights(documentIds: string[], analysisType: string = 'comprehensive') {
+  const result = await llmApiService.investmentInsights(
+    documentIds,
+    analysisType,
+    {
+      output_format: 'structured',
+      include_risks: true,
+      include_recommendations: true
+    }
+  );
+
+  if (result.success) {
+    // Parse structured insights
+    const insights = parseInvestmentInsights(result.insights);
+    
+    return {
+      summary: insights.executive_summary,
+      risks: insights.risk_factors,
+      opportunities: insights.opportunities,
+      recommendation: insights.recommendation,
+      confidence: insights.confidence_score
+    };
+  }
+
+  throw new Error(result.error || 'Insights generation failed');
+}
+
+function parseInvestmentInsights(rawInsights: string) {
+  // Parse structured response from LLM
+  // Extract sections: Executive Summary, Risk Factors, etc.
+  return {
+    executive_summary: extractSection(rawInsights, 'Executive Summary'),
+    risk_factors: extractSection(rawInsights, 'Risk Assessment'),
+    opportunities: extractSection(rawInsights, 'Market Opportunity'),
+    recommendation: extractSection(rawInsights, 'Investment Recommendation'),
+    confidence_score: extractConfidenceScore(rawInsights)
+  };
+}
+```
+
+### **Example 6: Conversational AI with Context**
+
+```typescript
+async function chatWithInvestmentContext(message: string, investmentId: string, userId: string) {
+  // Get investment context
+  const investment = await getInvestment(investmentId);
+  const documents = await getInvestmentDocuments(investmentId);
+  
+  const result = await llmApiService.chatCompletion([
+    {
+      role: 'system',
+      content: `You are an investment analyst helping with proposal ${investment.target_company}. 
+                Current status: ${investment.status}. Available documents: ${documents.length}`
+    },
+    {
+      role: 'user', 
+      content: message
+    }
+  ], 'gpt-4o', {
+    investment_context: investment,
+    user_role: 'analyst',
+    temperature: 0.3
+  });
+
+  if (result.success) {
+    // Save conversation
+    await saveChatMessage({
+      user_id: userId,
+      investment_id: investmentId,
+      message: message,
+      response: result.response,
+      model: result.model
+    });
+
+    return result.response;
+  }
+
+  throw new Error(result.error || 'Chat failed');
+}
+```
+
+## 🔧 **Error Handling and Retry Logic**
+
+### **Example 7: Robust Error Handling**
+
+```typescript
+async function robustDocumentProcessing(filePath: string, maxRetries: number = 3) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Check service health first
+      const health = await llmApiService.healthCheck();
+      if (health.status !== 'healthy') {
+        throw new Error(`LLM service unhealthy: ${health.error}`);
+      }
+
+      // Attempt processing
+      const result = await processDocumentViaAPI(filePath, path.basename(filePath));
+      
+      if (result.uploadResult.success) {
+        return result;
+      }
+
+      throw new Error(result.uploadResult.error);
+
+    } catch (error) {
+      lastError = error;
+      console.warn(`Attempt ${attempt}/${maxRetries} failed:`, error.message);
+
+      if (attempt < maxRetries) {
+        // Exponential backoff
+        const delay = Math.pow(2, attempt) * 1000;
+        await sleep(delay);
+      }
+    }
+  }
+
+  throw new Error(`Document processing failed after ${maxRetries} attempts: ${lastError.message}`);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+```
+
+### **Example 8: Graceful Degradation**
+
+```typescript
+async function getDocumentAnalysisWithFallback(documentId: string) {
+  try {
+    // Try LLM API service first
+    const result = await llmApiService.analyzeDocument(documentId, 'investment');
+    
+    if (result.success) {
+      return {
+        source: 'llm_api',
+        analysis: result.analysis,
+        confidence: 'high'
+      };
+    }
+
+    throw new Error(result.error);
+
+  } catch (error) {
+    console.warn('LLM API failed, using fallback:', error.message);
+
+    // Fallback to basic text analysis
+    return {
+      source: 'fallback',
+      analysis: 'Document analysis temporarily unavailable. Please try again later.',
+      confidence: 'low',
+      error: error.message
+    };
+  }
+}
+```
+
+## 📊 **Monitoring and Metrics**
+
+### **Example 9: Service Health Monitoring**
+
+```typescript
+class LLMServiceMonitor {
+  private lastHealthCheck: Date = new Date(0);
+  private healthCheckInterval: number = 60000; // 1 minute
+  private isHealthy: boolean = false;
+
+  async checkServiceHealth(): Promise<boolean> {
+    const now = new Date();
+    
+    // Only check if enough time has passed
+    if (now.getTime() - this.lastHealthCheck.getTime() < this.healthCheckInterval) {
+      return this.isHealthy;
+    }
+
+    try {
+      const health = await llmApiService.healthCheck();
+      this.isHealthy = health.status === 'healthy';
+      this.lastHealthCheck = now;
+
+      if (!this.isHealthy) {
+        console.error('LLM service health check failed:', health);
+        // Alert administrators
+        await this.alertAdmins('LLM service health check failed', health);
+      }
+
+      return this.isHealthy;
+
+    } catch (error) {
+      this.isHealthy = false;
+      this.lastHealthCheck = now;
+      console.error('LLM service unreachable:', error.message);
+      return false;
+    }
+  }
+
+  async getServiceMetrics() {
+    try {
+      return await llmApiService.getMetrics();
+    } catch (error) {
+      return { error: error.message, timestamp: new Date().toISOString() };
+    }
+  }
+
+  private async alertAdmins(message: string, details: any) {
+    // Implement your alerting logic here
+    console.error(`ALERT: ${message}`, details);
+  }
+}
+
+export const serviceMonitor = new LLMServiceMonitor();
+```
+
+### **Example 10: Usage Analytics**
+
+```typescript
+async function trackLLMServiceUsage(operation: string, result: any, duration: number) {
+  const metrics = {
+    timestamp: new Date().toISOString(),
+    operation: operation,
+    success: result.success || false,
+    error: result.error || null,
+    duration_ms: duration,
+    tokens_used: result.usage?.total_tokens || 0,
+    model: result.model || 'unknown'
+  };
+
+  // Save to analytics database
+  await saveAnalytics('llm_service_usage', metrics);
+
+  // Log for immediate monitoring
+  console.log(`LLM Service ${operation}: ${result.success ? 'SUCCESS' : 'FAILED'} (${duration}ms)`);
+}
+
+// Usage wrapper
+async function trackedDocumentAnalysis(documentId: string) {
+  const startTime = Date.now();
+  
+  try {
+    const result = await llmApiService.analyzeDocument(documentId, 'investment');
+    
+    await trackLLMServiceUsage(
+      'document_analysis', 
+      result, 
+      Date.now() - startTime
+    );
+
+    return result;
+  } catch (error) {
+    await trackLLMServiceUsage(
+      'document_analysis',
+      { success: false, error: error.message },
+      Date.now() - startTime
+    );
+    throw error;
+  }
+}
+```
+
+## 🌐 **Multi-Application Integration**
+
+### **Example 11: Shared Service Configuration**
+
+```typescript
+// Configuration for different applications
+const APP_CONFIGS = {
+  investment_portal: {
+    baseUrl: process.env.LLM_SERVICE_URL,
+    apiKey: process.env.LLM_SERVICE_API_KEY,
+    timeout: 300000,
+    defaultAnalysisType: 'investment'
+  },
+  
+  crm_system: {
+    baseUrl: process.env.LLM_SERVICE_URL, 
+    apiKey: process.env.CRM_API_KEY, // Different API key for rate limiting
+    timeout: 120000,
+    defaultAnalysisType: 'general'
+  },
+  
+  research_notebook: {
+    baseUrl: process.env.LLM_SERVICE_URL,
+    apiKey: process.env.RESEARCH_API_KEY,
+    timeout: 600000, // Longer timeout for research
+    defaultAnalysisType: 'research'
+  }
+};
+
+// Create service instances for different apps
+export const investmentLLMService = new LLMApiService(APP_CONFIGS.investment_portal);
+export const crmLLMService = new LLMApiService(APP_CONFIGS.crm_system);
+export const researchLLMService = new LLMApiService(APP_CONFIGS.research_notebook);
+```
+
+---
+
+## 🎯 **Quick Migration Pattern**
+
+For each existing AI operation in your Investment Portal:
+
+1. **Identify the operation** (document upload, analysis, search, etc.)
+2. **Find the equivalent LLM API method** (uploadAndVectorize, analyzeDocument, etc.)
+3. **Update the parameters** to match the new API format
+4. **Add error handling** for external service calls
+5. **Test the functionality** to ensure identical behavior
+
+**Example migration:**
+```typescript
+// BEFORE: Direct Python/OpenAI call
+const result = await pythonVectorStoreService.uploadDocument(filePath, metadata);
+
+// AFTER: LLM API service call  
+const result = await llmApiService.uploadAndVectorize(filePath, filename, metadata);
+```
+
+This pattern ensures a smooth transition while maintaining all existing functionality!
