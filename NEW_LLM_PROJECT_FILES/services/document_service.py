@@ -13,12 +13,14 @@ class DocumentService:
     def __init__(self, openai_client):
         self.client = openai_client
         
-    def upload_and_vectorize(self, file_path, vector_store_id, custom_attributes=None):
+    def upload_and_vectorize(self, file_path=None, file_content=None, filename=None, vector_store_id=None, custom_attributes=None):
         """
         Upload file to OpenAI and add to vector store with metadata
         
         Args:
-            file_path (str): Path to the file to upload
+            file_path (str): Path to the file to upload (if file is local)
+            file_content (str): Base64 encoded file content (if file is remote)
+            filename (str): Original filename (required if using file_content)
             vector_store_id (str): Vector store ID
             custom_attributes (dict): Custom metadata attributes
             
@@ -26,18 +28,50 @@ class DocumentService:
             dict: Result with file info and vector store details
         """
         try:
-            if not os.path.exists(file_path):
-                return {'success': False, 'error': 'File not found'}
+            # Handle file upload from different sources
+            if file_path:
+                # Option 1: Local file path
+                if not os.path.exists(file_path):
+                    return {'success': False, 'error': 'File not found'}
+                    
+                with open(file_path, 'rb') as file:
+                    uploaded_file = self.client.files.create(
+                        file=file,
+                        purpose='assistants'
+                    )
+                filename = os.path.basename(file_path)
                 
-            # Step 1: Upload file to OpenAI
-            with open(file_path, 'rb') as file:
-                uploaded_file = self.client.files.create(
-                    file=file,
-                    purpose='assistants'
-                )
+            elif file_content and filename:
+                # Option 2: Base64 encoded content
+                import base64
+                import tempfile
+                
+                # Decode base64 content
+                try:
+                    file_bytes = base64.b64decode(file_content)
+                except Exception as e:
+                    return {'success': False, 'error': f'Invalid base64 content: {str(e)}'}
+                
+                # Create temporary file
+                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as temp_file:
+                    temp_file.write(file_bytes)
+                    temp_file_path = temp_file.name
+                
+                try:
+                    # Upload to OpenAI
+                    with open(temp_file_path, 'rb') as file:
+                        uploaded_file = self.client.files.create(
+                            file=file,
+                            purpose='assistants'
+                        )
+                finally:
+                    # Clean up temporary file
+                    os.unlink(temp_file_path)
+                    
+            else:
+                return {'success': False, 'error': 'Either file_path or (file_content + filename) required'}
                 
             # Step 2: Extract metadata
-            filename = os.path.basename(file_path)
             auto_attributes = extract_metadata_from_filename(filename)
             
             # Step 3: Merge all attributes

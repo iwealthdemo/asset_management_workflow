@@ -127,14 +127,20 @@ def upload_and_vectorize():
     try:
         data = request.get_json()
         file_path = data.get('file_path')
+        file_content = data.get('file_content')  # Base64 encoded file
+        filename = data.get('filename')
         vector_store_id = data.get('vector_store_id', DEFAULT_VECTOR_STORE_ID)
         custom_attributes = data.get('attributes', {})
         
-        if not file_path:
-            return jsonify({'success': False, 'error': 'file_path is required'}), 400
+        if not file_path and not file_content:
+            return jsonify({'success': False, 'error': 'Either file_path or file_content is required'}), 400
             
         result = document_service.upload_and_vectorize(
-            file_path, vector_store_id, custom_attributes
+            file_path=file_path, 
+            file_content=file_content, 
+            filename=filename,
+            vector_store_id=vector_store_id, 
+            custom_attributes=custom_attributes
         )
         return jsonify(result)
         
