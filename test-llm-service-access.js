@@ -2,13 +2,9 @@
  * Test LLM Service Access - Check if deployed service is accessible
  */
 
-// Try common deployment URLs for your LLM service
+// Test your actual deployed LLM service
 const possibleUrls = [
-  'https://llm-api-service.replit.app',
-  'https://your-llm-service.replit.app', 
-  'https://llm-service.replit.app',
-  'https://investment-llm.replit.app',
-  'http://localhost:5000' // Local development
+  'https://llm-api-service-vinay2k.replit.app'
 ];
 
 async function testServiceAccess() {

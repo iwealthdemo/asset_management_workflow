@@ -92,7 +92,7 @@ export class LLMApiService {
 
   constructor(config?: Partial<LLMServiceConfig>) {
     this.config = {
-      baseUrl: process.env.LLM_SERVICE_URL || 'http://localhost:5000',
+      baseUrl: process.env.LLM_SERVICE_URL || 'https://llm-api-service-vinay2k.replit.app',
       apiKey: process.env.LLM_SERVICE_API_KEY || 'dev-key-change-in-production',
       timeout: 300000, // 5 minutes
       ...config

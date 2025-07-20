@@ -23,7 +23,7 @@ export class BackgroundJobService {
       .select()
       .from(backgroundJobs)
       .where(eq(backgroundJobs.status, 'pending'))
-      .orderBy(backgroundJobs.priority, backgroundJobs.createdAt)
+      .orderBy(backgroundJobs.createdAt)
       .limit(1);
     
     return job || null;
@@ -161,9 +161,14 @@ export class BackgroundJobService {
     // Step 2: Uploading to vector store
     await this.updateJobProgress(job.id, 'uploading', 2, 50);
     
-    // Import and use the prepare AI service
-    const { prepareAIService } = await import('./prepareAIService');
-    const result = await prepareAIService.prepareDocumentForAI(job.documentId, filePath, document.fileName);
+    // Use LLM API service instead of Python service
+    const { llmApiService } = await import('./llmApiService');
+    const result = await llmApiService.uploadAndVectorize(filePath, document.fileName, {
+      document_id: job.documentId.toString(),
+      request_id: job.requestId?.toString() || 'background-job',
+      document_type: 'investment_proposal',
+      processing_method: 'background_job'
+    });
     
     // Step 3: Generating summary
     await this.updateJobProgress(job.id, 'generating_summary', 3, 75);
@@ -219,7 +224,7 @@ export class BackgroundJobService {
           eq(backgroundJobs.jobType, 'prepare-ai')
         )
       )
-      .orderBy(backgroundJobs.createdAt, 'desc')
+      .orderBy(backgroundJobs.createdAt)
       .limit(1);
 
     return job || null;
