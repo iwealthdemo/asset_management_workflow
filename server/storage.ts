@@ -346,6 +346,7 @@ export class DatabaseStorage implements IStorage {
 
   async getDocumentAnalysis(id: number): Promise<any> {
     const document = await this.getDocument(id);
+    
     if (!document || !document.analysisResult) {
       return null;
     }

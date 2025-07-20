@@ -680,6 +680,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Document analysis endpoint - MUST come before generic :requestType/:requestId route
+  app.get('/api/documents/:documentId/analysis', authMiddleware, async (req, res) => {
+    try {
+      const { documentId } = req.params;
+      
+      const docId = parseInt(documentId);
+      if (isNaN(docId)) {
+        return res.status(400).json({ message: 'Invalid document ID' });
+      }
+      
+      const analysis = await storage.getDocumentAnalysis(docId);
+      
+      if (!analysis) {
+        return res.status(404).json({ message: 'Analysis not found' });
+      }
+      
+      res.json(analysis);
+    } catch (error) {
+      console.error('Error getting document analysis:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   app.get('/api/documents/:requestType/:requestId', authMiddleware, async (req, res) => {
     try {
       const { requestType, requestId } = req.params;
@@ -823,22 +846,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-
-  app.get('/api/documents/:documentId/analysis', authMiddleware, async (req, res) => {
-    try {
-      const { documentId } = req.params;
-      const analysis = await storage.getDocumentAnalysis(parseInt(documentId));
-      
-      if (!analysis) {
-        return res.status(404).json({ message: 'Analysis not found' });
-      }
-      
-      res.json(analysis);
-    } catch (error) {
-      console.error('Error getting document analysis:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
 
   app.get('/api/documents/insights/:requestType/:requestId', authMiddleware, async (req, res) => {
     try {

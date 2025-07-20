@@ -38,22 +38,22 @@ class ChatService:
             return {'success': False, 'error': str(e)}
             
     def _openai_completion(self, messages, model, context):
-        """OpenAI chat completion"""
-        response = self.openai_client.chat.completions.create(
+        """OpenAI responses completion"""
+        response = self.openai_client.responses.create(
             model=model,
-            messages=messages,
+            input=messages,
             temperature=0.7,
             max_tokens=2000
         )
         
         return {
             'success': True,
-            'response': response.choices[0].message.content,
+            'response': response.output_text,
             'model': response.model,
             'usage': {
-                'input_tokens': response.usage.prompt_tokens,
-                'output_tokens': response.usage.completion_tokens,
-                'total_tokens': response.usage.total_tokens
+                'input_tokens': response.usage.input_tokens,
+                'output_tokens': response.usage.output_tokens,
+                'total_tokens': response.usage.input_tokens + response.usage.output_tokens
             }
         }
         
@@ -154,7 +154,7 @@ class ChatService:
             # Call OpenAI Responses API
             response = self.openai_client.responses.create(
                 model="gpt-4o",
-                messages=messages,
+                input=messages,
                 instructions=instructions,
                 tools=tools,
                 temperature=0.1  # Lower temperature for factual Q&A
@@ -162,13 +162,13 @@ class ChatService:
             
             return {
                 'success': True,
-                'answer': response.choices[0].message.content,
+                'answer': response.output_text,
                 'question': question,
                 'model': response.model,
                 'usage': {
-                    'input_tokens': response.usage.prompt_tokens,
-                    'output_tokens': response.usage.completion_tokens,
-                    'total_tokens': response.usage.total_tokens
+                    'input_tokens': response.usage.input_tokens,
+                    'output_tokens': response.usage.output_tokens,
+                    'total_tokens': response.usage.input_tokens + response.usage.output_tokens
                 },
                 'context': {
                     'document_ids': document_ids,

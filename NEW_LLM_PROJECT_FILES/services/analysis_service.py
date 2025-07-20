@@ -2,6 +2,7 @@
 Analysis Service - Handles document analysis and insights generation
 """
 
+import os
 import logging
 from datetime import datetime
 
@@ -46,9 +47,9 @@ class AnalysisService:
         
         prompt = prompts.get(summary_type, prompts['general'])
         
-        response = self.openai_client.chat.completions.create(
+        response = self.openai_client.responses.create(
             model="gpt-4o",
-            messages=[
+            input=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": content}
             ],
@@ -58,13 +59,13 @@ class AnalysisService:
         
         return {
             'success': True,
-            'summary': response.choices[0].message.content,
+            'summary': response.output_text,
             'summary_type': summary_type,
             'model': response.model,
             'usage': {
-                'input_tokens': response.usage.prompt_tokens,
-                'output_tokens': response.usage.completion_tokens,
-                'total_tokens': response.usage.total_tokens
+                'input_tokens': response.usage.input_tokens,
+                'output_tokens': response.usage.output_tokens,
+                'total_tokens': response.usage.input_tokens + response.usage.output_tokens
             }
         }
         
@@ -168,7 +169,7 @@ class AnalysisService:
             
             response = self.openai_client.responses.create(
                 model="gpt-4o",
-                messages=[{
+                input=[{
                     "role": "user", 
                     "content": prompt
                 }],
@@ -178,14 +179,14 @@ class AnalysisService:
             
             return {
                 'success': True,
-                'analysis': response.choices[0].message.content,
+                'analysis': response.output_text,
                 'analysis_type': analysis_type,
                 'document_id': document_id,
                 'model': response.model,
                 'usage': {
-                    'input_tokens': response.usage.prompt_tokens,
-                    'output_tokens': response.usage.completion_tokens,
-                    'total_tokens': response.usage.total_tokens
+                    'input_tokens': response.usage.input_tokens,
+                    'output_tokens': response.usage.output_tokens,
+                    'total_tokens': response.usage.input_tokens + response.usage.output_tokens
                 }
             }
             
@@ -274,7 +275,7 @@ class AnalysisService:
             
             response = self.openai_client.responses.create(
                 model="gpt-4o",
-                messages=[{
+                input=[{
                     "role": "user", 
                     "content": prompt
                 }],
@@ -285,14 +286,14 @@ class AnalysisService:
             
             return {
                 'success': True,
-                'insights': response.choices[0].message.content,
+                'insights': response.output_text,
                 'analysis_focus': analysis_focus,
                 'document_ids': document_ids,
                 'model': response.model,
                 'usage': {
-                    'input_tokens': response.usage.prompt_tokens,
-                    'output_tokens': response.usage.completion_tokens,
-                    'total_tokens': response.usage.total_tokens
+                    'input_tokens': response.usage.input_tokens,
+                    'output_tokens': response.usage.output_tokens,
+                    'total_tokens': response.usage.input_tokens + response.usage.output_tokens
                 }
             }
             
