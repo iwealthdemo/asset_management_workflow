@@ -48,37 +48,37 @@ async function testFileUploadPayload() {
     // Step 3: Attach file to vector store with metadata
     console.log('\n=== STEP 2: Attach file to vector store with metadata ===');
     
-    // Extract metadata from filename
-    const metadata = {
+    // Extract attributes from filename
+    const attributes = {
       filename: uploadedFile.filename,
       file_id: uploadedFile.id,
       category: "FinancialReport",
       document_type: "annual_report", 
       company: extractCompanyFromFilename(uploadedFile.filename),
       year: extractYearFromFilename(uploadedFile.filename),
-      file_size_bytes: uploadedFile.bytes,
+      file_size_bytes: uploadedFile.bytes.toString(),
       upload_timestamp: uploadedFile.created_at.toString()
     };
 
-    console.log('Metadata to be attached:');
-    console.log(JSON.stringify(metadata, null, 2));
+    console.log('Attributes to be attached:');
+    console.log(JSON.stringify(attributes, null, 2));
 
     // Show the payload structure that would be sent
     const vectorStorePayload = {
       vector_store_id: vectorStoreId,
       file_id: uploadedFile.id,
-      metadata: metadata
+      attributes: attributes
     };
 
     console.log('\nVector Store Attachment Payload:');
     console.log(JSON.stringify(vectorStorePayload, null, 2));
 
-    // Actually attach to vector store with metadata
+    // Actually attach to vector store with attributes
     const vectorStoreFile = await openai.vectorStores.files.createAndPoll(
       vectorStoreId, 
       {
         file_id: uploadedFile.id,
-        metadata: metadata
+        attributes: attributes
       }
     );
 
