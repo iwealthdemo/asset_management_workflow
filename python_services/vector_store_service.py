@@ -14,11 +14,15 @@ import json
 # Initialize Flask app
 app = Flask(__name__)
 
+# Enable CORS for cross-origin requests
+from flask_cors import CORS
+CORS(app)
+
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-# Default vector store ID
-DEFAULT_VECTOR_STORE_ID = 'vs_687584b54f908191b0a21ffa42948fb5'
+# Default vector store ID (can be overridden per request)
+DEFAULT_VECTOR_STORE_ID = os.getenv('DEFAULT_VECTOR_STORE_ID', 'vs_687584b54f908191b0a21ffa42948fb5')
 
 def extract_metadata_from_filename(filename):
     """Extract metadata from filename"""
@@ -221,7 +225,41 @@ def upload_and_attach():
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
-    return jsonify({'status': 'healthy', 'service': 'vector_store_service'})
+    return jsonify({
+        'status': 'healthy', 
+        'service': 'vector_store_service',
+        'version': '1.0.0',
+        'openai_configured': bool(os.getenv('OPENAI_API_KEY')),
+        'default_vector_store': DEFAULT_VECTOR_STORE_ID
+    })
+
+@app.route('/info', methods=['GET'])
+def service_info():
+    """Service information and capabilities"""
+    return jsonify({
+        'service': 'OpenAI Vector Store Service',
+        'version': '1.0.0',
+        'description': 'Handles file uploads and vector store operations with rich metadata support',
+        'endpoints': {
+            'POST /upload_file_to_openai': 'Upload file to OpenAI Files API',
+            'POST /attach_file_to_vector_store': 'Attach file to vector store with attributes',
+            'POST /upload_and_attach': 'Combined upload and attach operation',
+            'GET /health': 'Health check',
+            'GET /info': 'Service information'
+        },
+        'features': [
+            'Automatic metadata extraction from filenames',
+            'Custom attributes support',
+            'Company/year/document type detection',
+            'CORS enabled for cross-origin requests',
+            'Comprehensive error handling',
+            'Configurable vector store ID'
+        ],
+        'requirements': {
+            'OPENAI_API_KEY': 'Required - Your OpenAI API key',
+            'DEFAULT_VECTOR_STORE_ID': 'Optional - Default vector store ID to use'
+        }
+    })
 
 if __name__ == '__main__':
     port = int(os.getenv('PYTHON_API_PORT', 5001))
