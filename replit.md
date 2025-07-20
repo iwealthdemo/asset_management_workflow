@@ -191,3 +191,13 @@ The application uses a comprehensive CSS custom properties-based theming system 
 
 Preferred communication style: Simple, everyday language.
 Key requirement: NO hard-coded CSS or colors - all styling must support multiple themes through CSS custom properties.
+
+## Architecture Decision: Microservices LLM API Service
+
+User has decided to implement a separate LLM API service architecture:
+- **Separate Replit deployment** for dedicated LLM/AI operations
+- **Microservices approach**: Investment Portal calls LLM service APIs
+- **Benefits**: Reusability across projects, specialized optimization, independent scaling
+- **Scope**: Vector store ops, document analysis, chat, embeddings, all AI features
+- **Timeline**: Migration planned to extract AI features to dedicated Python service
+- **Deployment**: LLM service on separate Replit URL, cross-service API communication
