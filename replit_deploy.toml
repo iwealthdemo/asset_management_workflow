@@ -1,0 +1,12 @@
+# Replit Deployment Configuration for Vector Store API Service
+
+[deployment]
+run = "cd python_services && python vector_store_service.py"
+deploymentTarget = "cloudrun"
+
+[[ports]]
+containerPort = 5001
+externalPort = 80
+
+[env]
+PYTHON_API_PORT = "5001"
