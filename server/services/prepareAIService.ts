@@ -70,7 +70,17 @@ export class PrepareAIService {
         purpose: 'assistants'
       });
       
-      console.log(`File uploaded to OpenAI: ${uploadedFile.id}`);
+      console.log(`File uploaded to OpenAI:`, uploadedFile);
+      console.log(`All file object properties:`, {
+        id: uploadedFile.id,
+        object: uploadedFile.object,
+        bytes: uploadedFile.bytes,
+        created_at: uploadedFile.created_at,
+        filename: uploadedFile.filename,
+        purpose: uploadedFile.purpose,
+        // Check for any additional properties
+        allKeys: Object.keys(uploadedFile)
+      });
       
       // Step 4: Add file to vector store using file_batches (Python equivalent)
       console.log('Adding file to vector store using file_batches...');
