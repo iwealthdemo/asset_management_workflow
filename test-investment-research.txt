@@ -1,0 +1,13 @@
+Test Investment Research Document for Vector Store Integration
+
+This is a test document to verify automatic vector store upload functionality.
+
+Key Investment Points:
+- Target Company: TestCorp Inc
+- Investment Type: Equity
+- Expected Return: 12%
+- Risk Level: Medium
+- Market Analysis: Strong growth potential in emerging markets
+- Financial Projections: Revenue growth of 25% YoY expected
+
+This document should be automatically uploaded to the vector store when attached to an investment proposal.

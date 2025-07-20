@@ -1,0 +1,29 @@
+FINAL BACKGROUND JOB TEST
+=============================
+
+Investment Proposal: Final Test Company
+Amount: $1,000,000
+Expected Return: 20%
+Risk Level: Medium
+
+This document tests the complete background job workflow:
+1. Analyst uploads document
+2. Background job automatically queues
+3. Document gets processed and uploaded to vector store
+4. Status changes to completed
+5. Manager can get automatic insights
+
+Key Financial Metrics:
+- Revenue: $50M annually
+- Growth Rate: 30% YoY
+- Profit Margin: 15%
+- Market Cap: $500M
+- Debt to Equity: 0.3
+
+Risk Factors:
+- Market competition
+- Regulatory changes
+- Economic downturns
+- Technology disruption
+
+This comprehensive document should provide sufficient content for AI analysis and insight generation.

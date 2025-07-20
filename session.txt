@@ -1,0 +1,1 @@
+{"user":{"id":2,"username":"manager1","email":"manager1@abcbank.com","firstName":"John","lastName":"Manager","role":"manager","department":"Investment","isActive":true,"createdAt":"2025-07-10T12:12:08.868Z","updatedAt":"2025-07-10T12:12:08.868Z"},"message":"Login successful"}

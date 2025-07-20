@@ -315,33 +315,13 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getDocumentsByRequest(requestType: string, requestId: number): Promise<any[]> {
-    const results = await db.select().from(documents)
+  async getDocumentsByRequest(requestType: string, requestId: number): Promise<Document[]> {
+    return await db.select().from(documents)
       .where(and(
         eq(documents.requestType, requestType),
         eq(documents.requestId, requestId)
       ))
       .orderBy(desc(documents.createdAt));
-    
-    // Map results to include extracted OpenAI file ID and proper name field
-    return results.map(doc => {
-      let openaiFileId = null;
-      try {
-        if (doc.analysisResult) {
-          const analysisData = JSON.parse(doc.analysisResult);
-          openaiFileId = analysisData.openai_file_id || null;
-        }
-      } catch (error) {
-        console.error('Error parsing analysis result for document', doc.id, error);
-      }
-      
-      return {
-        ...doc,
-        name: doc.fileName, // Map fileName to name for compatibility
-        openai_file_id: openaiFileId,
-        hasAnalysis: !!doc.analysisResult
-      };
-    });
   }
 
   async getDocument(id: number): Promise<Document | undefined> {
@@ -696,7 +676,7 @@ export class DatabaseStorage implements IStorage {
   }> {
     try {
       // Simplified approach - return dummy data for now to avoid SQL errors
-      // Enhanced dashboard queries implementation
+      // TODO: Implement proper queries once table structure is confirmed
       
       // For now, return basic stats to get the dashboard working
       const urgentApprovals = 0;

@@ -878,7 +878,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { crossDocumentQueryService } = await import('./services/crossDocumentQueryService');
       
       // Process cross-document query with optional document filtering
-      const result = await crossDocumentQueryService.processQuery(
+      const result = await crossDocumentQueryService.processCrossDocumentQuery(
         'investment', // Default to investment for unified interface
         requestId,
         req.userId!,
@@ -925,7 +925,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { crossDocumentQueryService } = await import('./services/crossDocumentQueryService');
       
       // Process cross-document query without document filtering (legacy behavior)
-      const result = await crossDocumentQueryService.processQuery(
+      const result = await crossDocumentQueryService.processCrossDocumentQuery(
         requestType,
         parseInt(requestId),
         req.userId!,

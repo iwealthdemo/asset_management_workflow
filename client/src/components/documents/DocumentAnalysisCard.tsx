@@ -13,20 +13,20 @@ import {
   AlertTriangle, 
   CheckCircle,
   Clock,
+  Eye,
   Download,
   Send,
+  MessageCircle,
   Loader2,
+  MessageSquare,
   ChevronUp,
-  ChevronDown,
-  Eye,
-  MessageSquare
+  ChevronDown
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import AnalysisCard from './AnalysisCard';
 import QueryCard from './QueryCard';
-import { getStatusColorDark, formatFileSize, handleDocumentDownload } from '@/lib/utils';
 
 interface DocumentAnalysis {
   documentType: string;
@@ -261,6 +261,15 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
     return null;
   }, [document.analysisResult, document.analysisStatus]);
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'processing': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'failed': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+    }
+  };
+
   const getRiskColor = (level: string) => {
     switch (level) {
       case 'low': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
@@ -268,6 +277,14 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
       case 'high': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
     }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const getStepDisplayText = (step: string) => {
@@ -309,7 +326,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
             >
               {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
             </Button>
-            <Badge className={getStatusColorDark(document.analysisStatus)}>
+            <Badge className={getStatusColor(document.analysisStatus)}>
               {document.analysisStatus === 'processing' && <Clock className="h-3 w-3 mr-1" />}
               {document.analysisStatus === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
               {document.analysisStatus === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}

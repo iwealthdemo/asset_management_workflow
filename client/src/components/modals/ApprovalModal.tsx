@@ -9,9 +9,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { CheckCircle, XCircle, Clock, User, Download, FileText } from "lucide-react"
+import { CheckCircle, XCircle, Clock, User, Download, FileText, File } from "lucide-react"
 import { format } from "date-fns"
-import { getStatusColor, getFileIcon, formatFileSize, handleDocumentDownload, getStatusIcon } from "@/lib/utils"
 
 interface ApprovalModalProps {
   isOpen: boolean
@@ -74,7 +73,38 @@ export function ApprovalModal({ isOpen, onClose, task }: ApprovalModalProps) {
     return null
   }
 
-  // All utility functions now imported from @/lib/utils
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <CheckCircle className="h-5 w-5 text-green-600" />
+      case 'rejected':
+        return <XCircle className="h-5 w-5 text-red-600" />
+      case 'pending':
+        return <Clock className="h-5 w-5 text-yellow-600" />
+      default:
+        return <User className="h-5 w-5 text-gray-600" />
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return 'bg-green-100 text-green-800'
+      case 'rejected':
+        return 'bg-red-100 text-red-800'
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.includes('pdf')) {
+      return <FileText className="h-5 w-5 text-red-500" />
+    }
+    return <File className="h-5 w-5 text-gray-500" />
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
