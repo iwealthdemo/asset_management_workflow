@@ -62,50 +62,58 @@ export class PrepareAIService {
         };
       }
       
-      // Step 3: Upload file to OpenAI
-      console.log('Uploading file to OpenAI...');
-      const fileStream = fs.createReadStream(filePath);
-      const uploadedFile = await openai.files.create({
-        file: fileStream,
-        purpose: 'assistants'
-      });
+      // Step 3: Use Python API for complete upload and attachment with metadata
+      console.log('Using Python API for upload and vector store attachment with rich metadata...');
       
-      console.log(`File uploaded to OpenAI:`, uploadedFile);
-      console.log(`All file object properties:`, {
-        id: uploadedFile.id,
-        object: uploadedFile.object,
-        bytes: uploadedFile.bytes,
-        created_at: uploadedFile.created_at,
-        filename: uploadedFile.filename,
-        purpose: uploadedFile.purpose,
-        // Check for any additional properties
-        allKeys: Object.keys(uploadedFile)
-      });
+      // Import Python service
+      const { pythonVectorStoreService } = await import('./pythonVectorStoreService.js');
       
-      // Step 4: Add file to vector store using file_batches (Python equivalent)
-      console.log('Adding file to vector store using file_batches...');
-      const fileBatch = await openai.vectorStores.fileBatches.createAndPoll(
+      // Prepare custom attributes based on document context
+      const documentRecord = await storage.getDocument(documentId);
+      const customAttributes = {
+        document_id: documentId.toString(),
+        request_id: documentRecord?.requestId?.toString() || 'unknown',
+        upload_user_id: documentRecord?.uploadedBy?.toString() || 'unknown',
+        system_source: 'investment_approval_system',
+        processed_timestamp: new Date().toISOString()
+      };
+      
+      // Use Python API for complete workflow
+      const result = await pythonVectorStoreService.uploadAndAttachFile(
+        filePath,
         vectorStore.id,
-        {
-          file_ids: [uploadedFile.id]
-        }
+        customAttributes
       );
       
-      console.log(`File batch created and processed: ${fileBatch.id}, status: ${fileBatch.status}`);
+      console.log('Python API result:', result);
       
-      // Step 5: Check final status and update document
-      if (fileBatch.status === 'completed') {
+      if (!result.success) {
+        throw new Error(`Python API failed: ${result.error}`);
+      }
+      
+      const uploadedFile = result.file;
+      
+      // Step 4: Update document with Python API results
+      if (result.success && result.vector_store_file?.status === 'completed') {
         await storage.updateDocument(documentId, {
           analysisStatus: 'completed',
           analysisResult: JSON.stringify({
-            openai_file_id: uploadedFile.id,
+            openai_file_id: result.file.id,
             vector_store_id: vectorStore.id,
-            file_batch_id: fileBatch.id,
-            status: 'processed'
+            vector_store_file_id: result.vector_store_file.id,
+            applied_attributes: result.applied_attributes,
+            usage_bytes: result.vector_store_file.usage_bytes,
+            metadata_extraction: {
+              auto_company: result.applied_attributes?.company,
+              auto_document_type: result.applied_attributes?.document_type,
+              auto_year: result.applied_attributes?.year,
+              auto_category: result.applied_attributes?.category
+            },
+            status: 'processed_with_metadata'
           })
         });
       } else {
-        throw new Error(`File batch processing failed with status: ${fileBatch.status}`);
+        throw new Error(`Python API processing failed: ${result.error || 'Unknown error'}`);
       }
       
       console.log(`AI preparation completed for document ${documentId}`);
