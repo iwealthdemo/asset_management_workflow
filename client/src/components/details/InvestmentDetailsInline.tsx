@@ -109,7 +109,14 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
           "Proposal resubmitted for approval successfully" : 
           "Draft submitted for approval successfully",
       });
+      // Invalidate all relevant cache keys to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/investments/${investmentDetails?.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['investment-details', investmentDetails?.id] });
+      // Force refetch of the current investment
+      if (investmentDetails?.id) {
+        queryClient.refetchQueries({ queryKey: [`/api/investments/${investmentDetails.id}`] });
+      }
     },
     onError: (error: any) => {
       toast({
