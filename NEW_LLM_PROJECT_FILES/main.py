@@ -40,6 +40,7 @@ from services.chat_service import ChatService
 from services.analysis_service import AnalysisService
 from utils.auth import require_api_key
 from utils.metadata_extractor import extract_metadata_from_filename
+from services.concurrency_manager import concurrency_manager
 
 # Initialize services
 document_service = DocumentService(openai_client)
@@ -57,14 +58,36 @@ def handle_error(error):
         'message': str(error) if app.debug else 'An unexpected error occurred'
     }), 500
 
-# Request logging middleware
+# Request logging and rate limiting middleware
 @app.before_request
-def log_request():
+def before_request():
     g.start_time = datetime.now()
+    
+    # Skip rate limiting for health checks
+    if request.path in ['/health', '/info', '/metrics']:
+        return
+        
+    # Extract API key for rate limiting
+    api_key = (
+        request.headers.get('Authorization', '').replace('Bearer ', '') or
+        request.headers.get('X-API-Key') or
+        request.args.get('api_key')
+    )
+    
+    if api_key:
+        allowed, wait_time = concurrency_manager.rate_limit_by_api_key(api_key)
+        if not allowed:
+            return jsonify({
+                'success': False,
+                'error': 'Rate limit exceeded',
+                'retry_after': int(wait_time),
+                'message': f'Rate limit: {concurrency_manager.rate_limit_per_minute} requests per minute'
+            }), 429
+    
     logger.info(f"Request: {request.method} {request.path} from {request.remote_addr}")
 
 @app.after_request
-def log_response(response):
+def after_request(response):
     if hasattr(g, 'start_time'):
         duration = (datetime.now() - g.start_time).total_seconds()
         logger.info(f"Response: {response.status_code} in {duration:.3f}s")
@@ -116,12 +139,26 @@ def service_info():
         'supported_models': {
             'openai': ['gpt-4o', 'gpt-4', 'gpt-3.5-turbo'],
             'anthropic': ['claude-3-sonnet', 'claude-3-haiku'] if anthropic_client else []
+        },
+        'concurrency_limits': {
+            'max_concurrent_requests': concurrency_manager.max_concurrent_requests,
+            'rate_limit_per_minute': concurrency_manager.rate_limit_per_minute
         }
+    })
+
+# Metrics endpoint
+@app.route('/metrics', methods=['GET'])
+def get_metrics():
+    """Get service metrics and concurrency information"""
+    return jsonify({
+        'concurrency_metrics': concurrency_manager.get_metrics(),
+        'active_requests': concurrency_manager.get_active_requests()
     })
 
 # Document endpoints
 @app.route('/documents/upload-and-vectorize', methods=['POST'])
 @require_api_key
+@concurrency_manager.limit_concurrent_requests(timeout=300)
 def upload_and_vectorize():
     """Upload file and add to vector store with rich metadata"""
     try:
@@ -150,6 +187,7 @@ def upload_and_vectorize():
 
 @app.route('/documents/analyze', methods=['POST'])
 @require_api_key
+@concurrency_manager.limit_concurrent_requests(timeout=180)
 def analyze_document():
     """Analyze document content for insights"""
     try:
@@ -170,6 +208,7 @@ def analyze_document():
 
 @app.route('/documents/search', methods=['POST'])
 @require_api_key
+@concurrency_manager.limit_concurrent_requests(timeout=120)
 def search_documents():
     """Search across documents using vector similarity"""
     try:
@@ -194,6 +233,7 @@ def search_documents():
 # Chat endpoints
 @app.route('/chat/completion', methods=['POST'])
 @require_api_key
+@concurrency_manager.limit_concurrent_requests(timeout=120)
 def chat_completion():
     """Generate chat completion with context"""
     try:
@@ -214,6 +254,7 @@ def chat_completion():
 
 @app.route('/chat/document-qa', methods=['POST'])
 @require_api_key
+@concurrency_manager.limit_concurrent_requests(timeout=120)
 def document_qa():
     """Question answering on specific documents"""
     try:
@@ -238,6 +279,7 @@ def document_qa():
 # Analysis endpoints
 @app.route('/analysis/summarize', methods=['POST'])
 @require_api_key
+@concurrency_manager.limit_concurrent_requests(timeout=180)
 def summarize():
     """Summarize text or documents"""
     try:
@@ -258,6 +300,7 @@ def summarize():
 
 @app.route('/analysis/investment-insights', methods=['POST'])
 @require_api_key
+@concurrency_manager.limit_concurrent_requests(timeout=240)
 def investment_insights():
     """Generate investment-specific insights"""
     try:
@@ -282,9 +325,15 @@ if __name__ == '__main__':
     logger.info(f"Starting LLM API Service on port {PORT}")
     logger.info(f"OpenAI configured: {bool(os.getenv('OPENAI_API_KEY'))}")
     logger.info(f"Anthropic configured: {bool(os.getenv('ANTHROPIC_API_KEY'))}")
+    logger.info(f"Max concurrent requests: {concurrency_manager.max_concurrent_requests}")
+    logger.info(f"Rate limit per minute: {concurrency_manager.rate_limit_per_minute}")
+    
+    # Start the concurrency manager
+    logger.info("Concurrency manager initialized and ready")
     
     app.run(
         host='0.0.0.0',
         port=PORT,
-        debug=os.getenv('FLASK_ENV') == 'development'
+        debug=os.getenv('FLASK_ENV') == 'development',
+        threaded=True  # Enable threading for concurrent requests
     )
