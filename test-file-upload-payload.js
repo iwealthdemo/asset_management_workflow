@@ -73,9 +73,10 @@ async function testFileUploadPayload() {
     console.log('\nVector Store Attachment Payload:');
     console.log(JSON.stringify(vectorStorePayload, null, 2));
 
-    // Actually attach to vector store with attributes
-    const vectorStoreFile = await openai.vectorStores.files.createAndPoll(
-      vectorStoreId, 
+    // Actually attach to vector store with attributes (corrected syntax)
+    // Note: Node.js SDK uses beta namespace and vector_store_id as path parameter
+    const vectorStoreFile = await openai.beta.vectorStores.files.createAndPoll(
+      vectorStoreId,
       {
         file_id: uploadedFile.id,
         attributes: attributes
