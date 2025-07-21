@@ -27,18 +27,16 @@ export class LLMIntegrationService {
     try {
       console.log(`Processing document ${documentId} via LLM API service`);
       
-      // Upload and vectorize document with limited attributes (OpenAI max: 16 properties)
-      const limitedAttributes = {
+      // Upload and vectorize document with minimal attributes (OpenAI max: 16 properties total)
+      const minimalAttributes = {
         document_id: documentId.toString(),
-        request_id: requestId?.toString() || 'unknown',
-        doc_type: 'investment',
-        source: 'portal'
+        request_id: requestId?.toString() || 'unknown'
       };
       
       const uploadResult = await llmApiService.uploadAndVectorize(
         filePath,
         filename,
-        limitedAttributes
+        minimalAttributes
       );
 
       if (!uploadResult.success) {

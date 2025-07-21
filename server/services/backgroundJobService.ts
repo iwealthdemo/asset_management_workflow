@@ -162,14 +162,14 @@ export class BackgroundJobService {
     // Step 2: Uploading to vector store
     await this.updateJobProgress(job.id, 'uploading', 2, 50);
     
-    // Use LLM API service instead of Python service
+    // Use LLM API service with minimal attributes (OpenAI max: 16 properties total)
     const { llmApiService } = await import('./llmApiService');
-    const result = await llmApiService.uploadAndVectorize(filePath, document.fileName, {
+    const minimalAttributes = {
       document_id: job.documentId.toString(),
-      request_id: job.requestId?.toString() || 'background-job',
-      document_type: 'investment_proposal',
-      processing_method: 'background_job'
-    });
+      request_id: job.requestId?.toString() || 'unknown'
+    };
+    
+    const result = await llmApiService.uploadAndVectorize(filePath, document.fileName, minimalAttributes);
     
     if (!result.success) {
       throw new Error(result.error || 'Failed to prepare document for AI');
@@ -184,12 +184,14 @@ export class BackgroundJobService {
     
     try {
       // Try LLM service first
-      analysisResult = await llmApiService.investmentInsights([document.fileName], 'comprehensive', {
+      // Limited metadata for insights call  
+      const insightsMetadata = {
         document_id: job.documentId.toString(),
-        request_id: job.requestId?.toString() || 'background-job',
-        company_name: 'Investment Target',
-        analysis_focus: 'investment_analysis'
-      });
+        request_id: job.requestId?.toString() || 'unknown',
+        analysis_type: 'comprehensive'
+      };
+      
+      analysisResult = await llmApiService.investmentInsights([document.fileName], 'comprehensive', insightsMetadata);
       
       console.log(`LLM service result:`, JSON.stringify(analysisResult, null, 2));
       
