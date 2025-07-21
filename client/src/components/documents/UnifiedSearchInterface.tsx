@@ -74,6 +74,7 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
   // Fetch web search history  
   const { data: webQueries = [] } = useQuery({
     queryKey: ['/api/web-search-queries', requestId],
+    queryFn: () => apiRequest('GET', `/api/web-search-queries?requestId=${requestId}`).then(res => res.json()),
     enabled: isExpanded
   });
 
@@ -168,7 +169,7 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
     return text;
   };
 
-  const combinedQueries = [...documentQueries, ...webQueries]
+  const combinedQueries = [...(documentQueries || []), ...(webQueries || [])]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const isLoading = documentSearchMutation.isPending || webSearchMutation.isPending;
@@ -349,7 +350,7 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
                           <div>
                             <span className="text-sm font-medium text-gray-600">Documents:</span>
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {queryResult.documentIds.map(docId => (
+                              {queryResult.documentIds.map((docId: number) => (
                                 <Badge key={docId} variant="outline" className="text-xs">
                                   {getDocumentName(docId)}
                                 </Badge>
