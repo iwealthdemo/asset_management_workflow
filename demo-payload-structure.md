@@ -29,13 +29,13 @@ Based on the current implementation, here's the exact payload sent to OpenAI Res
         "filters": [
           {
             "type": "eq",
-            "key": "file_id",
-            "value": "file-xxxxx"
+            "key": "original_filename",
+            "value": "RZx3lEIKHpiF6nay-6gak-HDFC Bank_Annual Report_2019-20.pdf"
           },
           {
             "type": "eq", 
-            "key": "file_id",
-            "value": "file-yyyyy"
+            "key": "original_filename",
+            "value": "QwRKM363xsSQWv8YvLXR4-Reliance_Annual-Report_2019-20.pdf"
           }
         ]
       }
@@ -48,13 +48,14 @@ Based on the current implementation, here's the exact payload sent to OpenAI Res
 
 ### Key Features of the Payload:
 
-1. **File Filtering**: Uses OpenAI's native `filters` with `"type": "or"` to search only in selected documents
+1. **Original Filename Filtering**: Uses `"key": "original_filename"` with full filenames including vector store prefix
 2. **Full Filenames**: Includes complete filenames with vector store prefix in the input query
-3. **File ID Filtering**: Uses OpenAI File IDs for precise document selection
+3. **Precise Document Selection**: Uses full filenames with vector store prefix for exact document filtering
 4. **Vector Store Scoping**: Restricts search to specific vector store
 5. **Conversation Continuity**: Includes `previous_response_id` if available for context
 
 ### Filtering Logic:
-- **Single Document**: Uses `"type": "eq"` filter
-- **Multiple Documents**: Uses `"type": "or"` with array of `"eq"` filters
+- **Single Document**: Uses `"type": "eq"` filter with `"key": "original_filename"`
+- **Multiple Documents**: Uses `"type": "or"` with array of `"eq"` filters using `"original_filename"` key
 - **No Selection**: Searches entire vector store (no filters)
+- **Filter Values**: Uses `file_name` from database (includes vector store prefix)

@@ -53,27 +53,27 @@ export class CrossDocumentQueryService {
         vector_store_ids: [vectorStoreId]
       };
       
-      // Add file ID filtering if specific files are requested
-      if (openaiFileIds && openaiFileIds.length > 0) {
-        if (openaiFileIds.length === 1) {
-          // Single file filtering
+      // Add original_filename filtering using full filenames with vector store prefix
+      if (fullFilenames && fullFilenames.length > 0) {
+        if (fullFilenames.length === 1) {
+          // Single file filtering using original_filename with full filename (vector store prefix)
           fileSearchTool.filters = {
             type: "eq",
-            key: "file_id",
-            value: openaiFileIds[0]
+            key: "original_filename",
+            value: fullFilenames[0]
           };
-          console.log('Using single file ID filtering for:', openaiFileIds[0]);
+          console.log('Using single original_filename filtering for:', fullFilenames[0]);
         } else {
-          // Multiple files filtering with OR logic
+          // Multiple files filtering with OR logic using original_filename
           fileSearchTool.filters = {
             type: "or",
-            filters: openaiFileIds.map(fileId => ({
+            filters: fullFilenames.map(fileName => ({
               type: "eq",
-              key: "file_id",
-              value: fileId
+              key: "original_filename",
+              value: fileName
             }))
           };
-          console.log('Using multiple file ID filtering for:', openaiFileIds);
+          console.log('Using multiple original_filename filtering for:', fullFilenames);
         }
       } else {
         console.log('Searching all files in vector store');
@@ -278,6 +278,7 @@ export class CrossDocumentQueryService {
       });
       
       const openaiFileIds = documentDetails.map(doc => doc.openaiFileId).filter(Boolean);
+      const fullFilenames = documentDetails.map(doc => doc.fileName).filter(Boolean);
       
       // Create detailed document list for API call using full filenames with vector store prefix
       const documentsList = documentDetails.map(doc => 
