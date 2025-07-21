@@ -265,47 +265,49 @@ export class CrossDocumentQueryService {
         };
       }
 
-      // Create a comprehensive query that mentions specific documents to search using ORIGINAL filenames
-      const originalDocumentNames = readyDocuments.map(doc => doc.originalName).join(', ');
+      // Create a comprehensive query that mentions specific documents to search using FULL filenames (with vector store prefix)
+      const fullDocumentNames = readyDocuments.map(doc => doc.fileName).join(', ');
       const documentDetails = readyDocuments.map(doc => {
         const analysis = JSON.parse(doc.analysisResult || '{}');
         return {
           id: doc.id,
           originalName: doc.originalName,
-          fileName: doc.fileName,
+          fileName: doc.fileName, // This includes the vector store prefix
           openaiFileId: analysis.openai_file_id
         };
       });
       
       const openaiFileIds = documentDetails.map(doc => doc.openaiFileId).filter(Boolean);
       
-      // Create detailed document list for API call
+      // Create detailed document list for API call using full filenames with vector store prefix
       const documentsList = documentDetails.map(doc => 
-        `- "${doc.originalName}" (OpenAI File ID: ${doc.openaiFileId})`
+        `- "${doc.fileName}" (Original: "${doc.originalName}", OpenAI File ID: ${doc.openaiFileId})`
       ).join('\n');
       
       const enhancedQuery = `
-I want you to search within these ${readyDocuments.length} specific documents (using their original filenames):
+I want you to search within these ${readyDocuments.length} specific documents (using their full filenames with vector store prefix):
 
 ${documentsList}
 
 Please search ONLY within these documents to answer the following question: ${query}
 
-Original Document Filenames:
-${originalDocumentNames}
+Full Document Filenames (with vector store prefix):
+${fullDocumentNames}
 
 Important instructions:
-1. Focus your search exclusively on the documents listed above by their original filenames
+1. Focus your search exclusively on the documents listed above by their full filenames (including vector store prefix)
 2. Do not use information from any other documents in the vector store
-3. If the answer requires information from multiple documents, synthesize the information and clearly indicate which original filename contains each piece of information
-4. When referencing sources, use the original filenames I provided above
-5. Ensure your search is limited to these specific documents: ${originalDocumentNames}
+3. If the answer requires information from multiple documents, synthesize the information and clearly indicate which full filename contains each piece of information
+4. When referencing sources, use the full filenames with vector store prefix that I provided above
+5. Ensure your search is limited to these specific documents: ${fullDocumentNames}
       `.trim();
 
-      console.log('=== ENHANCED QUERY WITH ORIGINAL FILENAMES ===');
-      console.log('Original Document Filenames Being Sent to API:');
+      console.log('=== ENHANCED QUERY WITH FULL FILENAMES (INCLUDING VECTOR STORE PREFIX) ===');
+      console.log('Full Document Filenames Being Sent to API:');
       documentDetails.forEach(doc => {
-        console.log(`  - "${doc.originalName}" (ID: ${doc.id}, OpenAI File ID: ${doc.openaiFileId})`);
+        console.log(`  - Full filename: "${doc.fileName}"`);
+        console.log(`    Original filename: "${doc.originalName}"`);
+        console.log(`    Document ID: ${doc.id}, OpenAI File ID: ${doc.openaiFileId}`);
       });
       console.log('\nFull Enhanced Query:');
       console.log(enhancedQuery);
