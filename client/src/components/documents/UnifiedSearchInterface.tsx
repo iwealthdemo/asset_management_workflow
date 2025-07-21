@@ -21,7 +21,8 @@ import {
   AlertCircle,
   Loader2,
   Archive,
-  RotateCcw
+  RotateCcw,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
@@ -110,6 +111,27 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
     }
   });
 
+  // Delete query mutations
+  const deleteDocumentQueryMutation = useMutation({
+    mutationFn: async (queryId: number) => {
+      const response = await apiRequest('DELETE', `/api/cross-document-queries/${queryId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/cross-document-queries/${requestId}`] });
+    }
+  });
+
+  const deleteWebQueryMutation = useMutation({
+    mutationFn: async (queryId: number) => {
+      const response = await apiRequest('DELETE', `/api/web-search-queries/${queryId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/web-search-queries', requestId] });
+    }
+  });
+
   const handleSearch = () => {
     if (!query.trim()) return;
 
@@ -138,6 +160,16 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
         ? prev.filter(id => id !== documentId)
         : [...prev, documentId]
     );
+  };
+
+  const handleDeleteQuery = (searchType: 'document' | 'web', queryId: number) => {
+    if (confirm('Are you sure you want to delete this query and its response?')) {
+      if (searchType === 'document') {
+        deleteDocumentQueryMutation.mutate(queryId);
+      } else {
+        deleteWebQueryMutation.mutate(queryId);
+      }
+    }
   };
 
   const getSearchIcon = (type: SearchType) => {
@@ -338,6 +370,14 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
                             {format(new Date(queryResult.createdAt), 'MMM dd, HH:mm')}
                           </span>
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteQuery(queryResult.searchType, queryResult.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                       
                       <div className="space-y-2">

@@ -964,6 +964,42 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+
+  async deleteCrossDocumentQuery(queryId: number, userId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(crossDocumentQueries)
+        .where(
+          and(
+            eq(crossDocumentQueries.id, queryId),
+            eq(crossDocumentQueries.userId, userId)
+          )
+        );
+      
+      return result.rowCount ? result.rowCount > 0 : false;
+    } catch (error) {
+      console.error('Error in deleteCrossDocumentQuery:', error);
+      throw error;
+    }
+  }
+
+  async deleteWebSearchQuery(queryId: number, userId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(webSearchQueries)
+        .where(
+          and(
+            eq(webSearchQueries.id, queryId),
+            eq(webSearchQueries.userId, userId)
+          )
+        );
+      
+      return result.rowCount ? result.rowCount > 0 : false;
+    } catch (error) {
+      console.error('Error in deleteWebSearchQuery:', error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

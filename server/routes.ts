@@ -1057,6 +1057,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete web search query endpoint
+  app.delete('/api/web-search-queries/:queryId', authMiddleware, async (req, res) => {
+    try {
+      const { queryId } = req.params;
+      const queryIdInt = parseInt(queryId);
+      
+      if (!queryIdInt) {
+        return res.status(400).json({ 
+          error: 'Invalid query ID',
+          message: 'Query ID must be a valid number' 
+        });
+      }
+      
+      // Delete the web search query
+      const deleted = await storage.deleteWebSearchQuery(queryIdInt, req.userId!);
+      
+      if (!deleted) {
+        return res.status(404).json({ 
+          error: 'Query not found',
+          message: 'Web search query not found or not authorized to delete' 
+        });
+      }
+      
+      res.json({ 
+        success: true,
+        message: 'Web search query deleted successfully' 
+      });
+      
+    } catch (error) {
+      console.error('Error deleting web search query:', error);
+      res.status(500).json({ message: 'Failed to delete web search query' });
+    }
+  });
+
+  // Delete cross-document query endpoint
+  app.delete('/api/cross-document-queries/:queryId', authMiddleware, async (req, res) => {
+    try {
+      const { queryId } = req.params;
+      const queryIdInt = parseInt(queryId);
+      
+      if (!queryIdInt) {
+        return res.status(400).json({ 
+          error: 'Invalid query ID',
+          message: 'Query ID must be a valid number' 
+        });
+      }
+      
+      // Delete the cross-document query
+      const deleted = await storage.deleteCrossDocumentQuery(queryIdInt, req.userId!);
+      
+      if (!deleted) {
+        return res.status(404).json({ 
+          error: 'Query not found',
+          message: 'Cross-document query not found or not authorized to delete' 
+        });
+      }
+      
+      res.json({ 
+        success: true,
+        message: 'Cross-document query deleted successfully' 
+      });
+      
+    } catch (error) {
+      console.error('Error deleting cross-document query:', error);
+      res.status(500).json({ message: 'Failed to delete cross-document query' });
+    }
+  });
+
   // Legacy cross-document query history endpoint
   app.get('/api/documents/cross-query/:requestType/:requestId', authMiddleware, async (req, res) => {
     try {
