@@ -201,8 +201,10 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
     return text;
   };
 
-  const combinedQueries = [...(documentQueries || []), ...(webQueries || [])]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const combinedQueries = [
+    ...(documentQueries || []).map(q => ({ ...q, searchType: 'document' as const })),
+    ...(webQueries || []).map(q => ({ ...q, searchType: 'web' as const }))
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const isLoading = documentSearchMutation.isPending || webSearchMutation.isPending;
 
@@ -355,8 +357,8 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
 
             {/* Query History */}
             {showHistory && (
-              <ScrollArea className="max-h-96">
-                <div className="space-y-4">
+              <ScrollArea className="max-h-96 w-full">
+                <div className="space-y-4 p-2">
                   {combinedQueries.map((queryResult) => (
                     <div key={`${queryResult.searchType}-${queryResult.id}`} className="border rounded-lg p-4 space-y-3">
                       <div className="flex items-center justify-between">
@@ -401,11 +403,13 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
                         
                         <div>
                           <span className="text-sm font-medium text-gray-600">Answer:</span>
-                          <ScrollArea className="max-h-64 w-full rounded border">
-                            <div 
-                              className="text-sm p-3 prose prose-sm max-w-none dark:prose-invert"
-                              dangerouslySetInnerHTML={{ __html: parseMarkdown(queryResult.response) }}
-                            />
+                          <ScrollArea className="max-h-64 w-full rounded border mt-1">
+                            <div className="p-3">
+                              <div 
+                                className="text-sm prose prose-sm max-w-none dark:prose-invert"
+                                dangerouslySetInnerHTML={{ __html: parseMarkdown(queryResult.response) }}
+                              />
+                            </div>
                           </ScrollArea>
                         </div>
                       </div>
