@@ -41,7 +41,7 @@ export class CrossDocumentQueryService {
     }
   }
 
-  private async getRawResponse(userQuery: string, vectorStoreId: string = VECTOR_STORE_ID, openaiFileIds?: string[], previousResponseId?: string): Promise<{text: string, metadata: any}> {
+  private async getRawResponse(userQuery: string, vectorStoreId: string = VECTOR_STORE_ID, openaiFileIds?: string[], previousResponseId?: string, fullFilenames?: string[]): Promise<{text: string, metadata: any}> {
     try {
       console.log('=== OPENAI RESPONSES API CALL DETAILS ===');
       console.log('Using Vector Store ID:', vectorStoreId);
@@ -322,8 +322,8 @@ Important instructions:
         console.log('No previous response ID found - starting new conversation');
       }
 
-      // Get response from OpenAI with file ID filtering and conversation context
-      const responseData = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds, previousResponseId);
+      // Get response from OpenAI with original_filename filtering and conversation context
+      const responseData = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds, previousResponseId, fullFilenames);
 
       // Save the query and response to database with metadata
       await storage.saveCrossDocumentQuery({
