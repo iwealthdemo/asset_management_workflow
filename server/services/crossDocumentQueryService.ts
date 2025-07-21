@@ -323,7 +323,7 @@ Important instructions:
       }
 
       // Get response from OpenAI with original_filename filtering and conversation context
-      const responseData = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds, previousResponseId, fullFilenames);
+      const responseData = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds, previousResponseId || undefined, fullFilenames);
 
       // Save the query and response to database with metadata
       await storage.saveCrossDocumentQuery({
@@ -351,7 +351,7 @@ Important instructions:
       console.error('Error processing cross-document query:', error);
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
   }
