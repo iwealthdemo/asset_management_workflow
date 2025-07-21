@@ -361,10 +361,12 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
                         
                         <div>
                           <span className="text-sm font-medium text-gray-600">Answer:</span>
-                          <div 
-                            className="text-sm mt-1 prose prose-sm max-w-none dark:prose-invert"
-                            dangerouslySetInnerHTML={{ __html: parseMarkdown(queryResult.response) }}
-                          />
+                          <ScrollArea className="max-h-64 w-full rounded border">
+                            <div 
+                              className="text-sm p-3 prose prose-sm max-w-none dark:prose-invert"
+                              dangerouslySetInnerHTML={{ __html: parseMarkdown(queryResult.response) }}
+                            />
+                          </ScrollArea>
                         </div>
                       </div>
                     </div>
