@@ -94,11 +94,10 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
     }
   });
 
-  // Web search mutation
+  // Web search mutation - Updated to use POST /search/web endpoint
   const webSearchMutation = useMutation({
     mutationFn: async ({ query }: { query: string }) => {
-      const response = await apiRequest('POST', '/api/web-search-queries', {
-        requestType: 'investment_request',
+      const response = await apiRequest('POST', '/api/search/web', {
         requestId,
         query
       });

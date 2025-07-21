@@ -1387,6 +1387,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // New Web Search endpoint as requested - POST /api/search/web
+  app.post('/api/search/web', authMiddleware, async (req, res) => {
+    try {
+      console.log('=== POST /api/search/web ENDPOINT HIT ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('User ID:', req.userId);
+      
+      const { requestId, query } = req.body;
+      
+      if (!requestId || !query || typeof query !== 'string') {
+        console.log('❌ Validation failed - missing requestId or query');
+        return res.status(400).json({ 
+          error: 'Missing required fields: requestId, query',
+          message: 'Invalid request format' 
+        });
+      }
+      
+      // Import web search service
+      const { webSearchService } = await import('./services/webSearchService');
+      
+      // Process web search query using investment_request as default type
+      const result = await webSearchService.processWebSearchQuery(
+        'investment_request',
+        parseInt(requestId),
+        req.userId!,
+        query
+      );
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: result.error,
+          message: 'Failed to process web search query' 
+        });
+      }
+      
+      console.log('✅ Web search successful');
+      res.json({
+        answer: result.answer,
+        responseId: result.responseId,
+        success: true
+      });
+      
+    } catch (error) {
+      console.error('❌ POST /api/search/web failed:', error);
+      res.status(500).json({ 
+        error: 'Failed to process web search query',
+        message: error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
