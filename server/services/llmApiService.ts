@@ -391,7 +391,8 @@ export class LLMApiService {
         classification: 'investment_document',
         riskAssessment: metadata.risk_level || 'medium',
         keyInformation: 'Document processed successfully via LLM service',
-        ...result
+        usage: result.usage,
+        model: result.model
       };
     } catch (error) {
       return {

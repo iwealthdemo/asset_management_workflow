@@ -74,15 +74,44 @@ class DocumentService:
             # Step 2: Extract metadata
             auto_attributes = extract_metadata_from_filename(filename)
             
-            # Step 3: Merge all attributes
-            file_attributes = {
-                'file_size_bytes': str(uploaded_file.bytes),
+            # Step 3: Limit attributes to OpenAI's 16-property maximum
+            # Prioritize most important attributes for search and organization
+            essential_attributes = {
+                'file_id': uploaded_file.id,
+                'original_filename': auto_attributes.get('original_filename', filename),
+                'document_type': auto_attributes.get('document_type', 'unknown'),
+                'category': auto_attributes.get('category', 'general'),
+                'file_extension': auto_attributes.get('file_extension', ''),
                 'upload_timestamp': str(uploaded_file.created_at),
-                'openai_filename': uploaded_file.filename
+                'file_size_bytes': str(uploaded_file.bytes)
             }
             
-            attributes = {**auto_attributes, **file_attributes, **(custom_attributes or {})}
-            attributes['file_id'] = uploaded_file.id
+            # Add custom attributes if provided, but limit total to 16
+            if custom_attributes:
+                # Prioritize most important custom attributes
+                priority_custom = ['document_id', 'request_id', 'user_id', 'company', 'year']
+                remaining_slots = 16 - len(essential_attributes)
+                
+                for key in priority_custom:
+                    if key in custom_attributes and remaining_slots > 0:
+                        essential_attributes[key] = str(custom_attributes[key])
+                        remaining_slots -= 1
+                
+                # Add any remaining custom attributes if space allows
+                for key, value in custom_attributes.items():
+                    if key not in essential_attributes and remaining_slots > 0:
+                        essential_attributes[key] = str(value)
+                        remaining_slots -= 1
+            
+            # Add extracted metadata if space allows
+            metadata_keys = ['year', 'company', 'extraction_confidence']
+            remaining_slots = 16 - len(essential_attributes)
+            for key in metadata_keys:
+                if key in auto_attributes and key not in essential_attributes and remaining_slots > 0:
+                    essential_attributes[key] = str(auto_attributes[key])
+                    remaining_slots -= 1
+            
+            attributes = essential_attributes
             
             # Step 4: Attach to vector store with attributes
             vector_store_file = self.client.vector_stores.files.create_and_poll(
