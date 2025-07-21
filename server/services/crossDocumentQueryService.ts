@@ -265,25 +265,49 @@ export class CrossDocumentQueryService {
         };
       }
 
-      // Create a comprehensive query that mentions specific documents to search
-      const documentNames = readyDocuments.map(doc => doc.fileName || doc.originalName).join(', ');
-      const openaiFileIds = readyDocuments.map(doc => {
+      // Create a comprehensive query that mentions specific documents to search using ORIGINAL filenames
+      const originalDocumentNames = readyDocuments.map(doc => doc.originalName).join(', ');
+      const documentDetails = readyDocuments.map(doc => {
         const analysis = JSON.parse(doc.analysisResult || '{}');
-        return analysis.openai_file_id;
-      }).filter(Boolean);
+        return {
+          id: doc.id,
+          originalName: doc.originalName,
+          fileName: doc.fileName,
+          openaiFileId: analysis.openai_file_id
+        };
+      });
+      
+      const openaiFileIds = documentDetails.map(doc => doc.openaiFileId).filter(Boolean);
+      
+      // Create detailed document list for API call
+      const documentsList = documentDetails.map(doc => 
+        `- "${doc.originalName}" (OpenAI File ID: ${doc.openaiFileId})`
+      ).join('\n');
       
       const enhancedQuery = `
-I have ${readyDocuments.length} specific documents that I want you to search: ${documentNames}
+I want you to search within these ${readyDocuments.length} specific documents (using their original filenames):
 
-Please search ONLY within these ${readyDocuments.length} documents to answer the following question: ${query}
+${documentsList}
 
-Important: Focus your search exclusively on the documents I mentioned above. Do not use information from any other documents in the vector store. If the answer requires information from multiple of these specific documents, please synthesize the information and clearly indicate which of these documents contain the relevant details.
+Please search ONLY within these documents to answer the following question: ${query}
 
-Document names to search: ${documentNames}
-OpenAI File IDs: ${openaiFileIds.join(', ')}
+Original Document Filenames:
+${originalDocumentNames}
+
+Important instructions:
+1. Focus your search exclusively on the documents listed above by their original filenames
+2. Do not use information from any other documents in the vector store
+3. If the answer requires information from multiple documents, synthesize the information and clearly indicate which original filename contains each piece of information
+4. When referencing sources, use the original filenames I provided above
+5. Ensure your search is limited to these specific documents: ${originalDocumentNames}
       `.trim();
 
-      console.log('=== ENHANCED QUERY SENT TO OPENAI ===');
+      console.log('=== ENHANCED QUERY WITH ORIGINAL FILENAMES ===');
+      console.log('Original Document Filenames Being Sent to API:');
+      documentDetails.forEach(doc => {
+        console.log(`  - "${doc.originalName}" (ID: ${doc.id}, OpenAI File ID: ${doc.openaiFileId})`);
+      });
+      console.log('\nFull Enhanced Query:');
       console.log(enhancedQuery);
       console.log('=== END ENHANCED QUERY ===');
 
