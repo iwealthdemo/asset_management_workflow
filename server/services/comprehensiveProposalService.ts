@@ -57,7 +57,7 @@ export class ComprehensiveProposalService {
       query: q.query,
       response: q.response,
       searchType: 'document_search',
-      createdAt: q.createdAt!
+      createdAt: q.createdAt || new Date()
     }));
 
     // Get web search query history
@@ -67,7 +67,7 @@ export class ComprehensiveProposalService {
       query: q.query,
       response: q.response,
       searchType: 'web_search',
-      createdAt: q.createdAt!
+      createdAt: q.createdAt || new Date()
     }));
 
     // Get vector store file IDs for file_search tool
@@ -178,23 +178,26 @@ ${webInsights || 'No previous web search results'}
     // Build tools array
     const tools: any[] = [];
 
-    // Temporarily disable all tools to test basic OpenAI Responses API functionality
-    // TODO: Re-enable file_search and web_search once basic API is working
-    // if (vectorStoreFileIds.length > 0) {
-    //   const vectorStoreId = process.env.OPENAI_VECTOR_STORE_ID || 'vs_default';
-    //   tools.push({
-    //     type: "file_search",
-    //     file_search: {
-    //       vector_store_ids: [vectorStoreId]
-    //     }
-    //   });
-    // }
+    // Add file_search tool using the exact format from user's working example
+    if (vectorStoreFileIds.length > 0) {
+      const vectorStoreId = process.env.OPENAI_VECTOR_STORE_ID || 'vs_default';
+      
+      tools.push({
+        type: "file_search",
+        vector_store_ids: [vectorStoreId],
+        filters: {
+          type: "eq",
+          key: "company_name",
+          value: investment.targetCompany
+        }
+      });
+    }
 
-    // Temporarily remove web_search tool to test basic functionality first
-    // TODO: Re-enable once we determine the correct OpenAI Responses API format for web search
+    // Note: Temporarily disable web_search due to API parameter issues
+    // Will implement with working cross-document search service instead
     // const searchQuery = `${investment.targetCompany} ${investment.investmentType} investment analysis 2025 financial performance market outlook`;
     // tools.push({
-    //   type: "web_search", 
+    //   type: "web_search",
     //   query: searchQuery
     // });
 
@@ -209,7 +212,7 @@ You are an expert investment analyst generating a world-class investment proposa
 
 1. DOCUMENT INTELLIGENCE: Reference the document analysis summaries and insights provided above
 2. RESEARCH HISTORY: Build upon the Q&A research already conducted  
-3. WEB SEARCH: Current market data and insights are included in the context above from previous research
+3. WEB SEARCH: Use current market data and recent developments via web_search tool
 4. FILE SEARCH: Access detailed information from uploaded documents via file_search tool
 5. TEMPLATE ADHERENCE: Follow the exact template structure with specified word limits
 
@@ -225,7 +228,7 @@ Focus Areas: ${section.focusAreas.join(', ')}
 QUALITY STANDARDS:
 - Professional investment-grade analysis suitable for committee review
 - Integrate ALL existing analysis and research findings
-- Leverage the web search results and market data already provided in the context
+- Supplement with current market data from web_search tool
 - Reference specific documents and data sources
 - Maintain exact word limits for each section
 - Provide clear, actionable recommendations
@@ -247,8 +250,19 @@ Generate the comprehensive investment proposal now:`;
 
       const processingTime = Date.now() - startTime;
       
+      // Extract content from OpenAI Responses API response
+      const content = (response as any).content || 
+                     (response as any).choices?.[0]?.message?.content || 
+                     (response as any).data?.content || 
+                     JSON.stringify(response).substring(0, 100) + '... [Debug: Full response logged]';
+                     
+      console.log('OpenAI Response keys:', Object.keys(response));
+      if (!(response as any).content) {
+        console.log('Response structure debug:', JSON.stringify(response, null, 2).substring(0, 500));
+      }
+      
       return {
-        content: (response as any).content || 'No content generated',
+        content: content,
         openaiResponseId: response.id,
         model: response.model || "gpt-4o",
         inputTokens: response.usage?.input_tokens || 0,

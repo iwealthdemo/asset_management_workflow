@@ -1,0 +1,86 @@
+const axios = require('axios');
+
+// Define the API key and the endpoint
+const apiKey = 'your-openai-api-key';
+const apiUrl = 'https://api.openai.com/v1/responses';
+
+// Function to generate equity research proposal
+async function generateEquityResearch(companyName, searchQuery, vectorStoreId) {
+  try {
+    const response = await axios.post(apiUrl, {
+      model: "gpt-4",
+      input: `
+      You are an expert equity research analyst tasked with generating an investment proposal for ${companyName}. Please use the relevant information obtained from the company files in the vector store (ID: ${vectorStoreId}) and supplement with web search results based on the query '${searchQuery}'. Structure the proposal as follows:
+
+      **Proposal Template for Investment in ${companyName}:**
+
+      **1. Executive Summary (Limit: 150 words)**  
+      Provide a high-level summary of the equity investment opportunity, covering the company, key financial metrics, and growth potential. Use information from the company files and web search results.
+
+      **2. Issuer Overview (Limit: 200 words)**  
+      Describe the issuer’s background, financial health, and market position, using data from the vector store and the web search.
+
+      **3. Company Performance (Limit: 250 words)**  
+      Provide an overview of the company’s financial performance, including revenue growth, P/E ratio, debt levels, etc. Based on the files and web search data.
+
+      **4. Investment Rationale (Limit: 300 words)**  
+      Justify why this equity investment is a good opportunity, focusing on growth potential, valuation, and market sentiment.
+
+      **5. Risk Assessment (Limit: 200 words)**  
+      Identify and analyze the risks associated with this investment, including market risks, company-specific risks, and competitive landscape.
+
+      **6. Financial Overview and Forecast (Limit: 250 words)**  
+      Analyze the company’s financials and provide an outlook on revenue and profitability. Use data from both files and the search results.
+
+      **7. Valuation and Price Target (Limit: 200 words)**  
+      Offer a valuation of the company, including its current stock price, P/E ratio, and other valuation metrics.
+
+      **8. Recommendation (Limit: 100 words)**  
+      Provide a final recommendation to the investment committee based on the gathered information.
+
+      **9. Appendices (Optional)**  
+      Include supporting data such as financial reports, peer comparison, or charts.
+
+      **Instructions to File Search**:  
+      Retrieve relevant information from the vector store based on the provided vector store ID (`${vectorStoreId}`). This may include financial data, stock history, company background, etc.
+
+      **Instructions to Web Search**:  
+      Perform a web search using the query: '${searchQuery}' to fetch the latest market news, financial reports, or other external data regarding the company.
+
+      Please ensure the proposal adheres to the section limits and provides a clear, concise analysis for the investment committee.
+      `,
+      tools: [
+        {
+          type: "file_search",
+          vector_store_ids: [vectorStoreId],
+          filters: {
+            type: "eq",
+            key: "company_name",
+            value: companyName
+          }
+        },
+        {
+          type: "web_search",
+          query: searchQuery
+        }
+      ]
+    }, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    // Handle response
+    console.log("Generated Proposal: ", response.data);
+  } catch (error) {
+    console.error("Error generating proposal: ", error);
+  }
+}
+
+// Example usage:
+const companyName = "ExampleCorp";
+const searchQuery = "ExampleCorp stock analysis 2025 revenue growth P/E ratio market outlook";
+const vectorStoreId = "vs_687584b54f908191b0a21ffa42948fb5"; // Your vector store ID
+
+generateEquityResearch(companyName, searchQuery, vectorStoreId);
