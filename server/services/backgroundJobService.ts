@@ -162,20 +162,38 @@ export class BackgroundJobService {
     // Step 2: Uploading to vector store
     await this.updateJobProgress(job.id, 'uploading', 2, 50);
     
-    // Use LLM API service with minimal attributes (OpenAI max: 16 properties total)
-    const { llmApiService } = await import('./llmApiService');
-    const minimalAttributes = {
-      document_id: job.documentId.toString(),
-      request_id: job.requestId?.toString() || 'unknown'
-    };
+    let result: any;
+    let usingLocalFallback = false;
     
-    const result = await llmApiService.uploadAndVectorize(filePath, document.fileName, minimalAttributes);
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to prepare document for AI');
+    try {
+      // Try LLM API service first
+      const { llmApiService } = await import('./llmApiService');
+      const minimalAttributes = {
+        document_id: job.documentId.toString(),
+        request_id: job.requestId?.toString() || 'unknown'
+      };
+      
+      result = await llmApiService.uploadAndVectorize(filePath, document.fileName, minimalAttributes);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'LLM service upload failed');
+      }
+      
+      console.log('✅ Upload successful via LLM service:', JSON.stringify(result, null, 2));
+      
+    } catch (error: any) {
+      console.log(`⚠️ LLM service upload failed (${error.message}), using local OpenAI upload fallback`);
+      usingLocalFallback = true;
+      
+      // Fallback to local OpenAI upload
+      result = await this.uploadToLocalOpenAI(filePath, document.fileName, job.documentId);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Both LLM service and local OpenAI upload failed');
+      }
+      
+      console.log('✅ Upload successful via local OpenAI fallback:', JSON.stringify(result, null, 2));
     }
-    
-    console.log('Upload result:', JSON.stringify(result, null, 2));
     
     // Ensure we have the file ID from the upload
     if (!result.file?.id) {
@@ -277,6 +295,61 @@ export class BackgroundJobService {
   }
 
 
+
+  /**
+   * Upload to local OpenAI when LLM service fails
+   */
+  private async uploadToLocalOpenAI(filePath: string, fileName: string, documentId: number): Promise<any> {
+    try {
+      const { default: OpenAI } = await import('openai');
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+
+      // Upload file to OpenAI
+      const file = await openai.files.create({
+        file: await fs.promises.readFile(filePath),
+        purpose: 'file-search'
+      });
+
+      console.log('File uploaded to OpenAI:', file.id);
+
+      // Add to vector store
+      const vectorStoreId = 'vs_687584b54f908191b0a21ffa42948fb5'; // From health check
+      const vectorStoreFile = await openai.beta.vectorStores.files.create(
+        vectorStoreId,
+        { file_id: file.id }
+      );
+
+      console.log('File added to vector store:', vectorStoreFile.id);
+
+      return {
+        success: true,
+        file: {
+          id: file.id,
+          filename: fileName,
+          bytes: file.bytes,
+          status: file.status
+        },
+        vector_store_file: {
+          id: vectorStoreFile.id,
+          status: vectorStoreFile.status,
+          usage_bytes: vectorStoreFile.usage_bytes || 0,
+          attributes: {
+            document_id: documentId.toString(),
+            upload_method: 'local_openai_fallback'
+          }
+        }
+      };
+
+    } catch (error: any) {
+      console.error('Local OpenAI upload failed:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to upload to local OpenAI'
+      };
+    }
+  }
 
   /**
    * Generate analysis using local OpenAI API when LLM service insights fail
