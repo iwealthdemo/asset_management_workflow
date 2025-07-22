@@ -185,9 +185,8 @@ export class BackgroundJobService {
     // Step 3: Generating comprehensive analysis
     await this.updateJobProgress(job.id, 'generating_analysis', 3, 75);
     
-    let analysisResult;
-    let summary;
-    let insights;
+    let summary: string;
+    let insights: string;
     
     try {
       // Try LLM service first - use the file ID, not filename
@@ -198,7 +197,7 @@ export class BackgroundJobService {
       };
       
       console.log(`Calling investmentInsights with file ID: ${result.file.id}`);
-      analysisResult = await llmApiService.investmentInsights([result.file.id], 'comprehensive', insightsMetadata);
+      const analysisResult = await llmApiService.investmentInsights([result.file.id], 'comprehensive', insightsMetadata);
       
       console.log(`LLM service result:`, JSON.stringify(analysisResult, null, 2));
       
@@ -210,7 +209,7 @@ export class BackgroundJobService {
         throw new Error(`LLM service returned unsuccessful result: ${analysisResult.error || 'Unknown error'}`);
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.log(`⚠️ LLM service insights failed (${error.message}), using local OpenAI with Responses API`);
       
       // Use local OpenAI Responses API with same format as cross-document query
@@ -219,7 +218,7 @@ export class BackgroundJobService {
         summary = localAnalysis.summary;
         insights = localAnalysis.insights;
         console.log('✅ Using local OpenAI Responses API for analysis');
-      } catch (localError) {
+      } catch (localError: any) {
         console.log(`⚠️ Local OpenAI also failed (${localError.message}), using basic fallback`);
         // Last resort: basic text analysis
         const fallbackAnalysis = await this.generateFallbackAnalysis(document, job);
@@ -249,8 +248,8 @@ export class BackgroundJobService {
           keyInformation: 'Analysis completed via background processing',
           confidence: 0.85,
           generatedAt: new Date().toISOString(),
-          model: analysisResult.model || 'gpt-4o',
-          usage: analysisResult.usage || {}
+          model: 'gpt-4o',
+          usage: {}
         }),
         classification: 'investment_document',
         riskLevel: 'medium'
@@ -307,17 +306,17 @@ Format your response in markdown with clear sections and bullet points for easy 
 
       // Use OpenAI Responses API with exact same format as working cross-document query
       const fileSearchTool = {
-        type: "file_search",
+        type: "file_search" as const,
         vector_store_ids: [vectorStoreId],
         filters: {
-          type: "eq",
+          type: "eq" as const,
           key: "file_id", 
           value: fileId
         }
       };
 
       const responsePayload = {
-        model: "gpt-4o",
+        model: "gpt-4o" as const,
         tools: [fileSearchTool],
         input: analysisPrompt
       };
@@ -343,7 +342,7 @@ Format your response in markdown with clear sections and bullet points for easy 
         insights: analysisContent
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Local OpenAI analysis failed:', error);
       throw new Error(`Local OpenAI analysis failed: ${error.message}`);
     }
