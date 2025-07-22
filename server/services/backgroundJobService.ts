@@ -484,52 +484,59 @@ Structure your response with clear headings and specific evidence from the docum
       // Get the original filename for filtering
       const originalFilename = document.fileName || `document_${job.documentId}`;
       
-      // Generate summary using file search with original_filename filter (same as cross-document search)
+      // Use exact same format as cross-document search service
       console.log(`Generating summary for file: ${originalFilename}`);
-      const summaryResponse = await openai.responses.create({
+      
+      // Create file search tool exactly like cross-document search
+      const summaryTool: any = {
+        type: "file_search",
+        vector_store_ids: [vectorStoreId]
+      };
+      
+      // Add original_filename filtering
+      summaryTool.filters = {
+        type: "eq",
+        key: "original_filename",
+        value: originalFilename
+      };
+      
+      const summaryPayload = {
         model: "gpt-4o",
-        input: "Get summary of the file",
-        tools: [
-          {
-            type: "file_search",
-            vector_store_ids: [vectorStoreId],
-            filters: {
-              type: "eq",
-              key: "original_filename", 
-              value: originalFilename
-            }
-          }
-        ]
-      });
-
-      // Extract text from response
-      const summaryOutput = summaryResponse.output.find(item => 'text' in item);
-      const summary = summaryOutput?.text || '';
+        tools: [summaryTool],
+        input: "Get comprehensive summary of this financial document"
+      };
+      
+      console.log('Summary API payload:', JSON.stringify(summaryPayload, null, 2));
+      
+      const summaryResponse = await openai.responses.create(summaryPayload);
+      const summary = summaryResponse.output_text || '';
+      
       if (!summary) {
         throw new Error('No summary content generated');
       }
 
-      // Generate detailed insights using the same approach
+      // Generate detailed insights using same exact approach
       console.log(`Generating investment insights for file: ${originalFilename}`);
-      const insightsResponse = await openai.responses.create({
+      
+      const insightsTool: any = {
+        type: "file_search", 
+        vector_store_ids: [vectorStoreId]
+      };
+      
+      insightsTool.filters = {
+        type: "eq",
+        key: "original_filename",
+        value: originalFilename
+      };
+      
+      const insightsPayload = {
         model: "gpt-4o",
-        input: insightsPrompt,
-        tools: [
-          {
-            type: "file_search",
-            vector_store_ids: [vectorStoreId],
-            filters: {
-              type: "eq",
-              key: "original_filename",
-              value: originalFilename
-            }
-          }
-        ]
-      });
-
-      // Extract text from insights response
-      const insightsOutput = insightsResponse.output.find(item => 'text' in item);
-      const insights = insightsOutput?.text || '';
+        tools: [insightsTool],
+        input: insightsPrompt
+      };
+      
+      const insightsResponse = await openai.responses.create(insightsPayload);
+      const insights = insightsResponse.output_text || '';
       if (!insights) {
         throw new Error('No insights content generated');
       }
