@@ -2,7 +2,7 @@ import {
   users, investmentRequests, cashRequests, approvals, tasks, documents, 
   documentCategories, documentSubcategories,
   notifications, templates, auditLogs, approvalWorkflows, backgroundJobs,
-  documentQueries, crossDocumentQueries, webSearchQueries, sequences,
+  documentQueries, crossDocumentQueries, webSearchQueries, sequences, investmentRationales,
   type User, type InsertUser, type InvestmentRequest, type InsertInvestmentRequest,
   type CashRequest, type InsertCashRequest, type Approval, type InsertApproval,
   type Task, type InsertTask, type Document, type InsertDocument,
@@ -11,7 +11,7 @@ import {
   type Notification, type InsertNotification, type Template, type InsertTemplate,
   type BackgroundJob, type InsertBackgroundJob, type DocumentQuery, type InsertDocumentQuery,
   type CrossDocumentQuery, type InsertCrossDocumentQuery, type WebSearchQuery, type InsertWebSearchQuery,
-  type Sequence, type InsertSequence
+  type Sequence, type InsertSequence, type InvestmentRationale, type InsertInvestmentRationale
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sql, ne, isNotNull } from "drizzle-orm";
@@ -77,6 +77,13 @@ export interface IStorage {
   createTemplate(template: InsertTemplate): Promise<Template>;
   getTemplatesByType(type: string): Promise<Template[]>;
   getTemplate(id: number): Promise<Template | undefined>;
+  deleteTemplate(id: number): Promise<void>;
+  
+  // Investment rationale operations
+  createInvestmentRationale(rationale: InsertInvestmentRationale): Promise<InvestmentRationale>;
+  getInvestmentRationales(investmentId: number): Promise<InvestmentRationale[]>;
+  updateInvestmentRationale(id: number, rationale: Partial<InsertInvestmentRationale>): Promise<InvestmentRationale>;
+  deleteInvestmentRationale(id: number): Promise<void>;
   
   // Dashboard stats
   getDashboardStats(userId: number): Promise<{
@@ -1124,6 +1131,61 @@ export class DatabaseStorage implements IStorage {
       console.error('Error in getNextSequenceValue:', error);
       throw error;
     }
+  }
+
+  // Template operations
+  async deleteTemplate(id: number): Promise<void> {
+    await db.delete(templates).where(eq(templates.id, id));
+  }
+
+  // Investment rationale operations
+  async createInvestmentRationale(rationale: InsertInvestmentRationale): Promise<InvestmentRationale> {
+    const [newRationale] = await db
+      .insert(investmentRationales)
+      .values(rationale)
+      .returning();
+    return newRationale;
+  }
+
+  async getInvestmentRationales(investmentId: number): Promise<InvestmentRationale[]> {
+    return await db
+      .select({
+        id: investmentRationales.id,
+        investmentId: investmentRationales.investmentId,
+        templateId: investmentRationales.templateId,
+        content: investmentRationales.content,
+        type: investmentRationales.type,
+        authorId: investmentRationales.authorId,
+        createdAt: investmentRationales.createdAt,
+        updatedAt: investmentRationales.updatedAt,
+        template: {
+          id: templates.id,
+          name: templates.name
+        },
+        author: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName
+        }
+      })
+      .from(investmentRationales)
+      .leftJoin(templates, eq(investmentRationales.templateId, templates.id))
+      .leftJoin(users, eq(investmentRationales.authorId, users.id))
+      .where(eq(investmentRationales.investmentId, investmentId))
+      .orderBy(desc(investmentRationales.createdAt));
+  }
+
+  async updateInvestmentRationale(id: number, rationale: Partial<InsertInvestmentRationale>): Promise<InvestmentRationale> {
+    const [updatedRationale] = await db
+      .update(investmentRationales)
+      .set({ ...rationale, updatedAt: new Date() })
+      .where(eq(investmentRationales.id, id))
+      .returning();
+    return updatedRationale;
+  }
+
+  async deleteInvestmentRationale(id: number): Promise<void> {
+    await db.delete(investmentRationales).where(eq(investmentRationales.id, id));
   }
 }
 

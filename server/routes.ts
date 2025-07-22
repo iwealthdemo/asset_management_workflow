@@ -11,7 +11,7 @@ import { vectorStoreService } from "./services/vectorStoreService";
 import { backgroundJobService } from "./services/backgroundJobService";
 import { fileUpload } from "./utils/fileUpload";
 import { db } from "./db";
-import { insertInvestmentRequestSchema, insertCashRequestSchema, insertUserSchema, documents, backgroundJobs } from "@shared/schema";
+import { insertInvestmentRequestSchema, insertCashRequestSchema, insertUserSchema, insertTemplateSchema, insertInvestmentRationaleSchema, documents, backgroundJobs } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import path from "path";
@@ -1583,6 +1583,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'Failed to process web search query',
         message: error.message 
       });
+    }
+  });
+
+  // Template CRUD routes
+  app.post('/api/templates', authMiddleware, async (req, res) => {
+    try {
+      const templateData = insertTemplateSchema.parse(req.body);
+      const template = await storage.createTemplate({
+        ...templateData,
+        createdBy: req.userId!,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      res.json(template);
+    } catch (error) {
+      console.error('Error creating template:', error);
+      res.status(500).json({ message: 'Failed to create template' });
+    }
+  });
+
+  app.delete('/api/templates/:id', authMiddleware, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteTemplate(id);
+      res.json({ message: 'Template deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      res.status(500).json({ message: 'Failed to delete template' });
+    }
+  });
+
+  // Investment rationale routes
+  app.get('/api/investments/:id/rationales', authMiddleware, async (req, res) => {
+    try {
+      const investmentId = parseInt(req.params.id);
+      const rationales = await storage.getInvestmentRationales(investmentId);
+      res.json(rationales);
+    } catch (error) {
+      console.error('Error fetching rationales:', error);
+      res.status(500).json({ message: 'Failed to fetch rationales' });
+    }
+  });
+
+  app.post('/api/investments/:id/rationales', authMiddleware, async (req, res) => {
+    try {
+      const investmentId = parseInt(req.params.id);
+      const rationaleData = insertInvestmentRationaleSchema.parse({
+        ...req.body,
+        investmentId,
+        authorId: req.userId!
+      });
+      
+      const rationale = await storage.createInvestmentRationale(rationaleData);
+      res.json(rationale);
+    } catch (error) {
+      console.error('Error creating rationale:', error);
+      res.status(500).json({ message: 'Failed to create rationale' });
+    }
+  });
+
+  app.put('/api/investments/:id/rationales/:rationaleId', authMiddleware, async (req, res) => {
+    try {
+      const rationaleId = parseInt(req.params.rationaleId);
+      const updateData = {
+        content: req.body.content,
+        updatedAt: new Date()
+      };
+      
+      const rationale = await storage.updateInvestmentRationale(rationaleId, updateData);
+      res.json(rationale);
+    } catch (error) {
+      console.error('Error updating rationale:', error);
+      res.status(500).json({ message: 'Failed to update rationale' });
+    }
+  });
+
+  app.delete('/api/investments/:id/rationales/:rationaleId', authMiddleware, async (req, res) => {
+    try {
+      const rationaleId = parseInt(req.params.rationaleId);
+      await storage.deleteInvestmentRationale(rationaleId);
+      res.json({ message: 'Rationale deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting rationale:', error);
+      res.status(500).json({ message: 'Failed to delete rationale' });
     }
   });
 

@@ -168,10 +168,23 @@ export const templates = pgTable("templates", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   type: text("type").notNull(), // investment, cash_request
-  templateData: json("template_data").notNull(),
+  investmentType: text("investment_type"), // equity, debt, real_estate, alternative
+  templateData: json("template_data").notNull(), // sections with word limits
   createdBy: integer("created_by").references(() => users.id),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Investment rationales table
+export const investmentRationales = pgTable("investment_rationales", {
+  id: serial("id").primaryKey(),
+  investmentId: integer("investment_id").references(() => investmentRequests.id).notNull(),
+  content: text("content").notNull(),
+  type: text("type").notNull(), // manual, ai_generated
+  templateId: integer("template_id").references(() => templates.id),
+  authorId: integer("author_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Background jobs table
@@ -264,6 +277,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   notifications: many(notifications),
   auditLogs: many(auditLogs),
   templates: many(templates),
+  investmentRationales: many(investmentRationales),
   documentQueries: many(documentQueries),
   crossDocumentQueries: many(crossDocumentQueries),
   webSearchQueries: many(webSearchQueries),
@@ -288,6 +302,7 @@ export const investmentRequestsRelations = relations(investmentRequests, ({ one,
   approvals: many(approvals),
   tasks: many(tasks),
   documents: many(documents),
+  rationales: many(investmentRationales),
 }));
 
 export const cashRequestsRelations = relations(cashRequests, ({ one, many }) => ({
@@ -327,8 +342,15 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   user: one(users, { fields: [auditLogs.userId], references: [users.id] }),
 }));
 
-export const templatesRelations = relations(templates, ({ one }) => ({
+export const templatesRelations = relations(templates, ({ one, many }) => ({
   creator: one(users, { fields: [templates.createdBy], references: [users.id] }),
+  rationales: many(investmentRationales),
+}));
+
+export const investmentRationalesRelations = relations(investmentRationales, ({ one }) => ({
+  investment: one(investmentRequests, { fields: [investmentRationales.investmentId], references: [investmentRequests.id] }),
+  template: one(templates, { fields: [investmentRationales.templateId], references: [templates.id] }),
+  author: one(users, { fields: [investmentRationales.authorId], references: [users.id] }),
 }));
 
 export const backgroundJobsRelations = relations(backgroundJobs, ({ one }) => ({
@@ -434,6 +456,12 @@ export const insertSequenceSchema = createInsertSchema(sequences).omit({
   updatedAt: true,
 });
 
+export const insertInvestmentRationaleSchema = createInsertSchema(investmentRationales).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -465,3 +493,5 @@ export type WebSearchQuery = typeof webSearchQueries.$inferSelect;
 export type InsertWebSearchQuery = z.infer<typeof insertWebSearchQuerySchema>;
 export type Sequence = typeof sequences.$inferSelect;
 export type InsertSequence = z.infer<typeof insertSequenceSchema>;
+export type InvestmentRationale = typeof investmentRationales.$inferSelect;
+export type InsertInvestmentRationale = z.infer<typeof insertInvestmentRationaleSchema>;

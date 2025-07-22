@@ -18,6 +18,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DocumentAnalysisCard from "@/components/documents/DocumentAnalysisCard";
 import UnifiedSearchInterface from "@/components/documents/UnifiedSearchInterface";
+import InvestmentRationaleModal from "@/components/rationale/InvestmentRationaleModal";
 
 // Edit form schema
 const editFormSchema = z.object({
@@ -46,6 +47,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   const [isDocumentsExpanded, setIsDocumentsExpanded] = useState(false);
   const [isResearchExpanded, setIsResearchExpanded] = useState(false);
   const [isApprovalExpanded, setIsApprovalExpanded] = useState(true);
+  const [isRationaleModalOpen, setIsRationaleModalOpen] = useState(false);
 
   // Fetch detailed investment data when expanded
   const { data: investmentDetails, isLoading: isInvestmentLoading } = useQuery({
@@ -62,6 +64,12 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   // Fetch documents
   const { data: documents } = useQuery({
     queryKey: [`/api/documents/investment/${investment?.id}`],
+    enabled: !!investment?.id && isExpanded,
+  });
+
+  // Fetch investment rationales
+  const { data: rationales } = useQuery({
+    queryKey: [`/api/investments/${investment?.id}/rationales`],
     enabled: !!investment?.id && isExpanded,
   });
 
@@ -685,7 +693,88 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
               )}
             </Card>
 
-
+            {/* Investment Rationale Section */}
+            <Card>
+              <CardHeader 
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
+                onClick={() => setIsRationaleExpanded(!isRationaleExpanded)}
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <FileText className="h-4 w-4" />
+                    Investment Rationale
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    {rationales && rationales.length > 0 && (
+                      <Badge variant="secondary">{rationales.length}</Badge>
+                    )}
+                    {isRationaleExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </div>
+                </div>
+              </CardHeader>
+              {isRationaleExpanded && (
+                <CardContent className="pt-0 pb-4">
+                  <div className="space-y-4">
+                    {rationales && rationales.length > 0 ? (
+                      <div className="space-y-3">
+                        {rationales.map((rationale: any) => (
+                          <div key={rationale.id} className="border rounded-lg p-4 space-y-3">
+                            <div className="flex justify-between items-start">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  {rationale.type === 'ai_generated' ? (
+                                    <Badge variant="secondary" className="flex items-center gap-1">
+                                      <Search className="h-3 w-3" />
+                                      AI Generated
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="flex items-center gap-1">
+                                      <Edit className="h-3 w-3" />
+                                      Manual Entry
+                                    </Badge>
+                                  )}
+                                  {rationale.template?.name && (
+                                    <span className="text-xs text-gray-500">
+                                      • {rationale.template.name}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                  By {rationale.author?.firstName} {rationale.author?.lastName} • {new Date(rationale.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="prose prose-sm max-w-none">
+                              <div className="whitespace-pre-wrap text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded border">
+                                {rationale.content}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-gray-500">
+                        <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm">No investment rationale added yet.</p>
+                      </div>
+                    )}
+                    
+                    {/* Add Rationale Button */}
+                    <div className="pt-3 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsRationaleModalOpen(true)}
+                        className="flex items-center gap-2"
+                      >
+                        <FileText className="h-4 w-4" />
+                        Add Investment Rationale
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
 
             {/* IV. Approval History */}
             {approvalHistory && approvalHistory.length > 0 && (
@@ -740,6 +829,14 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
           </div>
         )}
       </CollapsibleContent>
+      
+      {/* Investment Rationale Modal */}
+      <InvestmentRationaleModal
+        isOpen={isRationaleModalOpen}
+        onClose={() => setIsRationaleModalOpen(false)}
+        investmentId={investment?.id}
+        investmentType={investmentDetails?.investmentType}
+      />
     </Collapsible>
   );
 }

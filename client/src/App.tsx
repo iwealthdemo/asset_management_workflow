@@ -7,6 +7,7 @@ import NewInvestment from "@/pages/NewInvestment";
 import CashRequests from "@/pages/CashRequests";
 import MyTasks from "@/pages/MyTasks";
 import MyInvestments from "@/pages/MyInvestments";
+import Templates from "@/pages/Templates";
 
 import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
@@ -62,6 +63,11 @@ function Router() {
       <Route path="/investments">
         <ProtectedRoute>
           <MyInvestments />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/templates">
+        <ProtectedRoute>
+          <Templates />
         </ProtectedRoute>
       </Route>
 
