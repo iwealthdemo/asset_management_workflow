@@ -44,10 +44,10 @@ export class ComprehensiveProposalService {
     const documentAnalysis: DocumentAnalysisData[] = documents.map(doc => ({
       id: doc.id,
       filename: doc.originalName,
-      summary: doc.summary || null,
-      insights: doc.insights || null, 
-      analysisStatus: doc.analysisStatus,
-      openaiFileId: doc.openaiFileId || null
+      summary: doc.analysisResult ? (JSON.parse(doc.analysisResult).summary || null) : null,
+      insights: doc.analysisResult ? (JSON.parse(doc.analysisResult).insights || null) : null,
+      analysisStatus: doc.analysisStatus || 'pending',
+      openaiFileId: doc.analysisResult ? (JSON.parse(doc.analysisResult).openaiFileId || null) : null
     }));
 
     // Get cross-document query history
@@ -57,7 +57,7 @@ export class ComprehensiveProposalService {
       query: q.query,
       response: q.response,
       searchType: 'document_search',
-      createdAt: q.createdAt || new Date()
+      createdAt: q.createdAt!
     }));
 
     // Get web search query history
@@ -67,7 +67,7 @@ export class ComprehensiveProposalService {
       query: q.query,
       response: q.response,
       searchType: 'web_search',
-      createdAt: q.createdAt || new Date()
+      createdAt: q.createdAt!
     }));
 
     // Get vector store file IDs for file_search tool
@@ -207,14 +207,8 @@ ${webInsights || 'No previous web search results'}
       });
     }
 
-    // Add web_search tool
-    const searchQuery = `${investment.targetCompany} ${investment.investmentType} investment analysis 2025 financial performance`;
-    tools.push({
-      type: "web_search_preview",
-      web_search_preview: {
-        query: searchQuery
-      }
-    });
+    // Note: web_search_preview is not available in current OpenAI API
+    // Web search results are already included in the contextual input above
 
     // Build comprehensive prompt
     const prompt = `${contextualInput}
@@ -224,9 +218,9 @@ COMPREHENSIVE PROPOSAL GENERATION INSTRUCTIONS:
 You are an expert investment analyst generating a world-class investment proposal. Use ALL available information sources:
 
 1. DOCUMENT INTELLIGENCE: Reference the document analysis summaries and insights provided above
-2. RESEARCH HISTORY: Build upon the Q&A research already conducted  
-3. WEB SEARCH: Use current market data and recent developments via web_search_preview
-4. FILE SEARCH: Access detailed information from uploaded documents via file_search
+2. RESEARCH HISTORY: Build upon the Q&A research already conducted including web search results
+3. FILE SEARCH: Access detailed information from uploaded documents via file_search (if available)
+4. INVESTMENT DETAILS: Use the specific investment parameters provided
 5. TEMPLATE ADHERENCE: Follow the exact template structure with specified word limits
 
 TEMPLATE REQUIREMENTS:
@@ -241,7 +235,7 @@ Focus Areas: ${section.focusAreas.join(', ')}
 QUALITY STANDARDS:
 - Professional investment-grade analysis suitable for committee review
 - Integrate ALL existing analysis and research findings
-- Supplement with current market data from web search
+- Leverage web search results already provided in the context
 - Reference specific documents and data sources
 - Maintain exact word limits for each section
 - Provide clear, actionable recommendations
