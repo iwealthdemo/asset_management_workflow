@@ -42,7 +42,10 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   const [isInlineEditing, setIsInlineEditing] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [filesToDelete, setFilesToDelete] = useState<number[]>([]);
+  const [isRationaleExpanded, setIsRationaleExpanded] = useState(false);
+  const [isDocumentsExpanded, setIsDocumentsExpanded] = useState(false);
   const [isResearchExpanded, setIsResearchExpanded] = useState(false);
+  const [isApprovalExpanded, setIsApprovalExpanded] = useState(true);
 
   // Fetch detailed investment data when expanded
   const { data: investmentDetails, isLoading: isInvestmentLoading } = useQuery({
@@ -325,10 +328,22 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
           <div className="space-y-6">
             {/* I. Investment Rationale / Description */}
             <Card>
-              <CardContent className="pt-6">
-                <h4 className="font-semibold mb-4">Investment Rationale / Description</h4>
+              <CardHeader 
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => setIsRationaleExpanded(!isRationaleExpanded)}
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Investment Rationale
+                  </CardTitle>
+                  {isRationaleExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </div>
+              </CardHeader>
+              {isRationaleExpanded && (
+                <CardContent className="pt-0">
                 
-                {isInlineEditing ? (
+                  {isInlineEditing ? (
                   <Form {...editForm}>
                     <div className="space-y-4">
                       <FormField
@@ -603,14 +618,27 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                     )}
                   </div>
                 )}
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
 
             {/* II. Attached Documents */}
             {documents && documents.length > 0 && (
               <Card>
-                <CardContent className="pt-6">
-                  <h4 className="font-semibold mb-4">Attached Documents</h4>
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => setIsDocumentsExpanded(!isDocumentsExpanded)}
+                >
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Attached Documents
+                    </CardTitle>
+                    {isDocumentsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </div>
+                </CardHeader>
+                {isDocumentsExpanded && (
+                  <CardContent className="pt-0">
                   <div className="space-y-4">
                     {documents.map((doc: any) => (
                       <DocumentAnalysisCard
@@ -623,7 +651,8 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                       />
                     ))}
                   </div>
-                </CardContent>
+                  </CardContent>
+                )}
               </Card>
             )}
 
@@ -643,23 +672,37 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                     {isResearchExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0">
-                  <UnifiedSearchInterface 
-                    documents={documents}
-                    requestId={investment.id}
-                    requestType="investment"
-                    isExpanded={isResearchExpanded}
-                    onExpandedChange={setIsResearchExpanded}
-                  />
-                </CardContent>
+                {isResearchExpanded && (
+                  <CardContent className="pt-0">
+                    <UnifiedSearchInterface 
+                      documents={documents}
+                      requestId={investment.id}
+                      requestType="investment"
+                      isExpanded={isResearchExpanded}
+                      onExpandedChange={setIsResearchExpanded}
+                    />
+                  </CardContent>
+                )}
               </Card>
             )}
 
             {/* IV. Approval History */}
             {approvalHistory && approvalHistory.length > 0 && (
               <Card>
-                <CardContent className="pt-6">
-                  <h4 className="font-semibold mb-4">Approval History</h4>
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => setIsApprovalExpanded(!isApprovalExpanded)}
+                >
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Approval History
+                    </CardTitle>
+                    {isApprovalExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </div>
+                </CardHeader>
+                {isApprovalExpanded && (
+                  <CardContent className="pt-0">
                   <div className="space-y-3">
                     {approvalHistory.map((approval: any) => (
                       <div key={approval.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
@@ -685,7 +728,8 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                       </div>
                     ))}
                   </div>
-                </CardContent>
+                  </CardContent>
+                )}
               </Card>
             )}
           </div>
