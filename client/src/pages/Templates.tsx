@@ -40,6 +40,15 @@ const Templates: React.FC = () => {
   // Fetch templates
   const { data: templates, isLoading } = useQuery({
     queryKey: ['/api/templates/investment'],
+    queryFn: async () => {
+      const response = await fetch('/api/templates/investment', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch templates');
+      }
+      return response.json();
+    }
   });
 
   const form = useForm<TemplateFormData>({

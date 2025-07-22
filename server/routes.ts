@@ -1670,6 +1670,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI rationale generation route
+  app.post('/api/investments/:id/rationales/generate', authMiddleware, async (req, res) => {
+    try {
+      const investmentId = parseInt(req.params.id);
+      const { templateId } = req.body;
+      
+      // Get template and investment details
+      const template = await storage.getTemplate(templateId);
+      const investment = await storage.getInvestmentRequest(investmentId);
+      
+      if (!template || !investment) {
+        return res.status(404).json({ message: 'Template or investment not found' });
+      }
+      
+      // For now, create a placeholder AI-generated rationale
+      // In production, this would integrate with the LLM service
+      const aiContent = `AI-Generated Investment Rationale for ${investment.targetCompany}
+
+This analysis is generated using the "${template.name}" template for ${investment.investmentType} investments.
+
+Investment Overview:
+- Target Company: ${investment.targetCompany}
+- Investment Amount: $${parseFloat(investment.amount).toLocaleString()}
+- Expected Return: ${investment.expectedReturn}%
+- Risk Level: ${investment.riskLevel}
+
+Financial Analysis:
+Based on the provided investment parameters, this ${investment.investmentType} investment in ${investment.targetCompany} presents a balanced opportunity with expected returns of ${investment.expectedReturn}%. The risk profile is classified as ${investment.riskLevel}, indicating appropriate due diligence requirements.
+
+Risk Assessment:
+The investment carries ${investment.riskLevel} risk characteristics. Key risk factors include market volatility, sector-specific challenges, and regulatory considerations. Mitigation strategies should be implemented accordingly.
+
+Investment Recommendation:
+This investment aligns with portfolio diversification objectives and meets the return threshold requirements. The risk-adjusted return profile justifies the allocation of $${parseFloat(investment.amount).toLocaleString()}.
+
+Strategic Fit:
+The investment supports long-term portfolio growth objectives and provides exposure to the ${investment.investmentType} asset class.
+
+Note: This is an AI-generated analysis based on the selected template structure. For production deployment, this would integrate with advanced LLM services for comprehensive market analysis and detailed financial modeling.`;
+
+      const rationaleData = {
+        investmentId,
+        templateId,
+        content: aiContent,
+        type: 'ai_generated' as const,
+        authorId: req.userId!,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      const rationale = await storage.createInvestmentRationale(rationaleData);
+      res.json(rationale);
+    } catch (error) {
+      console.error('Error generating AI rationale:', error);
+      res.status(500).json({ message: 'Failed to generate AI rationale' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
