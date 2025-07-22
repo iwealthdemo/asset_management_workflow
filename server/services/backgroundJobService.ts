@@ -481,21 +481,22 @@ Brief overview of the investment opportunity and key takeaways
 
 Structure your response with clear headings and specific evidence from the document. Focus on actionable insights that would inform investment decisions. Aim for approximately 500-600 words total.`;
 
-      // Generate summary using file search with correct API structure
-      console.log('Generating comprehensive summary...');
+      // Get the original filename for filtering
+      const originalFilename = document.fileName || `document_${job.documentId}`;
+      
+      // Generate summary using file search with original_filename filter (same as cross-document search)
+      console.log(`Generating summary for file: ${originalFilename}`);
       const summaryResponse = await openai.responses.create({
         model: "gpt-4o",
-        messages: [
-          {
-            role: "user",
-            content: summaryPrompt
-          }
-        ],
+        input: "Get summary of the file",
         tools: [
           {
             type: "file_search",
-            file_search: {
-              vector_store_ids: [vectorStoreId]
+            vector_store_ids: [vectorStoreId],
+            filters: {
+              type: "eq",
+              key: "original_filename", 
+              value: originalFilename
             }
           }
         ]
@@ -508,21 +509,19 @@ Structure your response with clear headings and specific evidence from the docum
         throw new Error('No summary content generated');
       }
 
-      // Generate detailed insights using file search
-      console.log('Generating detailed investment insights...');
+      // Generate detailed insights using the same approach
+      console.log(`Generating investment insights for file: ${originalFilename}`);
       const insightsResponse = await openai.responses.create({
         model: "gpt-4o",
-        messages: [
-          {
-            role: "user",
-            content: insightsPrompt
-          }
-        ],
+        input: insightsPrompt,
         tools: [
           {
             type: "file_search",
-            file_search: {
-              vector_store_ids: [vectorStoreId]
+            vector_store_ids: [vectorStoreId],
+            filters: {
+              type: "eq",
+              key: "original_filename",
+              value: originalFilename
             }
           }
         ]
