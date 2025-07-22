@@ -385,37 +385,41 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
                       return (
                         <Card key={queryKey} className="border border-gray-200 dark:border-gray-700">
                           <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start gap-2 flex-1 min-w-0">
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => toggleQueryExpansion(queryKey)}
-                                  className="p-1 h-auto"
+                                  className="p-1 h-auto mt-0.5"
                                 >
                                   {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                 </Button>
                                 
-                                {getSearchIcon(queryResult.searchType)}
-                                <Badge variant={queryResult.searchType === 'document' ? 'default' : 'secondary'} className="shrink-0">
-                                  {queryResult.searchType === 'document' ? 'Doc' : 'Web'}
-                                </Badge>
-                                
-                                <span className="text-sm text-gray-900 dark:text-gray-100 truncate flex-1 min-w-0">
-                                  {isExpanded ? queryResult.query : truncatedQuery}
-                                </span>
-                                
-                                <span className="text-xs text-gray-500 flex items-center gap-1 shrink-0">
-                                  <Clock className="h-3 w-3" />
-                                  {format(new Date(queryResult.createdAt), 'MMM dd, HH:mm')}
-                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    {getSearchIcon(queryResult.searchType)}
+                                    <Badge variant={queryResult.searchType === 'document' ? 'default' : 'secondary'} className="shrink-0">
+                                      {queryResult.searchType === 'document' ? 'Doc' : 'Web'}
+                                    </Badge>
+                                    
+                                    <span className="text-xs text-gray-500 flex items-center gap-1 shrink-0">
+                                      <Clock className="h-3 w-3" />
+                                      {format(new Date(queryResult.createdAt), 'MMM dd, HH:mm')}
+                                    </span>
+                                  </div>
+                                  
+                                  <p className="text-sm text-gray-900 dark:text-gray-100 break-words">
+                                    {isExpanded ? queryResult.query : truncatedQuery}
+                                  </p>
+                                </div>
                               </div>
                               
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleDeleteQuery(queryResult.searchType, queryResult.id)}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 shrink-0 ml-2"
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 shrink-0 ml-2 mt-0.5"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -439,14 +443,14 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
                               
                               <div>
                                 <span className="text-sm font-medium text-gray-600">Answer:</span>
-                                <ScrollArea className="max-h-64 w-full rounded border mt-1">
+                                <div className="mt-1 rounded border max-h-64 overflow-y-auto">
                                   <div className="p-3">
                                     <div 
                                       className="text-sm prose prose-sm max-w-none dark:prose-invert"
                                       dangerouslySetInnerHTML={{ __html: parseMarkdown(queryResult.response) }}
                                     />
                                   </div>
-                                </ScrollArea>
+                                </div>
                               </div>
                             </CardContent>
                           )}
