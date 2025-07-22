@@ -298,6 +298,7 @@ export class BackgroundJobService {
 
   /**
    * Upload to local OpenAI when LLM service fails
+   * Enhanced to create comprehensive metadata attributes like the external LLM service
    */
   private async uploadToLocalOpenAI(filePath: string, fileName: string, documentId: number): Promise<any> {
     try {
@@ -305,6 +306,18 @@ export class BackgroundJobService {
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
       });
+
+      // Get document and request details for metadata
+      const [document] = await db
+        .select()
+        .from(documents)
+        .where(eq(documents.id, documentId))
+        .limit(1);
+
+      // Extract metadata from filename and content like external service does
+      const metadata = this.extractDocumentMetadata(fileName, document);
+
+      console.log('Uploading file with enhanced metadata:', metadata);
 
       // Upload file to OpenAI
       const file = await openai.files.create({
@@ -314,14 +327,17 @@ export class BackgroundJobService {
 
       console.log('File uploaded to OpenAI:', file.id);
 
-      // Add to vector store
+      // Add to vector store with comprehensive attributes (matching external service format)
       const vectorStoreId = 'vs_687584b54f908191b0a21ffa42948fb5'; // From health check
       const vectorStoreFile = await openai.beta.vectorStores.files.create(
         vectorStoreId,
-        { file_id: file.id }
+        { 
+          file_id: file.id,
+          metadata: metadata // Add rich metadata like external service
+        }
       );
 
-      console.log('File added to vector store:', vectorStoreFile.id);
+      console.log('File added to vector store with metadata:', vectorStoreFile.id);
 
       return {
         success: true,
@@ -335,11 +351,9 @@ export class BackgroundJobService {
           id: vectorStoreFile.id,
           status: vectorStoreFile.status,
           usage_bytes: vectorStoreFile.usage_bytes || 0,
-          attributes: {
-            document_id: documentId.toString(),
-            upload_method: 'local_openai_fallback'
-          }
-        }
+          attributes: metadata
+        },
+        applied_attributes: metadata
       };
 
     } catch (error: any) {
@@ -349,6 +363,46 @@ export class BackgroundJobService {
         error: error.message || 'Failed to upload to local OpenAI'
       };
     }
+  }
+
+  /**
+   * Extract comprehensive metadata from document like external LLM service does
+   */
+  private extractDocumentMetadata(fileName: string, document: any): Record<string, any> {
+    const metadata: Record<string, any> = {
+      // Core identifiers
+      document_id: document?.id?.toString() || 'unknown',
+      request_id: document?.requestId?.toString() || 'unknown',
+      
+      // File information
+      original_filename: fileName,
+      file_size_bytes: document?.fileSize?.toString() || '0',
+      upload_method: 'local_openai_fallback',
+      upload_timestamp: Math.floor(Date.now() / 1000).toString(),
+      
+      // Document classification
+      document_type: 'annual_report', // Default, could be enhanced with file analysis
+      category: 'financial_report',
+    };
+
+    // Extract year from filename (common in annual reports)
+    const yearMatch = fileName.match(/20\d{2}/);
+    if (yearMatch) {
+      metadata.year = yearMatch[0];
+    }
+
+    // Extract company name from filename (before common separators)
+    const companyMatch = fileName.match(/^([^_-]+)/);
+    if (companyMatch) {
+      metadata.company = companyMatch[1].trim();
+    }
+
+    // Add request type if available
+    if (document?.requestType) {
+      metadata.request_type = document.requestType;
+    }
+
+    return metadata;
   }
 
   /**
@@ -414,16 +468,14 @@ Brief overview of the investment opportunity and key takeaways
 
 Structure your response with clear headings and specific evidence from the document. Focus on actionable insights that would inform investment decisions. Aim for approximately 500-600 words total.`;
 
-      // Generate summary using file search
+      // Generate summary using file search with correct API structure (matching working cross-document service)
       const summaryTools = [{
         type: "file_search" as const,
-        file_search: {
-          vector_store_ids: [vectorStoreId],
-          file_filter: {
-            type: "eq" as const,
-            key: "file_id",
-            value: fileId
-          }
+        vector_store_ids: [vectorStoreId],
+        filters: {
+          type: "eq" as const,
+          key: "file_id",
+          value: fileId
         }
       }];
 
@@ -444,7 +496,7 @@ Structure your response with clear headings and specific evidence from the docum
       console.log('Generating detailed investment insights...');
       const insightsResponse = await openai.responses.create({
         model: "gpt-4o",
-        tools: summaryTools,
+        tools: summaryTools, // Use same tools structure
         input: insightsPrompt,
         temperature: 0.3
       });
