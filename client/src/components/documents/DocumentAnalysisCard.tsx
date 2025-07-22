@@ -424,50 +424,6 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
         {/* Analysis Results */}
         {document.analysisStatus === 'completed' && analysis && (
           <div className="space-y-4">
-
-            {/* Risk Assessment */}
-            {analysis.riskAssessment && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                  <span className="text-sm font-medium">Risk Assessment</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={getRiskColor(analysis.riskAssessment.level)}>
-                    {analysis.riskAssessment.level?.toUpperCase() || 'UNKNOWN'}
-                  </Badge>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Score: {analysis.riskAssessment.score || 0}/100
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Key Information */}
-            {analysis.keyInformation && (
-              <div className="space-y-2">
-                <span className="text-sm font-medium">Key Information</span>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  {analysis.keyInformation.amounts && analysis.keyInformation.amounts.length > 0 && (
-                    <div>
-                      <span className="font-medium">Amounts:</span>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        {analysis.keyInformation.amounts.join(', ')}
-                      </p>
-                    </div>
-                  )}
-                  {analysis.keyInformation.companyName && (
-                    <div>
-                      <span className="font-medium">Company:</span>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        {analysis.keyInformation.companyName}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Analysis Cards Section */}
             <div className="space-y-3">
               {/* Summary Card */}
