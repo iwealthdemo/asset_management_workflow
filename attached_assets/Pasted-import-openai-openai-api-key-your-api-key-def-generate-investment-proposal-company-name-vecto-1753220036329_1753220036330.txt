@@ -1,0 +1,72 @@
+import openai
+
+openai.api_key = 'your-api-key'
+
+def generate_investment_proposal(company_name, vector_store_id, search_query):
+    response = openai.responses.create(
+        model="gpt-4",
+        input=f"""
+        You are an expert equity research analyst tasked with generating an investment proposal for {company_name}. Please use the relevant information obtained from the company files in the vector store and supplement with web search results based on the query '{search_query}'. Structure the proposal as follows:
+
+        **Proposal Template for Investment in {company_name}:**
+
+        **1. Executive Summary (Limit: 150 words)**  
+        Provide a high-level summary of the bond investment opportunity, covering the issuer, bond terms, and key investment considerations. Use information from the company files (via file_search) and web search results.
+
+        **2. Issuer Overview (Limit: 200 words)**  
+        Describe the issuer’s background, financial health, and credit rating. Use details from the vector store and the web search results.
+
+        **3. Bond Overview (Limit: 250 words)**  
+        Provide details of the bond terms, including coupon rate, maturity date, call provisions, and other bond-specific features, based on the files and search results.
+
+        **4. Investment Rationale (Limit: 300 words)**  
+        Justify why this bond is a suitable investment opportunity, focusing on yield, creditworthiness, and portfolio fit. Use information from both the files and web search to validate the rationale.
+
+        **5. Risk Assessment (Limit: 200 words)**  
+        Identify and analyze the risks associated with this bond investment, including credit, interest rate, and inflation risks. Integrate data from the vector store and web search.
+
+        **6. Financial Overview and Forecast (Limit: 250 words)**  
+        Analyze the issuer’s financials and provide an outlook on their ability to meet bond obligations. Incorporate details from the files and recent data retrieved via web search.
+
+        **7. Valuation and Price Target (Limit: 200 words)**  
+        Offer a valuation of the bond, including its current price, yield to maturity, and price sensitivity. Use both historical file data and web search results for pricing and valuation.
+
+        **8. Recommendation (Limit: 100 words)**  
+        Provide a clear recommendation to the investment committee, based on all gathered information.
+
+        **9. Appendices (Optional)**  
+        Include supporting data such as financial reports, credit ratings, or bond price history if relevant.
+
+        **Instructions to File Search**:  
+        Retrieve relevant information from the vector store based on the provided vector store ID (`{vector_store_id}`). This may include financial data, bond terms, issuer profile, etc.
+
+        **Instructions to Web Search**:  
+        Perform a web search using the query: '{search_query}' to fetch the latest market news, financial reports, or other external data regarding the company or bond.
+
+        Please ensure the proposal adheres to the section limits and provides a clear, concise analysis for the investment committee.
+        """,
+        tools=[
+            {
+                "type": "file_search",
+                "vector_store_ids": [vector_store_id],
+                "filters": {
+                    "type": "eq",
+                    "key": "company_name",
+                    "value": company_name
+                }
+            },
+            {
+                "type": "web_search",
+                "query": search_query
+            }
+        ]
+    )
+    return response
+
+# Example usage:
+company_name = "ExampleCorp"
+vector_store_id = "vs_687584b54f908191b0a21ffa42948fb5"
+search_query = "ExampleCorp bond investment 2025"
+
+proposal = generate_investment_proposal(company_name, vector_store_id, search_query)
+print(proposal)
