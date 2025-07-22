@@ -342,8 +342,8 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                   </div>
                 </CardHeader>
                 {isDocumentsExpanded && (
-                  <CardContent className="pt-0">
-                  <div className="space-y-4">
+                  <CardContent className="pt-0 pb-4">
+                  <div className="space-y-3">
                     {documents.map((doc: any) => (
                       <DocumentAnalysisCard
                         key={doc.id}
@@ -376,7 +376,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                   </div>
                 </CardHeader>
                 {isResearchExpanded && (
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-0 pb-4">
                     <UnifiedSearchInterface 
                       documents={documents}
                       requestId={investment.id}
@@ -404,7 +404,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                 </div>
               </CardHeader>
               {isRationaleExpanded && (
-                <CardContent className="pt-0">
+                <CardContent className="pt-0 pb-4">
                 
                   {isInlineEditing ? (
                   <Form {...editForm}>
@@ -703,7 +703,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                   </div>
                 </CardHeader>
                 {isApprovalExpanded && (
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-0 pb-4">
                   <div className="space-y-3">
                     {approvalHistory.map((approval: any) => (
                       <div key={approval.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
