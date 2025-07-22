@@ -326,15 +326,78 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
           </div>
         ) : investmentDetails ? (
           <div className="space-y-6">
-            {/* I. Investment Rationale / Description */}
+            {/* I. Attached Documents */}
+            {documents && documents.length > 0 && (
+              <Card>
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
+                  onClick={() => setIsDocumentsExpanded(!isDocumentsExpanded)}
+                >
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <FileText className="h-4 w-4" />
+                      Attached Documents
+                    </CardTitle>
+                    {isDocumentsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </div>
+                </CardHeader>
+                {isDocumentsExpanded && (
+                  <CardContent className="pt-0">
+                  <div className="space-y-4">
+                    {documents.map((doc: any) => (
+                      <DocumentAnalysisCard
+                        key={doc.id}
+                        document={doc}
+                        requestId={investment.id}
+                        requestType="investment"
+                        showAnalysisLabel={false}
+                        showOnlyProcessed={true}
+                      />
+                    ))}
+                  </div>
+                  </CardContent>
+                )}
+              </Card>
+            )}
+
+            {/* II. Research & Analysis */}
+            {documents && documents.length > 0 && (
+              <Card>
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
+                  onClick={() => setIsResearchExpanded(!isResearchExpanded)}
+                >
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Search className="h-4 w-4" />
+                      Research & Analysis
+                    </CardTitle>
+                    {isResearchExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </div>
+                </CardHeader>
+                {isResearchExpanded && (
+                  <CardContent className="pt-0">
+                    <UnifiedSearchInterface 
+                      documents={documents}
+                      requestId={investment.id}
+                      requestType="investment"
+                      isExpanded={isResearchExpanded}
+                      onExpandedChange={setIsResearchExpanded}
+                    />
+                  </CardContent>
+                )}
+              </Card>
+            )}
+
+            {/* III. Investment Rationale / Description */}
             <Card>
               <CardHeader 
-                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
                 onClick={() => setIsRationaleExpanded(!isRationaleExpanded)}
               >
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <FileText className="h-4 w-4" />
                     Investment Rationale
                   </CardTitle>
                   {isRationaleExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -622,80 +685,18 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
               )}
             </Card>
 
-            {/* II. Attached Documents */}
-            {documents && documents.length > 0 && (
-              <Card>
-                <CardHeader 
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  onClick={() => setIsDocumentsExpanded(!isDocumentsExpanded)}
-                >
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Attached Documents
-                    </CardTitle>
-                    {isDocumentsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </div>
-                </CardHeader>
-                {isDocumentsExpanded && (
-                  <CardContent className="pt-0">
-                  <div className="space-y-4">
-                    {documents.map((doc: any) => (
-                      <DocumentAnalysisCard
-                        key={doc.id}
-                        document={doc}
-                        requestId={investment.id}
-                        requestType="investment"
-                        showAnalysisLabel={false}
-                        showOnlyProcessed={true}
-                      />
-                    ))}
-                  </div>
-                  </CardContent>
-                )}
-              </Card>
-            )}
 
-            {/* III. Research & Analysis */}
-            {documents && documents.length > 0 && (
-              <Card>
-                <CardHeader 
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  onClick={() => setIsResearchExpanded(!isResearchExpanded)}
-                >
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Search className="h-5 w-5" />
-                      Research & Analysis
-                      {/* Add query count badge if needed */}
-                    </CardTitle>
-                    {isResearchExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </div>
-                </CardHeader>
-                {isResearchExpanded && (
-                  <CardContent className="pt-0">
-                    <UnifiedSearchInterface 
-                      documents={documents}
-                      requestId={investment.id}
-                      requestType="investment"
-                      isExpanded={isResearchExpanded}
-                      onExpandedChange={setIsResearchExpanded}
-                    />
-                  </CardContent>
-                )}
-              </Card>
-            )}
 
             {/* IV. Approval History */}
             {approvalHistory && approvalHistory.length > 0 && (
               <Card>
                 <CardHeader 
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
                   onClick={() => setIsApprovalExpanded(!isApprovalExpanded)}
                 >
                   <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Clock className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Clock className="h-4 w-4" />
                       Approval History
                     </CardTitle>
                     {isApprovalExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
