@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
-import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye, Search } from "lucide-react";
+import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye, Search, DollarSign, TrendingUp } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -336,7 +336,7 @@ function TaskCard({
               <p className="text-gray-600 mb-3">{task.description}</p>
               
               {/* Show Request ID and Investment Type on main card */}
-              <div className="flex items-center gap-4 text-sm mb-2">
+              <div className="flex items-center gap-4 text-sm mb-3">
                 <div className="flex items-center gap-1 font-semibold text-blue-600">
                   <span>Request ID:</span>
                   <span>{task.requestId}</span>
@@ -346,6 +346,32 @@ function TaskCard({
                   <span className="capitalize">{task.investmentType || task.requestType.replace('_', ' ')}</span>
                 </div>
               </div>
+              
+              {/* Add 3-column grid for proposal details */}
+              {requestData && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-green-600" />
+                    <span className="text-sm text-gray-600">Amount:</span>
+                    <span className="font-semibold">${requestData.amount}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm text-gray-600">Expected Return:</span>
+                    <span className="font-semibold">{requestData.expectedReturn}%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm text-gray-600">Created:</span>
+                    <span className="font-semibold">{format(new Date(requestData.createdAt), 'MMM dd, yyyy')}</span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Show description if available */}
+              {requestData?.description && (
+                <p className="text-sm text-gray-600 mb-4">{requestData.description}</p>
+              )}
               
               <div className="flex items-center gap-4 text-sm text-gray-500">
                 <div className="flex items-center gap-1">
