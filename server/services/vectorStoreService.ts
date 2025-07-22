@@ -552,7 +552,7 @@ export class VectorStoreService {
       const vectorStore = await this.getOrCreateVectorStore();
       const storeId = vectorStoreId || vectorStore.id;
       
-      await openai.beta.vectorStores.files.del(storeId, fileId);
+      await openai.vectorStores.files.del(storeId, fileId);
       await openai.files.del(fileId);
     } catch (error) {
       console.error('Error deleting document from vector store:', error);

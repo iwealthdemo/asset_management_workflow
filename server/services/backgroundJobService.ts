@@ -3,6 +3,7 @@ import { backgroundJobs, documents, type BackgroundJob, type InsertBackgroundJob
 import { eq, and } from 'drizzle-orm';
 import path from 'path';
 import fs from 'fs';
+import OpenAI from 'openai';
 
 export class BackgroundJobService {
   /**
@@ -303,7 +304,7 @@ export class BackgroundJobService {
    */
   private async uploadToLocalOpenAI(filePath: string, fileName: string, documentId: number): Promise<any> {
     try {
-      const { default: OpenAI } = await import('openai');
+      // Import OpenAI at the top of file instead of dynamic import
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
       });
@@ -329,14 +330,22 @@ export class BackgroundJobService {
 
       console.log('File uploaded to OpenAI:', file.id);
 
+      // Debug: Check OpenAI client structure
+      console.log('OpenAI client has vectorStores:', !!openai.vectorStores);
+      console.log('vectorStores has files:', !!(openai.vectorStores && openai.vectorStores.files));
+      
+      if (!openai.vectorStores) {
+        throw new Error('vectorStores API not available in this OpenAI client version');
+      }
+      if (!openai.vectorStores.files) {
+        throw new Error('vectorStores.files API not available');
+      }
+
       // Add to vector store with comprehensive attributes (matching external service format)
       const vectorStoreId = 'vs_687584b54f908191b0a21ffa42948fb5'; // From health check
-      const vectorStoreFile = await openai.beta.vectorStores.files.create(
-        vectorStoreId,
-        { 
-          file_id: file.id
-        }
-      );
+      const vectorStoreFile = await openai.vectorStores.files.create(vectorStoreId, {
+        file_id: file.id
+      });
 
       console.log('File added to vector store with metadata:', vectorStoreFile.id);
 
