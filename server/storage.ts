@@ -1102,12 +1102,17 @@ export class DatabaseStorage implements IStorage {
         
         return nextValue;
       } else {
+        // Extract year from sequence name (format: PREFIX_YEAR)
+        const yearMatch = sequenceName.match(/_(\d{4})$/);
+        const year = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
+        
         // Create new sequence starting at 1
         const [newSequence] = await db
           .insert(sequences)
           .values({
             sequenceName,
             currentValue: 1,
+            year,
             createdAt: new Date(),
             updatedAt: new Date()
           })
