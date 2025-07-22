@@ -481,26 +481,29 @@ Brief overview of the investment opportunity and key takeaways
 
 Structure your response with clear headings and specific evidence from the document. Focus on actionable insights that would inform investment decisions. Aim for approximately 500-600 words total.`;
 
-      // Generate summary using file search with correct API structure (matching working cross-document service)
-      const summaryTools = [{
-        type: "file_search" as const,
-        vector_store_ids: [vectorStoreId],
-        filters: {
-          type: "eq" as const,
-          key: "file_id",
-          value: fileId
-        }
-      }];
-
+      // Generate summary using file search with correct API structure
       console.log('Generating comprehensive summary...');
       const summaryResponse = await openai.responses.create({
         model: "gpt-4o",
-        tools: summaryTools,
-        input: summaryPrompt,
-        temperature: 0.3
+        messages: [
+          {
+            role: "user",
+            content: summaryPrompt
+          }
+        ],
+        tools: [
+          {
+            type: "file_search",
+            file_search: {
+              vector_store_ids: [vectorStoreId]
+            }
+          }
+        ]
       });
 
-      const summary = summaryResponse.output_text;
+      // Extract text from response
+      const summaryOutput = summaryResponse.output.find(item => 'text' in item);
+      const summary = summaryOutput?.text || '';
       if (!summary) {
         throw new Error('No summary content generated');
       }
@@ -509,12 +512,25 @@ Structure your response with clear headings and specific evidence from the docum
       console.log('Generating detailed investment insights...');
       const insightsResponse = await openai.responses.create({
         model: "gpt-4o",
-        tools: summaryTools, // Use same tools structure
-        input: insightsPrompt,
-        temperature: 0.3
+        messages: [
+          {
+            role: "user",
+            content: insightsPrompt
+          }
+        ],
+        tools: [
+          {
+            type: "file_search",
+            file_search: {
+              vector_store_ids: [vectorStoreId]
+            }
+          }
+        ]
       });
 
-      const insights = insightsResponse.output_text;
+      // Extract text from insights response
+      const insightsOutput = insightsResponse.output.find(item => 'text' in item);
+      const insights = insightsOutput?.text || '';
       if (!insights) {
         throw new Error('No insights content generated');
       }
