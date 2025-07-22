@@ -353,11 +353,6 @@ function TaskCard({
               {isExpanded ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
               {isExpanded ? 'Hide Details' : 'View Details'}
             </Button>
-            {task.status === 'pending' && !isExpanded && (
-              <Button size="sm" onClick={() => onAction(task)}>
-                Take Action
-              </Button>
-            )}
           </div>
         </div>
 
