@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, AlertTriangle, Clock, Eye, ChevronDown, ChevronUp, Edit, Send, FileText, Upload, X, Save } from "lucide-react";
+import { CheckCircle, AlertTriangle, Clock, Eye, ChevronDown, ChevronUp, Edit, Send, FileText, Upload, X, Save, Search } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
@@ -42,6 +42,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   const [isInlineEditing, setIsInlineEditing] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [filesToDelete, setFilesToDelete] = useState<number[]>([]);
+  const [isResearchExpanded, setIsResearchExpanded] = useState(false);
 
   // Fetch detailed investment data when expanded
   const { data: investmentDetails, isLoading: isInvestmentLoading } = useQuery({
@@ -629,12 +630,26 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
             {/* III. Research & Analysis */}
             {documents && documents.length > 0 && (
               <Card>
-                <CardContent className="pt-6">
-                  <h4 className="font-semibold mb-4">Research & Analysis</h4>
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => setIsResearchExpanded(!isResearchExpanded)}
+                >
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Search className="h-5 w-5" />
+                      Research & Analysis
+                      {/* Add query count badge if needed */}
+                    </CardTitle>
+                    {isResearchExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
                   <UnifiedSearchInterface 
                     documents={documents}
                     requestId={investment.id}
                     requestType="investment"
+                    isExpanded={isResearchExpanded}
+                    onExpandedChange={setIsResearchExpanded}
                   />
                 </CardContent>
               </Card>

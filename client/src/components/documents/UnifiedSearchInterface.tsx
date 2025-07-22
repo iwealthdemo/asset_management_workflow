@@ -47,12 +47,18 @@ interface QueryResult {
 interface UnifiedSearchInterfaceProps {
   requestId: number;
   documents: Document[];
+  isExpanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 type SearchType = 'document' | 'web';
 
-export default function UnifiedSearchInterface({ requestId, documents }: UnifiedSearchInterfaceProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export default function UnifiedSearchInterface({ 
+  requestId, 
+  documents, 
+  isExpanded = false, 
+  onExpandedChange 
+}: UnifiedSearchInterfaceProps) {
   const [searchType, setSearchType] = useState<SearchType>('document');
   const [query, setQuery] = useState('');
   const [selectedDocuments, setSelectedDocuments] = useState<number[]>([]);
@@ -205,28 +211,12 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
 
   const isLoading = documentSearchMutation.isPending || webSearchMutation.isPending;
 
+  if (!isExpanded) {
+    return null;
+  }
+
   return (
-    <Card className="w-full">
-      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-        <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                Research & Analysis
-                {combinedQueries.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {combinedQueries.length} {combinedQueries.length === 1 ? 'query' : 'queries'}
-                  </Badge>
-                )}
-              </CardTitle>
-              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </div>
-          </CardHeader>
-        </CollapsibleTrigger>
-        
-        <CollapsibleContent>
-          <CardContent className="space-y-4">
+    <div className="space-y-4">
             {/* Search Type Selection */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Search Type</label>
@@ -466,9 +456,6 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
                 )}
               </div>
             )}
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
-    </Card>
+    </div>
   );
 }
