@@ -84,8 +84,11 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
         title: "Success",
         description: "Draft updated successfully",
       });
+      // Invalidate cache to ensure all views see updated data
       queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
       queryClient.invalidateQueries({ queryKey: [`/api/investments/${investment?.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['investment-details', investment?.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       setIsInlineEditing(false);
     },
     onError: (error: any) => {
@@ -109,10 +112,16 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
           "Proposal resubmitted for approval successfully" : 
           "Draft submitted for approval successfully",
       });
-      // Invalidate all relevant cache keys to ensure UI updates
+      // Invalidate all relevant cache keys to ensure UI updates across all views
       queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
       queryClient.invalidateQueries({ queryKey: [`/api/investments/${investment?.id}`] });
       queryClient.invalidateQueries({ queryKey: ['investment-details', investment?.id] });
+      
+      // Invalidate task-related queries that approvers use
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/approvals/investment/${investment?.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment?.id}`] });
+      
       // Force refetch of the current investment
       if (investment?.id) {
         queryClient.refetchQueries({ queryKey: [`/api/investments/${investment.id}`] });
@@ -146,7 +155,9 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
         title: "Success",
         description: "Documents uploaded successfully",
       });
+      // Invalidate cache to ensure all views see new documents
       queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment?.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       setUploadedFiles([]);
     },
     onError: (error: any) => {
@@ -168,7 +179,9 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
         title: "Success",
         description: "Document deleted successfully",
       });
+      // Invalidate cache to ensure all views see document removal
       queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment?.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
     },
     onError: (error: any) => {
       toast({
