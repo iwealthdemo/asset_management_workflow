@@ -347,7 +347,8 @@ export class BackgroundJobService {
       // Add to vector store with comprehensive attributes (matching external service format)
       const vectorStoreId = 'vs_687584b54f908191b0a21ffa42948fb5'; // From health check
       const vectorStoreFile = await openai.vectorStores.files.create(vectorStoreId, {
-        file_id: file.id
+        file_id: file.id,
+        attributes: metadata
       });
 
       console.log('File added to vector store with metadata:', vectorStoreFile.id);
