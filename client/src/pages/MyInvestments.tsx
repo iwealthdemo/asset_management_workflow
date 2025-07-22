@@ -525,6 +525,18 @@ function InvestmentList({ investments, onToggleDetails, expandedInvestment }: {
                   </Badge>
                 </div>
                 
+                {/* Show Request ID and Investment Type on main card */}
+                <div className="flex items-center gap-4 text-sm mb-3">
+                  <div className="flex items-center gap-1 font-semibold text-blue-600">
+                    <span>Request ID:</span>
+                    <span>{investment.requestId}</span>
+                  </div>
+                  <div className="flex items-center gap-1 font-semibold text-purple-600">
+                    <span>Type:</span>
+                    <span className="capitalize">{investment.investmentType}</span>
+                  </div>
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div className="flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-green-600" />

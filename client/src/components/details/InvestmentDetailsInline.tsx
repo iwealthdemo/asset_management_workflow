@@ -74,214 +74,176 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
     },
   });
 
-  // Edit draft mutation
+  // Initialize form when investment details are loaded
+  if (investmentDetails && !isInlineEditing) {
+    editForm.reset({
+      targetCompany: investmentDetails.targetCompany || "",
+      investmentType: investmentDetails.investmentType || "equity",
+      amount: investmentDetails.amount?.toString() || "",
+      expectedReturn: investmentDetails.expectedReturn?.toString() || "",
+      description: investmentDetails.description || "",
+      riskLevel: investmentDetails.riskLevel || "medium",
+    });
+  }
+
+  // Mutations
   const editDraftMutation = useMutation({
     mutationFn: async (data: z.infer<typeof editFormSchema>) => {
-      return apiRequest('PUT', `/api/investments/${investment?.id}`, data);
+      return apiRequest(`/api/investments/${investment.id}`, {
+        method: "PATCH",
+        body: {
+          ...data,
+          amount: parseFloat(data.amount),
+          expectedReturn: parseFloat(data.expectedReturn),
+        },
+      });
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Draft updated successfully",
-      });
-      // Invalidate cache to ensure all views see updated data
+      queryClient.invalidateQueries({ queryKey: [`/api/investments/${investment.id}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/investments/${investment?.id}`] });
-      queryClient.invalidateQueries({ queryKey: ['investment-details', investment?.id] });
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/approvals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      toast({ title: "Investment updated successfully" });
       setIsInlineEditing(false);
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update draft",
-        variant: "destructive",
-      });
+    onError: () => {
+      toast({ title: "Failed to update investment", variant: "destructive" });
     },
   });
 
-  // Submit draft mutation
-  const submitDraftMutation = useMutation({
-    mutationFn: async (investmentId: number) => {
-      return apiRequest('POST', `/api/investments/${investmentId}/submit`);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: (investmentDetails || investment)?.status.toLowerCase() === 'changes_requested' ? 
-          "Proposal resubmitted for approval successfully" : 
-          "Draft submitted for approval successfully",
-      });
-      // Invalidate all relevant cache keys to ensure UI updates across all views
-      queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/investments/${investment?.id}`] });
-      queryClient.invalidateQueries({ queryKey: ['investment-details', investment?.id] });
-      
-      // Invalidate task-related queries that approvers use
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/approvals/investment/${investment?.id}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment?.id}`] });
-      
-      // Force refetch of the current investment
-      if (investment?.id) {
-        queryClient.refetchQueries({ queryKey: [`/api/investments/${investment.id}`] });
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to submit draft",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // File upload mutation
   const uploadFilesMutation = useMutation({
-    mutationFn: async (files: File[]) => {
+    mutationFn: async () => {
       const formData = new FormData();
-      files.forEach((file) => {
-        formData.append('documents', file);
+      uploadedFiles.forEach((file) => {
+        formData.append('files', file);
       });
-      
-      return fetch(`/api/documents/investment/${investment?.id}`, {
+      formData.append('requestType', 'investment');
+      formData.append('requestId', investment.id.toString());
+
+      const response = await fetch('/api/documents/upload', {
         method: 'POST',
         body: formData,
-        credentials: 'include',
-      }).then(res => res.json());
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Documents uploaded successfully",
-      });
-      // Invalidate cache to ensure all views see new documents
-      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment?.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment.id}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/approvals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
       setUploadedFiles([]);
+      toast({ title: "Files uploaded successfully" });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: "Failed to upload documents",
-        variant: "destructive",
-      });
+    onError: () => {
+      toast({ title: "Failed to upload files", variant: "destructive" });
     },
   });
 
-  // Delete document mutation
   const deleteDocumentMutation = useMutation({
-    mutationFn: async (documentId: number) => {
-      return apiRequest('DELETE', `/api/documents/${documentId}`);
+    mutationFn: async () => {
+      const deletePromises = filesToDelete.map(documentId =>
+        apiRequest(`/api/documents/${documentId}`, { method: "DELETE" })
+      );
+      return Promise.all(deletePromises);
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Document deleted successfully",
-      });
-      // Invalidate cache to ensure all views see document removal
-      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment?.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment.id}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/approvals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      setFilesToDelete([]);
+      toast({ title: "Documents deleted successfully" });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: "Failed to delete document",
-        variant: "destructive",
-      });
+    onError: () => {
+      toast({ title: "Failed to delete documents", variant: "destructive" });
     },
   });
 
-  const handleSubmitDraft = () => {
-    if (investment?.id) {
-      submitDraftMutation.mutate(investment.id);
-    }
-  };
-
-  // Handle inline edit
-  const handleInlineEdit = () => {
-    const details = investmentDetails || investment;
-    if (details) {
-      editForm.reset({
-        targetCompany: details.targetCompany || "",
-        investmentType: details.investmentType || "equity",
-        amount: details.amount || "",
-        expectedReturn: details.expectedReturn || "",
-        description: details.description || "",
-        riskLevel: details.riskLevel || "medium",
+  const submitDraftMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest(`/api/investments/${investment.id}/submit`, {
+        method: "POST",
       });
-      setIsInlineEditing(true);
-    }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/investments/${investment.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/approvals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      toast({ title: "Investment submitted for approval successfully" });
+      setIsInlineEditing(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to submit investment", variant: "destructive" });
+    },
+  });
+
+  // Handlers
+  const handleInlineEdit = () => {
+    setIsInlineEditing(true);
   };
 
-  // Handle cancel inline edit
   const handleCancelInlineEdit = () => {
+    editForm.reset();
     setIsInlineEditing(false);
     setUploadedFiles([]);
     setFilesToDelete([]);
   };
 
-  // Handle save inline edit
   const handleSaveInlineEdit = async () => {
     try {
+      // Validate form
       const formData = editForm.getValues();
+      const validatedData = editFormSchema.parse(formData);
       
-      // First save the form changes
-      await editDraftMutation.mutateAsync(formData);
+      // Save changes
+      await editDraftMutation.mutateAsync(validatedData);
       
-      // Then handle document deletions
-      for (const docId of filesToDelete) {
-        await deleteDocumentMutation.mutateAsync(docId);
-      }
-      
-      // Finally upload new documents
+      // Upload new files if any
       if (uploadedFiles.length > 0) {
-        await uploadFilesMutation.mutateAsync(uploadedFiles);
+        await uploadFilesMutation.mutateAsync();
       }
       
-      // Reset state
-      setIsInlineEditing(false);
-      setUploadedFiles([]);
-      setFilesToDelete([]);
-      
-      toast({
-        title: "Success",
-        description: "Investment details saved successfully",
-      });
-    } catch (error: any) {
-      console.error('Error saving inline edit:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save changes",
-        variant: "destructive",
-      });
+      // Delete files if any
+      if (filesToDelete.length > 0) {
+        await deleteDocumentMutation.mutateAsync();
+      }
+    } catch (error) {
+      console.error('Save failed:', error);
     }
   };
 
-  // Handle file upload
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
+  const handleSubmitDraft = () => {
+    submitDraftMutation.mutate();
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
     setUploadedFiles(prev => [...prev, ...files]);
   };
 
-  // Handle file removal
   const handleRemoveUploadedFile = (index: number) => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Handle delete existing document
   const handleDeleteDocument = (documentId: number) => {
     setFilesToDelete(prev => [...prev, documentId]);
   };
 
-  // Handle undo delete
   const handleUndoDelete = (documentId: number) => {
     setFilesToDelete(prev => prev.filter(id => id !== documentId));
   };
 
+  // Helper functions
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Draft':
+      case 'draft':
         return 'bg-gray-100 text-gray-800';
       case 'New':
       case 'Modified':
@@ -358,19 +320,33 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
           </div>
         ) : investmentDetails ? (
           <div className="space-y-6">
-            {/* Request Details */}
+            {/* I. Investment Rationale / Description */}
             <Card>
               <CardContent className="pt-6">
-                <h4 className="font-semibold mb-4">Request Information</h4>
+                <h4 className="font-semibold mb-4">Investment Rationale / Description</h4>
                 
                 {isInlineEditing ? (
                   <Form {...editForm}>
                     <div className="space-y-4">
+                      <FormField
+                        control={editForm.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Enter investment description..." 
+                                rows={4}
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {/* Additional editing fields */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-600">Request ID</p>
-                          <p className="text-lg font-semibold">{investmentDetails.requestId}</p>
-                        </div>
                         <FormField
                           control={editForm.control}
                           name="targetCompany"
@@ -432,13 +408,6 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                             </FormItem>
                           )}
                         />
-                        <div>
-                          <p className="text-sm font-medium text-gray-600">Status</p>
-                          <Badge className={getStatusColor(investmentDetails.status)}>
-                            {getStatusIcon(investmentDetails.status)}
-                            <span className="ml-1">{investmentDetails.status}</span>
-                          </Badge>
-                        </div>
                         <FormField
                           control={editForm.control}
                           name="investmentType"
@@ -462,84 +431,13 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                             </FormItem>
                           )}
                         />
-                        <div>
-                          <p className="text-sm font-medium text-gray-600">Created Date</p>
-                          <p className="text-lg font-semibold">
-                            {format(new Date(investmentDetails.createdAt), 'MMM dd, yyyy')}
-                          </p>
-                        </div>
                       </div>
-                      
-                      <FormField
-                        control={editForm.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Investment Rationale / Description</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Enter investment rationale and description" 
-                                className="min-h-[80px]"
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                     </div>
                   </Form>
                 ) : (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Request ID</p>
-                        <p className="text-lg font-semibold">{investmentDetails.requestId}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Target Company</p>
-                        <p className="text-lg font-semibold">{investmentDetails.targetCompany}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Risk Level</p>
-                        <Badge className={getRiskColor(investmentDetails.riskLevel)}>
-                          {investmentDetails.riskLevel}
-                        </Badge>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Amount</p>
-                        <p className="text-lg font-semibold">${investmentDetails.amount}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Expected Return</p>
-                        <p className="text-lg font-semibold">{investmentDetails.expectedReturn}%</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Status</p>
-                        <Badge className={getStatusColor(investmentDetails.status)}>
-                          {getStatusIcon(investmentDetails.status)}
-                          <span className="ml-1">{investmentDetails.status}</span>
-                        </Badge>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Investment Type</p>
-                        <p className="text-lg font-semibold">{investmentDetails.investmentType}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Created Date</p>
-                        <p className="text-lg font-semibold">
-                          {format(new Date(investmentDetails.createdAt), 'MMM dd, yyyy')}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-4">
-                      <p className="text-sm font-medium text-gray-600 mb-2">Investment Rationale / Description</p>
-                      <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px]">
-                        {investmentDetails.description || 'No description provided by the analyst'}
-                      </p>
-                    </div>
-                  </>
+                  <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px]">
+                    {investmentDetails.description || 'No description provided by the analyst'}
+                  </p>
                 )}
                 
                 {/* Draft Actions */}
@@ -579,8 +477,6 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                         Edit Draft
                       </Button>
                     )}
-                    
-
                     
                     <Button 
                       size="sm"
@@ -707,7 +603,42 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
               </CardContent>
             </Card>
 
-            {/* Approval History */}
+            {/* II. Attached Documents */}
+            {documents && documents.length > 0 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <h4 className="font-semibold mb-4">Attached Documents</h4>
+                  <div className="space-y-4">
+                    {documents.map((doc: any) => (
+                      <DocumentAnalysisCard
+                        key={doc.id}
+                        document={doc}
+                        requestId={investment.id}
+                        requestType="investment"
+                        showAnalysisLabel={false}
+                        showOnlyProcessed={true}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* III. Research & Analysis */}
+            {documents && documents.length > 0 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <h4 className="font-semibold mb-4">Research & Analysis</h4>
+                  <UnifiedSearchInterface 
+                    documents={documents}
+                    requestId={investment.id}
+                    requestType="investment"
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* IV. Approval History */}
             {approvalHistory && approvalHistory.length > 0 && (
               <Card>
                 <CardContent className="pt-6">
@@ -725,13 +656,13 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                               {approval.status}
                             </Badge>
                           </div>
-                          {approval.approvedAt && (
-                            <p className="text-xs text-gray-500">
-                              {format(new Date(approval.approvedAt), 'MMM dd, yyyy HH:mm')}
-                            </p>
-                          )}
+                          <p className="text-sm text-gray-600">
+                            {approval.approverName} • {format(new Date(approval.createdAt), 'MMM dd, yyyy HH:mm')}
+                          </p>
                           {approval.comments && (
-                            <p className="text-sm text-gray-600 mt-1">{approval.comments}</p>
+                            <p className="text-sm text-gray-700 mt-1 italic">
+                              "{approval.comments}"
+                            </p>
                           )}
                         </div>
                       </div>
@@ -740,50 +671,10 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                 </CardContent>
               </Card>
             )}
-
-            {/* Documents and AI Analysis */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Documents & AI Analysis ({documents?.length || 0})
-              </h3>
-              
-              {/* Unified Search Interface */}
-              <UnifiedSearchInterface
-                requestId={investmentDetails?.id || 0}
-                documents={documents || []}
-              />
-              
-              {/* Individual Document Analysis */}
-              {documents && documents.length > 0 ? (
-                <div className="space-y-4">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Document Analysis
-                  </h4>
-                  <div className="grid grid-cols-1 gap-4">
-                    {documents.map((doc: any) => (
-                      <DocumentAnalysisCard 
-                        key={doc.id} 
-                        document={doc} 
-                        requestType="investment" 
-                        requestId={investmentDetails?.id || 0} 
-                      />
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>No documents uploaded yet.</p>
-                  <p className="text-sm">Upload documents to get AI-powered insights and analysis.</p>
-                </div>
-              )}
-            </div>
           </div>
         ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-500">Investment details not found</p>
+          <div className="text-center p-8 text-gray-500">
+            No investment details available
           </div>
         )}
       </CollapsibleContent>

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
-import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye } from "lucide-react";
+import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -335,6 +335,18 @@ function TaskCard({
               
               <p className="text-gray-600 mb-3">{task.description}</p>
               
+              {/* Show Request ID and Investment Type on main card */}
+              <div className="flex items-center gap-4 text-sm mb-2">
+                <div className="flex items-center gap-1 font-semibold text-blue-600">
+                  <span>Request ID:</span>
+                  <span>{task.requestId}</span>
+                </div>
+                <div className="flex items-center gap-1 font-semibold text-purple-600">
+                  <span>Type:</span>
+                  <span className="capitalize">{task.investmentType || task.requestType.replace('_', ' ')}</span>
+                </div>
+              </div>
+              
               <div className="flex items-center gap-4 text-sm text-gray-500">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
@@ -359,77 +371,22 @@ function TaskCard({
         {/* Expanded Details */}
         {isExpanded && requestData && (
           <div className="mt-6 space-y-6 pt-6 border-t">
-            {/* Request Details */}
+            {/* I. Investment Rationale / Description */}
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-4">Request Details</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Request ID</p>
-                  <p className="text-lg font-semibold">{requestData.requestId}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Target Company</p>
-                  <p className="text-lg font-semibold">{requestData.targetCompany}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Risk Level</p>
-                  <Badge className={
-                    requestData.riskLevel === 'high' ? 'bg-red-100 text-red-800' :
-                    requestData.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
-                  }>
-                    {requestData.riskLevel}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Amount</p>
-                  <p className="text-lg font-semibold">${requestData.amount}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Expected Return</p>
-                  <p className="text-lg font-semibold">{requestData.expectedReturn}%</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Status</p>
-                  <Badge className={getStatusColorForBadge(requestData.status)}>
-                    {getStatusIcon(requestData.status)}
-                    <span className="ml-1">{requestData.status}</span>
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Investment Type</p>
-                  <p className="text-lg font-semibold">{requestData.investmentType}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Created Date</p>
-                  <p className="text-lg font-semibold">
-                    {format(new Date(requestData.createdAt), 'MMM dd, yyyy')}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <p className="text-sm font-medium text-gray-600 mb-2">Investment Rationale / Description</p>
-                <p className="text-gray-800 bg-white p-3 rounded border min-h-[60px]">
-                  {requestData.description || 'No description provided by the analyst'}
-                </p>
-              </div>
+              <h4 className="font-semibold mb-3">Investment Rationale / Description</h4>
+              <p className="text-gray-800 bg-white p-3 rounded border min-h-[60px]">
+                {requestData.description || 'No description provided by the analyst'}
+              </p>
             </div>
 
-            {/* Documents and AI Analysis */}
-            <div className="space-y-6">
+            {/* II. Attached Documents */}
+            <div className="space-y-4">
               <h4 className="font-semibold flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Documents & AI Analysis ({documents?.length || 0})
+                Attached Documents ({documents?.length || 0})
               </h4>
               
-              {/* Unified Search Interface */}
-              <UnifiedSearchInterface
-                requestId={task.requestId}
-                documents={documents || []}
-              />
-              
-              {/* Individual Document Analysis Cards */}
+              {/* Individual Document Analysis Cards - Simplified */}
               {documents && documents.length > 0 && (
                 <div className="space-y-4">
                   {documents.map((document: any) => (
@@ -438,13 +395,30 @@ function TaskCard({
                       document={document}
                       requestType={task.requestType}
                       requestId={task.requestId}
+                      hideRiskAssessment={true}
+                      hideKeyInfoHeader={true}
+                      simplifiedView={true}
                     />
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Approval History */}
+            {/* III. Research and Analysis */}
+            <div className="space-y-4">
+              <h4 className="font-semibold flex items-center gap-2">
+                <Search className="h-5 w-5" />
+                Research and Analysis
+              </h4>
+              
+              {/* Unified Search Interface */}
+              <UnifiedSearchInterface
+                requestId={task.requestId}
+                documents={documents || []}
+              />
+            </div>
+
+            {/* IV. Approval History */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <h4 className="font-semibold mb-4">Approval History</h4>
               {approvalHistory && approvalHistory.length > 0 ? (
@@ -477,12 +451,11 @@ function TaskCard({
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No approval history yet</p>
-                  <p className="text-sm">This is the first stage of approval</p>
-                </div>
+                <p className="text-gray-500 text-center py-4">No approval history available</p>
               )}
             </div>
+
+
 
             {/* Comments and Actions */}
             {task.status === 'pending' && (
