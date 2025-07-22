@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import DocumentAnalysisCard from "@/components/documents/DocumentAnalysisCard";
 import UnifiedSearchInterface from "@/components/documents/UnifiedSearchInterface";
 import InvestmentRationaleModal from "@/components/rationale/InvestmentRationaleModal";
+import MarkdownRenderer from "@/components/documents/MarkdownRenderer";
 
 // Edit form schema
 const editFormSchema = z.object({
@@ -103,13 +104,10 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   // Mutations
   const editDraftMutation = useMutation({
     mutationFn: async (data: z.infer<typeof editFormSchema>) => {
-      return apiRequest(`/api/investments/${investment.id}`, {
-        method: "PATCH",
-        body: {
-          ...data,
-          amount: parseFloat(data.amount),
-          expectedReturn: parseFloat(data.expectedReturn),
-        },
+      return apiRequest('PATCH', `/api/investments/${investment.id}`, {
+        ...data,
+        amount: parseFloat(data.amount),
+        expectedReturn: parseFloat(data.expectedReturn),
       });
     },
     onSuccess: () => {
@@ -161,7 +159,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   const deleteDocumentMutation = useMutation({
     mutationFn: async () => {
       const deletePromises = filesToDelete.map(documentId =>
-        apiRequest(`/api/documents/${documentId}`, { method: "DELETE" })
+        apiRequest('DELETE', `/api/documents/${documentId}`)
       );
       return Promise.all(deletePromises);
     },
@@ -180,9 +178,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
 
   const submitDraftMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/investments/${investment.id}/submit`, {
-        method: "POST",
-      });
+      return apiRequest('POST', `/api/investments/${investment.id}/submit`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/investments/${investment.id}`] });
@@ -745,8 +741,8 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                               </div>
                             </div>
                             <div className="prose prose-sm max-w-none">
-                              <div className="whitespace-pre-wrap text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded border">
-                                {rationale.content}
+                              <div className="text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded border">
+                                <MarkdownRenderer content={rationale.content} />
                               </div>
                             </div>
                           </div>
