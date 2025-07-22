@@ -162,36 +162,24 @@ export class BackgroundJobService {
     // Step 2: Uploading to vector store
     await this.updateJobProgress(job.id, 'uploading', 2, 50);
     
-    let uploadResult;
-    let fileId;
+    // Use LLM API service with minimal attributes (OpenAI max: 16 properties total)
+    const { llmApiService } = await import('./llmApiService');
+    const minimalAttributes = {
+      document_id: job.documentId.toString(),
+      request_id: job.requestId?.toString() || 'unknown'
+    };
     
-    try {
-      // Try LLM API service first
-      const { llmApiService } = await import('./llmApiService');
-      const minimalAttributes = {
-        document_id: job.documentId.toString(),
-        request_id: job.requestId?.toString() || 'unknown'
-      };
-      
-      uploadResult = await llmApiService.uploadAndVectorize(filePath, document.fileName, minimalAttributes);
-      
-      if (!uploadResult.success) {
-        throw new Error(uploadResult.error || 'LLM service upload failed');
-      }
-      
-      if (!uploadResult.file?.id) {
-        throw new Error('Upload succeeded but no file ID returned');
-      }
-      
-      fileId = uploadResult.file.id;
-      console.log('✅ LLM service upload successful, file ID:', fileId);
-      
-    } catch (error) {
-      console.log(`⚠️ LLM service upload failed (${error.message}), using local OpenAI upload`);
-      
-      // Fallback: Use local OpenAI API for upload
-      fileId = await this.uploadToOpenAIDirect(filePath, document, job);
-      console.log('✅ Local OpenAI upload successful, file ID:', fileId);
+    const result = await llmApiService.uploadAndVectorize(filePath, document.fileName, minimalAttributes);
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to prepare document for AI');
+    }
+    
+    console.log('Upload result:', JSON.stringify(result, null, 2));
+    
+    // Ensure we have the file ID from the upload
+    if (!result.file?.id) {
+      throw new Error('Upload succeeded but no file ID returned');
     }
     
     // Step 3: Generating comprehensive analysis
@@ -209,8 +197,8 @@ export class BackgroundJobService {
         analysis_type: 'comprehensive'
       };
       
-      console.log(`Calling investmentInsights with file ID: ${fileId}`);
-      analysisResult = await llmApiService.investmentInsights([fileId], 'comprehensive', insightsMetadata);
+      console.log(`Calling investmentInsights with file ID: ${result.file.id}`);
+      analysisResult = await llmApiService.investmentInsights([result.file.id], 'comprehensive', insightsMetadata);
       
       console.log(`LLM service result:`, JSON.stringify(analysisResult, null, 2));
       
@@ -228,7 +216,7 @@ export class BackgroundJobService {
       // Since upload succeeded, we have the file in vector store
       // Use local OpenAI API for generating insights via vector store query
       try {
-        const localAnalysis = await this.generateLocalOpenAIAnalysis(fileId, document, job);
+        const localAnalysis = await this.generateLocalOpenAIAnalysis(result.file.id, document, job);
         summary = localAnalysis.summary;
         insights = localAnalysis.insights;
         console.log('✅ Using local OpenAI analysis via vector store');
@@ -356,7 +344,7 @@ export class BackgroundJobService {
 
 Format your response in markdown with clear sections and bullet points for easy reading.`;
 
-      // Use OpenAI Responses API with file_search
+      // Use OpenAI chat completions with file_search tool
       const response = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
@@ -369,7 +357,6 @@ Format your response in markdown with clear sections and bullet points for easy 
           {
             type: 'file_search',
             file_search: {
-              type: 'vector_store',
               vector_store_ids: [vectorStoreId],
               filter: {
                 type: 'eq',
