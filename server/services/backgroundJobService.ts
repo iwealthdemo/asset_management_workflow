@@ -211,15 +211,14 @@ export class BackgroundJobService {
       }
       
     } catch (error) {
-      console.log(`⚠️ LLM service insights failed (${error.message}), using local OpenAI fallback`);
+      console.log(`⚠️ LLM service insights failed (${error.message}), using local OpenAI with Responses API`);
       
-      // Since upload succeeded, we have the file in vector store
-      // Use local OpenAI API for generating insights via vector store query
+      // Use local OpenAI Responses API with same format as cross-document query
       try {
         const localAnalysis = await this.generateLocalOpenAIAnalysis(result.file.id, document, job);
         summary = localAnalysis.summary;
         insights = localAnalysis.insights;
-        console.log('✅ Using local OpenAI analysis via vector store');
+        console.log('✅ Using local OpenAI Responses API for analysis');
       } catch (localError) {
         console.log(`⚠️ Local OpenAI also failed (${localError.message}), using basic fallback`);
         // Last resort: basic text analysis
@@ -278,45 +277,7 @@ export class BackgroundJobService {
     }, 30000); // 30 seconds
   }
 
-  /**
-   * Upload document to OpenAI directly when LLM service fails
-   */
-  private async uploadToOpenAIDirect(filePath: string, document: any, job: BackgroundJob): Promise<string> {
-    const { default: OpenAI } = await import('openai');
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
 
-    try {
-      console.log(`Uploading ${document.fileName} directly to OpenAI...`);
-      
-      // Upload file to OpenAI
-      const file = await openai.files.create({
-        file: fs.createReadStream(filePath),
-        purpose: 'assistants',
-      });
-
-      console.log(`File uploaded with ID: ${file.id}`);
-
-      // Add to vector store (same one used by LLM service)
-      const vectorStoreId = 'vs_687584b54f908191b0a21ffa42948fb5';
-      
-      const vectorStoreFile = await openai.beta.vectorStores.files.create(
-        vectorStoreId,
-        {
-          file_id: file.id,
-        }
-      );
-
-      console.log(`File added to vector store: ${vectorStoreId}, status: ${vectorStoreFile.status}`);
-
-      return file.id;
-
-    } catch (error) {
-      console.error('Direct OpenAI upload failed:', error);
-      throw new Error(`Direct OpenAI upload failed: ${error.message}`);
-    }
-  }
 
   /**
    * Generate analysis using local OpenAI API when LLM service insights fail
@@ -344,33 +305,27 @@ export class BackgroundJobService {
 
 Format your response in markdown with clear sections and bullet points for easy reading.`;
 
-      // Use OpenAI chat completions with file_search tool
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'user',
-            content: analysisPrompt
-          }
-        ],
-        tools: [
-          {
-            type: 'file_search',
-            file_search: {
-              vector_store_ids: [vectorStoreId],
-              filter: {
-                type: 'eq',
-                key: 'file_id',
-                value: fileId
-              }
-            }
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 4000
-      });
+      // Use OpenAI Responses API with exact same format as working cross-document query
+      const fileSearchTool = {
+        type: "file_search",
+        vector_store_ids: [vectorStoreId],
+        filters: {
+          type: "eq",
+          key: "file_id", 
+          value: fileId
+        }
+      };
 
-      const analysisContent = response.choices[0].message.content;
+      const responsePayload = {
+        model: "gpt-4o",
+        tools: [fileSearchTool],
+        input: analysisPrompt
+      };
+
+      console.log('Using Responses API payload:', JSON.stringify(responsePayload, null, 2));
+
+      const response = await openai.responses.create(responsePayload);
+      const analysisContent = response.output_text;
       
       if (!analysisContent) {
         throw new Error('No analysis content generated');
