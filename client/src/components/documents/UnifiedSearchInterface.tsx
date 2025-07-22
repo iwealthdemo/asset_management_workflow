@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface Document {
   id: number;
@@ -192,26 +193,7 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
     return documents.find(doc => doc.id === id)?.originalName || `Document ${id}`;
   };
 
-  const parseMarkdown = (text: string) => {
-    if (!text) return text;
-    
-    // Convert **bold** to <strong>
-    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // Convert *italic* to <em>
-    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    
-    // Convert headers
-    text = text.replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>');
-    text = text.replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mt-4 mb-2">$1</h2>');
-    
-    // Convert source references 【4:0†source】 to badges
-    text = text.replace(/【(\d+):(\d+)†source】/g, 
-      '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 ml-1">[Source: Page $1, Section $2]</span>'
-    );
-    
-    return text;
-  };
+
 
   const combinedQueries = [
     ...(Array.isArray(documentQueries) ? documentQueries : []).map((q: any) => ({ ...q, searchType: 'document' as const })),
@@ -445,9 +427,9 @@ export default function UnifiedSearchInterface({ requestId, documents }: Unified
                                 <span className="text-sm font-medium text-gray-600">Answer:</span>
                                 <div className="mt-1 rounded border max-h-64 overflow-y-auto">
                                   <div className="p-3">
-                                    <div 
-                                      className="text-sm prose prose-sm max-w-none dark:prose-invert"
-                                      dangerouslySetInnerHTML={{ __html: parseMarkdown(queryResult.response) }}
+                                    <MarkdownRenderer 
+                                      content={queryResult.response} 
+                                      className="text-sm" 
                                     />
                                   </div>
                                 </div>
