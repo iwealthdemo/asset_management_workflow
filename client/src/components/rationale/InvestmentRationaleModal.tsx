@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Sparkles, User, Brain, Loader2 } from 'lucide-react';
+import { MarkdownRenderer } from '@/components/shared/MarkdownRenderer';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -69,7 +70,7 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
     },
   });
 
-  // Generate comprehensive AI rationale mutation
+  // Generate comprehensive AI rationale mutation  
   const generateAIRationaleMutation = useMutation({
     mutationFn: async (templateId: number) => {
       return apiRequest(`/api/investments/${investmentId}/rationales/generate-comprehensive`, 'POST', { templateId });
