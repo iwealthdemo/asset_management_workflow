@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Plus, Edit, Trash2, Brain, Sparkles } from 'lucide-react';
+import { FileText, Plus, Edit, Trash2, Brain, Sparkles, ChevronRight } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -145,7 +146,7 @@ const Templates: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Investment Rationale Templates</h1>
@@ -314,57 +315,94 @@ const Templates: React.FC = () => {
       {isLoading ? (
         <div className="text-center py-8">Loading templates...</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
           {templates && (templates as Template[]).length > 0 ? (
             (templates as Template[]).map((template) => (
-              <Card key={template.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2">
-                      <CardTitle className="text-lg">{template.name}</CardTitle>
-                      <Badge className={getInvestmentTypeColor(template.investmentType || 'general')}>
-                        {template.investmentType?.replace('_', ' ') || 'General'}
-                      </Badge>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteTemplateMutation.mutate(template.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {template.description && (
-                      <p className="text-sm text-gray-600">{template.description}</p>
-                    )}
-                    
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium flex items-center gap-2">
-                        <Brain className="h-4 w-4" />
-                        Analysis Sections ({((template.templateData as any)?.sections?.length || 0)})
-                      </h4>
-                      <div className="space-y-1">
-                        {((template.templateData as any)?.sections || []).map((section: any, index: number) => (
-                          <div key={index} className="text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                            <div className="font-medium">{section.name}</div>
-                            <div className="text-gray-500">{section.wordLimit} words</div>
+              <Card key={template.id} className="overflow-hidden">
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3">
+                          <ChevronRight className="h-5 w-5 transition-transform duration-200 group-data-[state=open]:rotate-90" />
+                          <div>
+                            <CardTitle className="text-lg">{template.name}</CardTitle>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge className={getInvestmentTypeColor(template.investmentType || 'general')}>
+                                {template.investmentType?.replace('_', ' ') || 'General'}
+                              </Badge>
+                              <span className="text-sm text-gray-500">
+                                {((template.templateData as any)?.sections?.length || 0)} sections
+                              </span>
+                            </div>
                           </div>
-                        ))}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteTemplateMutation.mutate(template.id);
+                          }}
+                          disabled={deleteTemplateMutation.isPending}
+                        >
+                          {deleteTemplateMutation.isPending ? (
+                            <span className="animate-spin">⏳</span>
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
-                    </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent>
+                    <CardContent className="pt-0">
+                      <p className="text-gray-600 mb-6">{template.description}</p>
+                      
+                      {/* Template Sections */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-base">Analysis Sections</h4>
+                        <div className="grid gap-4">
+                          {((template.templateData as any)?.sections || []).map((section: any, index: number) => (
+                            <div key={index} className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+                              <div className="flex items-center justify-between mb-2">
+                                <h5 className="font-medium text-base">{section.name}</h5>
+                                <span className="text-sm text-gray-500 bg-white dark:bg-gray-700 px-2 py-1 rounded">
+                                  {section.wordLimit} words
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-600 mb-3">{section.description}</p>
+                              
+                              {/* Focus Areas */}
+                              {section.focusAreas && section.focusAreas.length > 0 && (
+                                <div>
+                                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Key Focus Areas:</p>
+                                  <ul className="text-xs text-gray-600 space-y-1">
+                                    {section.focusAreas.map((area: string, areaIndex: number) => (
+                                      <li key={areaIndex} className="flex items-start gap-2">
+                                        <span className="text-gray-400 mt-0.5">•</span>
+                                        <span>{area}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
 
-                    <div className="text-xs text-gray-500 pt-2 border-t">
-                      Created by {template.createdBy} • {new Date(template.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                </CardContent>
+                      <div className="text-xs text-gray-500 pt-4 border-t mt-6">
+                        Created by {template.createdBy} • {new Date(template.createdAt).toLocaleDateString()}
+                      </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
               </Card>
             ))
           ) : (
-            <div className="col-span-full text-center py-12">
+            <Card className="p-12 text-center">
               <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               <h3 className="text-lg font-medium mb-2">No templates yet</h3>
               <p className="text-gray-600 mb-4">
@@ -374,7 +412,7 @@ const Templates: React.FC = () => {
                 <Plus className="h-4 w-4" />
                 Create Your First Template
               </Button>
-            </div>
+            </Card>
           )}
         </div>
       )}
