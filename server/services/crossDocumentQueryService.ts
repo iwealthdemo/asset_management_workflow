@@ -242,20 +242,39 @@ export class CrossDocumentQueryService {
         }
       }
 
-      // Count documents that are ready for AI analysis
+      // Check if documents have been processed (either with OpenAI file IDs or background job completion)
       const readyDocuments = documents.filter(doc => {
-        const analysisResult = doc.analysisResult ? JSON.parse(doc.analysisResult) : null;
-        return analysisResult && analysisResult.openai_file_id;
+        if (!doc.analysisResult) return false;
+        try {
+          const analysisData = typeof doc.analysisResult === 'string' 
+            ? JSON.parse(doc.analysisResult) 
+            : doc.analysisResult;
+          
+          // Check for OpenAI file ID (new system) or completed analysis (background job system)
+          const hasOpenAIFileId = !!(analysisData.openaiFileId || analysisData.openai_file_id);
+          const hasCompletedAnalysis = analysisData.summary && analysisData.insights;
+          
+          return hasOpenAIFileId || hasCompletedAnalysis;
+        } catch (e) {
+          return false;
+        }
       });
 
-      console.log('Ready Documents (with OpenAI file IDs):', readyDocuments.length);
+      console.log('Ready Documents (processed):', readyDocuments.length);
       console.log('Ready Document Details:', readyDocuments.map(d => {
-        const analysis = JSON.parse(d.analysisResult || '{}');
-        return { 
-          id: d.id, 
-          name: d.originalName, 
-          openai_file_id: analysis.openai_file_id 
-        };
+        try {
+          const analysisData = typeof d.analysisResult === 'string' 
+            ? JSON.parse(d.analysisResult) 
+            : d.analysisResult;
+          return { 
+            id: d.id, 
+            name: d.originalName,
+            hasAnalysis: !!d.analysisResult,
+            openaiFileId: analysisData.openaiFileId || analysisData.openai_file_id || 'background-processed'
+          };
+        } catch (e) {
+          return { id: d.id, name: d.originalName, error: 'parse-error' };
+        }
       }));
 
       if (readyDocuments.length === 0) {
@@ -265,65 +284,129 @@ export class CrossDocumentQueryService {
         };
       }
 
-      // Create a comprehensive query that mentions specific documents to search using FULL filenames (with vector store prefix)
-      const fullDocumentNames = readyDocuments.map(doc => doc.fileName).join(', ');
-      const documentDetails = readyDocuments.map(doc => {
-        const analysis = JSON.parse(doc.analysisResult || '{}');
-        return {
-          id: doc.id,
-          originalName: doc.originalName,
-          fileName: doc.fileName, // This includes the vector store prefix
-          openaiFileId: analysis.openai_file_id
-        };
-      });
+      // Separate documents with OpenAI file IDs from background job processed documents
+      const documentsWithFileIds: Array<{
+        id: number;
+        originalName: string;
+        fileName: string;
+        openaiFileId: string;
+      }> = [];
+      const backgroundProcessedDocs: Array<{
+        id: number;
+        originalName: string;
+        summary: string;
+        insights: string;
+      }> = [];
       
-      const openaiFileIds = documentDetails.map(doc => doc.openaiFileId).filter(Boolean);
-      const fullFilenames = documentDetails.map(doc => doc.fileName).filter(Boolean);
+      for (const doc of readyDocuments) {
+        try {
+          const analysisData = typeof doc.analysisResult === 'string' 
+            ? JSON.parse(doc.analysisResult) 
+            : doc.analysisResult;
+          
+          if (analysisData.openaiFileId || analysisData.openai_file_id) {
+            documentsWithFileIds.push({
+              id: doc.id,
+              originalName: doc.originalName,
+              fileName: doc.fileName || '',
+              openaiFileId: analysisData.openaiFileId || analysisData.openai_file_id
+            });
+          } else if (analysisData.summary && analysisData.insights) {
+            backgroundProcessedDocs.push({
+              id: doc.id,
+              originalName: doc.originalName,
+              summary: analysisData.summary,
+              insights: analysisData.insights
+            });
+          }
+        } catch (e) {
+          console.error('Error parsing analysis data for document', doc.id, e);
+        }
+      }
       
-      // Create detailed document list for API call using full filenames with vector store prefix
-      const documentsList = documentDetails.map(doc => 
-        `- "${doc.fileName}" (Original: "${doc.originalName}", OpenAI File ID: ${doc.openaiFileId})`
-      ).join('\n');
+      console.log('Documents with OpenAI file IDs:', documentsWithFileIds.length);
+      console.log('Background processed documents:', backgroundProcessedDocs.length);
+
+      // For background processed documents, create a context-based query using their analysis results
+      let answer: string;
+      let metadata: any;
       
-      const enhancedQuery = `
-I want you to search within these ${readyDocuments.length} specific documents (using their full filenames with vector store prefix):
+      if (backgroundProcessedDocs.length > 0) {
+        console.log('Using background processed documents for query response...');
+        
+        // Create a comprehensive context from all document summaries and insights
+        const documentContext = backgroundProcessedDocs.map(doc => 
+          `Document: ${doc.originalName}\n\nSummary:\n${doc.summary}\n\nInsights:\n${doc.insights}`
+        ).join('\n\n---\n\n');
+        
+        const contextBasedQuery = `
+Based on the following document analysis results, please answer this question: ${query}
+
+Document Analysis Context:
+${documentContext}
+
+Please provide a comprehensive answer based on the information available in these document summaries and insights. Reference the specific documents when citing information.
+        `.trim();
+        
+        // Use a simple AI query service for background processed documents
+        // This could use the LLM API service or fallback to Assistant API
+        try {
+          const fallbackResponse = await this.fallbackToAssistantAPI(contextBasedQuery);
+          answer = fallbackResponse;
+          metadata = {
+            openaiResponseId: null,
+            openaiModel: 'background-processed-fallback',
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+            processingTimeMs: 0
+          };
+        } catch (error) {
+          console.error('Error with background processed document query:', error);
+          return {
+            success: false,
+            error: 'Failed to process query with background processed documents'
+          };
+        }
+        
+      } else if (documentsWithFileIds.length > 0) {
+        console.log('Using vector store documents for query response...');
+        
+        // Create traditional vector store query for documents with file IDs
+        const fullDocumentNames = documentsWithFileIds.map(doc => doc.fileName).join(', ');
+        const openaiFileIds = documentsWithFileIds.map(doc => doc.openaiFileId).filter(Boolean);
+        const fullFilenames = documentsWithFileIds.map(doc => doc.fileName).filter(Boolean);
+        
+        const documentsList = documentsWithFileIds.map(doc => 
+          `- "${doc.fileName}" (Original: "${doc.originalName}", OpenAI File ID: ${doc.openaiFileId})`
+        ).join('\n');
+        
+        const enhancedQuery = `
+I want you to search within these ${documentsWithFileIds.length} specific documents:
 
 ${documentsList}
 
 Please search ONLY within these documents to answer the following question: ${query}
 
-Full Document Filenames (with vector store prefix):
-${fullDocumentNames}
-
 Important instructions:
-1. Focus your search exclusively on the documents listed above by their full filenames (including vector store prefix)
-2. Do not use information from any other documents in the vector store
-3. If the answer requires information from multiple documents, synthesize the information and clearly indicate which full filename contains each piece of information
-4. When referencing sources, use the full filenames with vector store prefix that I provided above
-5. Ensure your search is limited to these specific documents: ${fullDocumentNames}
-      `.trim();
+1. Focus your search exclusively on the documents listed above
+2. If the answer requires information from multiple documents, synthesize the information and clearly indicate which document contains each piece of information
+3. When referencing sources, use the document names that I provided above
+        `.trim();
 
-      console.log('=== ENHANCED QUERY WITH FULL FILENAMES (INCLUDING VECTOR STORE PREFIX) ===');
-      console.log('Full Document Filenames Being Sent to API:');
-      documentDetails.forEach(doc => {
-        console.log(`  - Full filename: "${doc.fileName}"`);
-        console.log(`    Original filename: "${doc.originalName}"`);
-        console.log(`    Document ID: ${doc.id}, OpenAI File ID: ${doc.openaiFileId}`);
-      });
-      console.log('\nFull Enhanced Query:');
-      console.log(enhancedQuery);
-      console.log('=== END ENHANCED QUERY ===');
-
-      // Get previous response ID for conversation continuity
-      const previousResponseId = await storage.getLastResponseId(requestType, requestId, userId);
-      if (previousResponseId) {
-        console.log('Found previous response ID for context:', previousResponseId);
+        // Get previous response ID for conversation continuity
+        const previousResponseId = await storage.getLastResponseId(requestType, requestId, userId);
+        
+        // Get response from OpenAI with vector store
+        const responseData = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds, previousResponseId || undefined, fullFilenames);
+        answer = responseData.text;
+        metadata = responseData.metadata;
       } else {
-        console.log('No previous response ID found - starting new conversation');
+        return {
+          success: false,
+          error: 'No valid documents found for analysis'
+        };
       }
-
-      // Get response from OpenAI with original_filename filtering and conversation context
-      const responseData = await this.getRawResponse(enhancedQuery, VECTOR_STORE_ID, openaiFileIds, previousResponseId || undefined, fullFilenames);
 
       // Save the query and response to database with metadata
       await storage.saveCrossDocumentQuery({
@@ -331,19 +414,19 @@ Important instructions:
         requestId,
         userId,
         query,
-        response: responseData.text,
+        response: answer,
         documentCount: readyDocuments.length,
-        openaiResponseId: responseData.metadata.openaiResponseId,
-        openaiModel: responseData.metadata.openaiModel,
-        inputTokens: responseData.metadata.inputTokens,
-        outputTokens: responseData.metadata.outputTokens,
-        totalTokens: responseData.metadata.totalTokens,
-        processingTimeMs: responseData.metadata.processingTimeMs
+        openaiResponseId: metadata.openaiResponseId,
+        openaiModel: metadata.openaiModel,
+        inputTokens: metadata.inputTokens,
+        outputTokens: metadata.outputTokens,
+        totalTokens: metadata.totalTokens,
+        processingTimeMs: metadata.processingTimeMs
       });
 
       return {
         success: true,
-        answer: responseData.text,
+        answer: answer,
         documentCount: readyDocuments.length
       };
 
