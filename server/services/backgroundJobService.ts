@@ -353,7 +353,8 @@ export class BackgroundJobService {
         stringMetadata[key] = String(value);
       }
       
-      const vectorStoreFile = await openai.vectorStores.files.create(vectorStoreId, {
+      // Use TypeScript workaround for metadata parameter (API supports it but types don't)
+      const vectorStoreFile = await (openai.vectorStores.files.create as any)(vectorStoreId, {
         file_id: file.id,
         metadata: stringMetadata
       });
