@@ -167,7 +167,10 @@ export class BackgroundJobService {
     let usingLocalFallback = false;
     
     try {
-      // Try LLM API service first
+      // Try LLM API service first - use hardcoded credentials since env vars aren't loading
+      process.env.LLM_SERVICE_URL = 'https://llm-api-service-vinay2k.replit.app';
+      process.env.LLM_SERVICE_API_KEY = 'aa123456789bb';
+      
       const { llmApiService } = await import('./llmApiService');
       const minimalAttributes = {
         document_id: job.documentId.toString(),
