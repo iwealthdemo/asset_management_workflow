@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronRight, ChevronUp, FileText, TrendingUp } from 'lucide-react';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface AnalysisCardProps {
   title: string;
@@ -42,10 +43,8 @@ const AnalysisCard: React.FC<AnalysisCardProps> = ({
       </CardHeader>
       {isExpanded && (
         <CardContent className="pt-0 pb-3">
-          <div className={`text-sm text-gray-600 dark:text-gray-400 leading-relaxed ${
-            type === 'insights' ? 'whitespace-pre-line' : ''
-          }`}>
-            {content}
+          <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+            <MarkdownRenderer content={content} />
           </div>
           
           {/* Hide Details Button */}
