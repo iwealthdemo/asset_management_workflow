@@ -149,9 +149,9 @@ const Templates: React.FC = () => {
     <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Investment Rationale Templates</h1>
+          <h1 className="text-2xl font-bold">Proposal Templates</h1>
           <p className="text-gray-600">
-            Create and manage templates for AI-powered investment rationale generation
+            Create and manage templates for investment proposals
           </p>
         </div>
         
