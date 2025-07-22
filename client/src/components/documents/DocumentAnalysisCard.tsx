@@ -421,6 +421,45 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
           </Alert>
         )}
 
+        {/* Document Action Buttons - Always Available */}
+        <div className="flex items-center gap-2 pb-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // Open preview in new tab to avoid Chrome blocking
+                    window.open(`/api/documents/preview/${document.id}`, '_blank');
+                  }}
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Preview Document</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open(`/api/documents/download/${document.id}`, '_blank')}
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Download Document</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+
         {/* Analysis Results */}
         {document.analysisStatus === 'completed' && analysis && (
           <div className="space-y-4">
@@ -509,66 +548,26 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
               )}
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2">
+            {/* Ask Question Button */}
+            {document.analysisStatus === 'completed' && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => {
-                        // Open preview in new tab to avoid Chrome blocking
-                        window.open(`/api/documents/preview/${document.id}`, '_blank');
-                      }}
+                      onClick={() => setShowQueryInput(!showQueryInput)}
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20"
                     >
-                      <Eye className="h-4 w-4" />
+                      <MessageSquare className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Preview Document</p>
+                    <p>Ask Question</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => window.open(`/api/documents/download/${document.id}`, '_blank')}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Download Document</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              {/* Ask Question Button */}
-              {document.analysisStatus === 'completed' && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setShowQueryInput(!showQueryInput)}
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Ask Question</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-
-            </div>
+            )}
 
             {/* Detailed Analysis */}
             {showDetails && (
