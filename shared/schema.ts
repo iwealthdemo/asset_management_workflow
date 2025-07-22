@@ -244,6 +244,16 @@ export const webSearchQueries = pgTable("web_search_queries", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Sequences table - for sequential ID generation
+export const sequences = pgTable("sequences", {
+  id: serial("id").primaryKey(),
+  sequenceName: text("sequence_name").notNull().unique(), // 'INV', 'CASH', etc.
+  currentValue: integer("current_value").notNull().default(0),
+  year: integer("year").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   investmentRequests: many(investmentRequests),
@@ -338,6 +348,8 @@ export const webSearchQueriesRelations = relations(webSearchQueries, ({ one }) =
   user: one(users, { fields: [webSearchQueries.userId], references: [users.id] }),
 }));
 
+export const sequencesRelations = relations(sequences, ({}) => ({}));
+
 // Zod schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -416,6 +428,12 @@ export const insertWebSearchQuerySchema = createInsertSchema(webSearchQueries).o
   createdAt: true,
 });
 
+export const insertSequenceSchema = createInsertSchema(sequences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -445,3 +463,5 @@ export type CrossDocumentQuery = typeof crossDocumentQueries.$inferSelect;
 export type InsertCrossDocumentQuery = z.infer<typeof insertCrossDocumentQuerySchema>;
 export type WebSearchQuery = typeof webSearchQueries.$inferSelect;
 export type InsertWebSearchQuery = z.infer<typeof insertWebSearchQuerySchema>;
+export type Sequence = typeof sequences.$inferSelect;
+export type InsertSequence = z.infer<typeof insertSequenceSchema>;

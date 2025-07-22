@@ -138,8 +138,12 @@ export class InvestmentService {
 
   private async generateRequestId(prefix: string): Promise<string> {
     const year = new Date().getFullYear();
-    const timestamp = Date.now().toString().slice(-6);
-    return `${prefix}-${year}-${timestamp}`;
+    const sequenceNumber = await storage.getNextSequenceValue(`${prefix}_${year}`);
+    
+    // Format sequence number with leading zeros (4 digits)
+    const formattedNumber = sequenceNumber.toString().padStart(4, '0');
+    
+    return `${prefix}-${year}-${formattedNumber}`;
   }
 }
 

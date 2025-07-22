@@ -2,7 +2,7 @@ import {
   users, investmentRequests, cashRequests, approvals, tasks, documents, 
   documentCategories, documentSubcategories,
   notifications, templates, auditLogs, approvalWorkflows, backgroundJobs,
-  documentQueries, crossDocumentQueries, webSearchQueries,
+  documentQueries, crossDocumentQueries, webSearchQueries, sequences,
   type User, type InsertUser, type InvestmentRequest, type InsertInvestmentRequest,
   type CashRequest, type InsertCashRequest, type Approval, type InsertApproval,
   type Task, type InsertTask, type Document, type InsertDocument,
@@ -10,7 +10,8 @@ import {
   type DocumentSubcategory, type InsertDocumentSubcategory,
   type Notification, type InsertNotification, type Template, type InsertTemplate,
   type BackgroundJob, type InsertBackgroundJob, type DocumentQuery, type InsertDocumentQuery,
-  type CrossDocumentQuery, type InsertCrossDocumentQuery, type WebSearchQuery, type InsertWebSearchQuery
+  type CrossDocumentQuery, type InsertCrossDocumentQuery, type WebSearchQuery, type InsertWebSearchQuery,
+  type Sequence, type InsertSequence
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sql, ne, isNotNull } from "drizzle-orm";
@@ -156,6 +157,9 @@ export interface IStorage {
   saveWebSearchQuery(query: InsertWebSearchQuery): Promise<WebSearchQuery>;
   getWebSearchQueries(requestType: string, requestId: number): Promise<WebSearchQuery[]>;
   getLastWebSearchResponseId(requestType: string, requestId: number, userId: number): Promise<string | null>;
+  
+  // Sequence operations
+  getNextSequenceValue(sequenceName: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1073,6 +1077,48 @@ export class DatabaseStorage implements IStorage {
     }
 
     return await query.orderBy(desc(documents.createdAt));
+  }
+
+  // Sequence operations
+  async getNextSequenceValue(sequenceName: string): Promise<number> {
+    try {
+      // Try to get existing sequence
+      const [existing] = await db
+        .select()
+        .from(sequences)
+        .where(eq(sequences.sequenceName, sequenceName))
+        .limit(1);
+
+      if (existing) {
+        // Update and return next value
+        const nextValue = existing.currentValue + 1;
+        await db
+          .update(sequences)
+          .set({ 
+            currentValue: nextValue, 
+            updatedAt: new Date() 
+          })
+          .where(eq(sequences.id, existing.id));
+        
+        return nextValue;
+      } else {
+        // Create new sequence starting at 1
+        const [newSequence] = await db
+          .insert(sequences)
+          .values({
+            sequenceName,
+            currentValue: 1,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          })
+          .returning();
+        
+        return newSequence.currentValue;
+      }
+    } catch (error) {
+      console.error('Error in getNextSequenceValue:', error);
+      throw error;
+    }
   }
 }
 
