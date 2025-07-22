@@ -1,10 +1,13 @@
 import { 
   users, investmentRequests, cashRequests, approvals, tasks, documents, 
+  documentCategories, documentSubcategories,
   notifications, templates, auditLogs, approvalWorkflows, backgroundJobs,
   documentQueries, crossDocumentQueries, webSearchQueries,
   type User, type InsertUser, type InvestmentRequest, type InsertInvestmentRequest,
   type CashRequest, type InsertCashRequest, type Approval, type InsertApproval,
   type Task, type InsertTask, type Document, type InsertDocument,
+  type DocumentCategory, type InsertDocumentCategory,
+  type DocumentSubcategory, type InsertDocumentSubcategory,
   type Notification, type InsertNotification, type Template, type InsertTemplate,
   type BackgroundJob, type InsertBackgroundJob, type DocumentQuery, type InsertDocumentQuery,
   type CrossDocumentQuery, type InsertCrossDocumentQuery, type WebSearchQuery, type InsertWebSearchQuery
@@ -56,6 +59,13 @@ export interface IStorage {
   getDocument(id: number): Promise<Document | undefined>;
   getDocumentsByAnalysisStatus(status: string): Promise<Document[]>;
   getDocumentAnalysis(id: number): Promise<any>;
+  
+  // Document category operations
+  getDocumentCategories(): Promise<DocumentCategory[]>;
+  getDocumentSubcategories(categoryId?: number): Promise<DocumentSubcategory[]>;
+  createDocumentCategory(category: InsertDocumentCategory): Promise<DocumentCategory>;
+  createDocumentSubcategory(subcategory: InsertDocumentSubcategory): Promise<DocumentSubcategory>;
+  getDocumentsByCategory(categoryId?: number, subcategoryId?: number): Promise<Document[]>;
   
   // Notification operations
   createNotification(notification: InsertNotification): Promise<Notification>;
@@ -999,6 +1009,61 @@ export class DatabaseStorage implements IStorage {
       console.error('Error in deleteWebSearchQuery:', error);
       throw error;
     }
+  }
+
+  // Document category operations
+  async getDocumentCategories(): Promise<DocumentCategory[]> {
+    return await db
+      .select()
+      .from(documentCategories)
+      .where(eq(documentCategories.isActive, true))
+      .orderBy(documentCategories.name);
+  }
+
+  async getDocumentSubcategories(categoryId?: number): Promise<DocumentSubcategory[]> {
+    const query = db
+      .select()
+      .from(documentSubcategories)
+      .where(eq(documentSubcategories.isActive, true));
+
+    if (categoryId) {
+      query.where(and(
+        eq(documentSubcategories.isActive, true),
+        eq(documentSubcategories.categoryId, categoryId)
+      ));
+    }
+
+    return await query.orderBy(documentSubcategories.name);
+  }
+
+  async createDocumentCategory(category: InsertDocumentCategory): Promise<DocumentCategory> {
+    const [newCategory] = await db
+      .insert(documentCategories)
+      .values(category)
+      .returning();
+    return newCategory;
+  }
+
+  async createDocumentSubcategory(subcategory: InsertDocumentSubcategory): Promise<DocumentSubcategory> {
+    const [newSubcategory] = await db
+      .insert(documentSubcategories)
+      .values(subcategory)
+      .returning();
+    return newSubcategory;
+  }
+
+  async getDocumentsByCategory(categoryId?: number, subcategoryId?: number): Promise<Document[]> {
+    let query = db
+      .select()
+      .from(documents);
+
+    if (subcategoryId) {
+      query = query.where(eq(documents.subcategoryId, subcategoryId));
+    } else if (categoryId) {
+      query = query.where(eq(documents.categoryId, categoryId));
+    }
+
+    return await query.orderBy(desc(documents.createdAt));
   }
 }
 

@@ -90,6 +90,28 @@ export const tasks = pgTable("tasks", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Document categories table
+export const documentCategories = pgTable("document_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  icon: text("icon").default("📄"), // emoji icon for display
+  isActive: boolean("is_active").default(true),
+  isSystem: boolean("is_system").default(false), // system vs user-created
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Document subcategories table
+export const documentSubcategories = pgTable("document_subcategories", {
+  id: serial("id").primaryKey(),
+  categoryId: integer("category_id").references(() => documentCategories.id).notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  isSystem: boolean("is_system").default(false), // system vs user-created
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Documents table
 export const documents = pgTable("documents", {
   id: serial("id").primaryKey(),
@@ -101,6 +123,10 @@ export const documents = pgTable("documents", {
   uploaderId: integer("uploader_id").references(() => users.id),
   requestType: text("request_type").notNull(), // investment, cash_request
   requestId: integer("request_id").notNull(),
+  // Document categorization
+  categoryId: integer("category_id").references(() => documentCategories.id),
+  subcategoryId: integer("subcategory_id").references(() => documentSubcategories.id),
+  isAutoCategorized: boolean("is_auto_categorized").default(false), // AI vs manual categorization
   // Document analysis fields
   analysisStatus: text("analysis_status").default("pending"), // pending, processing, completed, failed
   analysisResult: text("analysis_result"), // JSON string with analysis results
@@ -233,6 +259,19 @@ export const usersRelations = relations(users, ({ many }) => ({
   webSearchQueries: many(webSearchQueries),
 }));
 
+export const documentCategoriesRelations = relations(documentCategories, ({ many }) => ({
+  subcategories: many(documentSubcategories),
+  documents: many(documents),
+}));
+
+export const documentSubcategoriesRelations = relations(documentSubcategories, ({ one, many }) => ({
+  category: one(documentCategories, {
+    fields: [documentSubcategories.categoryId],
+    references: [documentCategories.id],
+  }),
+  documents: many(documents),
+}));
+
 export const investmentRequestsRelations = relations(investmentRequests, ({ one, many }) => ({
   requester: one(users, { fields: [investmentRequests.requesterId], references: [users.id] }),
   cashRequests: many(cashRequests),
@@ -259,6 +298,14 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
 
 export const documentsRelations = relations(documents, ({ one, many }) => ({
   uploader: one(users, { fields: [documents.uploaderId], references: [users.id] }),
+  category: one(documentCategories, {
+    fields: [documents.categoryId],
+    references: [documentCategories.id],
+  }),
+  subcategory: one(documentSubcategories, {
+    fields: [documents.subcategoryId],
+    references: [documentSubcategories.id],
+  }),
   queries: many(documentQueries),
 }));
 
@@ -327,6 +374,16 @@ export const insertDocumentSchema = createInsertSchema(documents).omit({
   createdAt: true,
 });
 
+export const insertDocumentCategorySchema = createInsertSchema(documentCategories).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDocumentSubcategorySchema = createInsertSchema(documentSubcategories).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
   id: true,
   createdAt: true,
@@ -372,6 +429,10 @@ export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Document = typeof documents.$inferSelect;
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+export type DocumentCategory = typeof documentCategories.$inferSelect;
+export type InsertDocumentCategory = z.infer<typeof insertDocumentCategorySchema>;
+export type DocumentSubcategory = typeof documentSubcategories.$inferSelect;
+export type InsertDocumentSubcategory = z.infer<typeof insertDocumentSubcategorySchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Template = typeof templates.$inferSelect;

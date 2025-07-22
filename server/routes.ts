@@ -379,7 +379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Document routes
   app.post('/api/documents/upload', authMiddleware, fileUpload.array('documents'), async (req, res) => {
     try {
-      const { requestType, requestId } = req.body;
+      const { requestType, requestId, categoryId, subcategoryId } = req.body;
       const files = req.files as Express.Multer.File[];
       
       if (!files || files.length === 0) {
@@ -388,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const documents = [];
       for (const file of files) {
-        const document = await storage.createDocument({
+        const documentData: any = {
           fileName: file.filename,
           originalName: file.originalname,
           fileSize: file.size,
@@ -397,7 +397,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           uploaderId: req.userId!,
           requestType,
           requestId: parseInt(requestId),
-        });
+        };
+        
+        // Add category information if provided
+        if (categoryId) {
+          documentData.categoryId = parseInt(categoryId);
+        }
+        if (subcategoryId) {
+          documentData.subcategoryId = parseInt(subcategoryId);
+        }
+        
+        const document = await storage.createDocument(documentData);
         documents.push(document);
         
         // Document uploaded successfully - manual analysis trigger will be available in UI
@@ -1452,6 +1462,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Vector store delete error:', error);
       res.status(500).json({ message: error.message || 'Failed to delete document from vector store' });
+    }
+  });
+
+  // Document category API routes
+  app.get('/api/document-categories', authMiddleware, async (req, res) => {
+    try {
+      const categories = await storage.getDocumentCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error('Error fetching document categories:', error);
+      res.status(500).json({ error: 'Failed to fetch document categories' });
+    }
+  });
+
+  app.get('/api/document-subcategories', authMiddleware, async (req, res) => {
+    try {
+      const { categoryId } = req.query;
+      const subcategories = await storage.getDocumentSubcategories(
+        categoryId ? parseInt(categoryId as string) : undefined
+      );
+      res.json(subcategories);
+    } catch (error) {
+      console.error('Error fetching document subcategories:', error);
+      res.status(500).json({ error: 'Failed to fetch document subcategories' });
+    }
+  });
+
+  app.post('/api/document-categories', authMiddleware, async (req, res) => {
+    try {
+      const { name, description, icon = '📄' } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ error: 'Name is required' });
+      }
+
+      const category = await storage.createDocumentCategory({
+        name,
+        description,
+        icon,
+        isSystem: false,
+        isActive: true
+      });
+      
+      res.json(category);
+    } catch (error) {
+      console.error('Error creating document category:', error);
+      res.status(500).json({ error: 'Failed to create document category' });
+    }
+  });
+
+  app.post('/api/document-subcategories', authMiddleware, async (req, res) => {
+    try {
+      const { categoryId, name, description } = req.body;
+      
+      if (!categoryId || !name) {
+        return res.status(400).json({ error: 'Category ID and name are required' });
+      }
+
+      const subcategory = await storage.createDocumentSubcategory({
+        categoryId: parseInt(categoryId),
+        name,
+        description,
+        isSystem: false,
+        isActive: true
+      });
+      
+      res.json(subcategory);
+    } catch (error) {
+      console.error('Error creating document subcategory:', error);
+      res.status(500).json({ error: 'Failed to create document subcategory' });
     }
   });
 

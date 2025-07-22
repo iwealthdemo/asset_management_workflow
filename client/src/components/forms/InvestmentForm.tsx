@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { FileUpload } from "@/components/ui/file-upload"
+import { DocumentCategorySelector } from "@/components/documents/DocumentCategorySelector"
 import { Card, CardContent } from "@/components/ui/card"
 import { insertInvestmentRequestSchema } from "@shared/schema"
 import { z } from "zod"
@@ -32,6 +33,8 @@ type FormData = z.infer<typeof formSchema>
 export function InvestmentForm() {
   const [, setLocation] = useLocation()
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>()
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number | undefined>()
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -71,6 +74,12 @@ export function InvestmentForm() {
         })
         formData.append('requestType', 'investment')
         formData.append('requestId', investment.id.toString())
+        if (selectedCategoryId) {
+          formData.append('categoryId', selectedCategoryId.toString())
+        }
+        if (selectedSubcategoryId) {
+          formData.append('subcategoryId', selectedSubcategoryId.toString())
+        }
         
         const uploadResponse = await fetch('/api/documents/upload', {
           method: 'POST',
@@ -292,12 +301,36 @@ export function InvestmentForm() {
       <Card>
         <CardContent className="pt-6">
           <h3 className="text-lg font-semibold mb-4">Supporting Documents</h3>
-          <FileUpload
-            multiple={true}
-            accept=".pdf,.doc,.docx,.xls,.xlsx"
-            maxSize={50 * 1024 * 1024}
-            onFilesChange={setUploadedFiles}
-          />
+          
+          {/* Document Categorization */}
+          <div className="mb-6">
+            <DocumentCategorySelector
+              selectedCategoryId={selectedCategoryId}
+              selectedSubcategoryId={selectedSubcategoryId}
+              onCategoryChange={(categoryId, subcategoryId) => {
+                setSelectedCategoryId(categoryId);
+                setSelectedSubcategoryId(subcategoryId);
+              }}
+              size="default"
+              showLabels={true}
+            />
+          </div>
+          
+          {/* File Upload */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Upload Documents</Label>
+            <FileUpload
+              multiple={true}
+              accept=".pdf,.doc,.docx,.xls,.xlsx"
+              maxSize={50 * 1024 * 1024}
+              onFilesChange={setUploadedFiles}
+            />
+            {uploadedFiles.length > 0 && selectedCategoryId && (
+              <p className="text-sm text-muted-foreground">
+                Files will be categorized under the selected category and subcategory
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
