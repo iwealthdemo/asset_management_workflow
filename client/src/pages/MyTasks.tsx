@@ -371,18 +371,10 @@ function TaskCard({
         {/* Expanded Details */}
         {isExpanded && requestData && (
           <div className="mt-6 space-y-6 pt-6 border-t">
-            {/* I. Investment Rationale / Description */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-3">Investment Rationale / Description</h4>
-              <p className="text-gray-800 bg-white p-3 rounded border min-h-[60px]">
-                {requestData.description || 'No description provided by the analyst'}
-              </p>
-            </div>
-
-            {/* II. Attached Documents */}
+            {/* I. Attached Documents */}
             <div className="space-y-4">
-              <h4 className="font-semibold flex items-center gap-2">
-                <FileText className="h-5 w-5" />
+              <h4 className="font-semibold flex items-center gap-2 text-base">
+                <FileText className="h-4 w-4" />
                 Attached Documents ({documents?.length || 0})
               </h4>
               
@@ -404,10 +396,10 @@ function TaskCard({
               )}
             </div>
 
-            {/* III. Research and Analysis */}
+            {/* II. Research and Analysis */}
             <div className="space-y-4">
-              <h4 className="font-semibold flex items-center gap-2">
-                <Search className="h-5 w-5" />
+              <h4 className="font-semibold flex items-center gap-2 text-base">
+                <Search className="h-4 w-4" />
                 Research and Analysis
               </h4>
               
@@ -418,9 +410,17 @@ function TaskCard({
               />
             </div>
 
+            {/* III. Investment Rationale / Description */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold mb-3 text-base">Investment Rationale / Description</h4>
+              <p className="text-gray-800 bg-white p-3 rounded border min-h-[60px]">
+                {requestData.description || 'No description provided by the analyst'}
+              </p>
+            </div>
+
             {/* IV. Approval History */}
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-4">Approval History</h4>
+              <h4 className="font-semibold mb-4 text-base">Approval History</h4>
               {approvalHistory && approvalHistory.length > 0 ? (
                 <div className="space-y-3">
                   {approvalHistory.map((approval: any) => (
