@@ -87,12 +87,20 @@ export class InvestmentService {
         currentApprovalStage: 0,
       });
 
-      // If this was a changes_requested proposal, clear existing approval records
+      // If this was a changes_requested proposal, clear existing approval records and complete the changes_requested task
       if (existingRequest.status.toLowerCase() === 'changes_requested') {
         // Clear any existing approval records for this request
         const existingApprovals = await storage.getApprovalsByRequest('investment', requestId);
         for (const approval of existingApprovals) {
           await storage.deleteApproval(approval.id);
+        }
+
+        // Complete any pending changes_requested tasks for this request
+        const pendingTasks = await storage.getTasksByRequest('investment', requestId);
+        for (const task of pendingTasks) {
+          if (task.taskType === 'changes_requested' && task.status === 'pending') {
+            await storage.updateTask(task.id, { status: 'completed' });
+          }
         }
       }
 

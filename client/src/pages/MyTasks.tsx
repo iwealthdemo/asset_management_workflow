@@ -487,51 +487,71 @@ function TaskCard({
             {/* Comments and Actions */}
             {task.status === 'pending' && (
               <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="comments">Comments (Required)</Label>
-                    <Textarea
-                      id="comments"
-                      rows={3}
-                      placeholder="Please provide your comments or feedback..."
-                      value={comments}
-                      onChange={(e) => setComments(e.target.value)}
-                      className="mt-2"
-                      required
-                    />
-                    {comments.trim() === '' && (
-                      <p className="text-sm text-red-500 mt-1">
-                        Comments are required before approving or rejecting
+                {task.taskType === 'changes_requested' ? (
+                  // Actions for changes requested tasks
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <h4 className="font-semibold mb-2 text-orange-800">Changes Requested</h4>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Please review the requested changes and update your proposal accordingly.
                       </p>
-                    )}
+                      <Button
+                        onClick={() => window.location.href = '/my-investments'}
+                        className="flex items-center gap-2"
+                      >
+                        <FileText className="h-4 w-4" />
+                        Go to My Investments
+                      </Button>
+                    </div>
                   </div>
+                ) : (
+                  // Actions for approval tasks
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="comments">Comments (Required)</Label>
+                      <Textarea
+                        id="comments"
+                        rows={3}
+                        placeholder="Please provide your comments or feedback..."
+                        value={comments}
+                        onChange={(e) => setComments(e.target.value)}
+                        className="mt-2"
+                        required
+                      />
+                      {comments.trim() === '' && (
+                        <p className="text-sm text-red-500 mt-1">
+                          Comments are required before approving or rejecting
+                        </p>
+                      )}
+                    </div>
 
-                  <div className="flex items-center justify-end space-x-4">
-                    <Button
-                      variant="destructive"
-                      onClick={() => onProcessApproval.mutate({ taskId: task.id, action: 'reject' })}
-                      disabled={onProcessApproval.isPending || comments.trim() === ''}
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Reject
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => onProcessApproval.mutate({ taskId: task.id, action: 'changes_requested' })}
-                      disabled={onProcessApproval.isPending || comments.trim() === ''}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Request Changes
-                    </Button>
-                    <Button
-                      onClick={() => onProcessApproval.mutate({ taskId: task.id, action: 'approve' })}
-                      disabled={onProcessApproval.isPending || comments.trim() === ''}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Approve
-                    </Button>
+                    <div className="flex items-center justify-end space-x-4">
+                      <Button
+                        variant="destructive"
+                        onClick={() => onProcessApproval.mutate({ taskId: task.id, action: 'reject' })}
+                        disabled={onProcessApproval.isPending || comments.trim() === ''}
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Reject
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => onProcessApproval.mutate({ taskId: task.id, action: 'changes_requested' })}
+                        disabled={onProcessApproval.isPending || comments.trim() === ''}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Request Changes
+                      </Button>
+                      <Button
+                        onClick={() => onProcessApproval.mutate({ taskId: task.id, action: 'approve' })}
+                        disabled={onProcessApproval.isPending || comments.trim() === ''}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Approve
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>

@@ -204,6 +204,9 @@ export class WorkflowService {
       await storage.updateCashRequest(requestId, { status: 'changes_requested' });
     }
 
+    // Create task for the initiator to address the requested changes
+    await this.createChangesRequestedTask(requestType, requestId);
+
     // Notify requester
     await notificationService.notifyChangesRequested(requestType, requestId);
   }
@@ -257,6 +260,43 @@ export class WorkflowService {
     }
     
     console.log(`Created approval tasks for ${requestType} request ${requestId}, stage ${stage}`);
+  }
+
+  private async createChangesRequestedTask(requestType: string, requestId: number) {
+    // Get request details to find the initiator and create descriptive task
+    let request = null;
+    if (requestType === 'investment') {
+      request = await storage.getInvestmentRequest(requestId);
+    } else {
+      request = await storage.getCashRequest(requestId);
+    }
+
+    if (!request) return;
+
+    // Create descriptive task description
+    let taskDescription = `Please address the requested changes and resubmit your ${requestType.replace('_', ' ')} request.`;
+    if (requestType === 'investment') {
+      taskDescription = `${request.requestId} - ${request.investmentType} - ${request.targetCompany} - $${request.amount} - Changes Required`;
+    } else {
+      taskDescription = `${request.requestId} - Cash Request - $${request.amount} - Changes Required`;
+    }
+
+    // Set due date (48 hours to address changes)
+    const dueDate = new Date();
+    dueDate.setHours(dueDate.getHours() + 48);
+
+    // Create task for the initiator
+    await storage.createTask({
+      assigneeId: request.requesterId!,
+      requestType,
+      requestId,
+      taskType: 'changes_requested',
+      title: `Address Requested Changes - ${requestType.replace('_', ' ')}`,
+      description: taskDescription,
+      dueDate,
+    });
+
+    console.log(`Created changes requested task for ${requestType} request ${requestId} assigned to user ${request.requesterId}`);
   }
 }
 

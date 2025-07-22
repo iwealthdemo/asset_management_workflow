@@ -315,6 +315,15 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(tasks.createdAt));
   }
 
+  async getTasksByRequest(requestType: string, requestId: number): Promise<Task[]> {
+    return await db.select().from(tasks)
+      .where(and(
+        eq(tasks.requestType, requestType),
+        eq(tasks.requestId, requestId)
+      ))
+      .orderBy(desc(tasks.createdAt));
+  }
+
   async getTaskById(id: number): Promise<Task | undefined> {
     const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
     return task || undefined;
