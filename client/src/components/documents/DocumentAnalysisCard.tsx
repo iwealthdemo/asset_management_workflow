@@ -465,21 +465,10 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
           <div className="space-y-4">
             {/* Analysis Cards Section */}
             <div className="space-y-3">
-              {/* Summary Card */}
-              {(insights?.summary || analysis.summary) && (
-                <AnalysisCard
-                  title="Summary"
-                  content={insights?.summary || analysis.summary}
-                  icon={<FileText className="h-4 w-4 text-blue-600" />}
-                  type="summary"
-                  defaultExpanded={false}
-                />
-              )}
-
-              {/* Insights Card */}
+              {/* Document Summary Card (renamed from AI Insights) */}
               {insights?.insights && (
                 <AnalysisCard
-                  title="AI Insights"
+                  title="Document Summary"
                   content={insights.insights}
                   icon={<TrendingUp className="h-4 w-4 text-purple-600" />}
                   type="insights"
@@ -539,7 +528,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
               )}
 
               {/* Query Cards */}
-              {queryHistory && queryHistory.length > 0 && (
+              {queryHistory && Array.isArray(queryHistory) && queryHistory.length > 0 && (
                 <div className="space-y-3">
                   {queryHistory.map((query: any, index: number) => (
                     <QueryCard key={query.id} query={query} index={index} />
@@ -577,10 +566,10 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                   <div>
                     <h4 className="font-medium mb-2">Risk Factors</h4>
                     <ul className="text-sm space-y-1">
-                      {analysis.riskAssessment.factors.map((factor, index) => (
+                      {analysis.riskAssessment.factors.map((factor: any, index: number) => (
                         <li key={index} className="flex items-start gap-2">
                           <AlertTriangle className="h-3 w-3 text-yellow-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-gray-600 dark:text-gray-400">{factor}</span>
+                          <span className="text-gray-600 dark:text-gray-400">{String(factor)}</span>
                         </li>
                       ))}
                     </ul>
@@ -592,10 +581,10 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                   <div>
                     <h4 className="font-medium mb-2">Recommendations</h4>
                     <ul className="text-sm space-y-1">
-                      {analysis.recommendations.map((rec, index) => (
+                      {analysis.recommendations.map((rec: any, index: number) => (
                         <li key={index} className="flex items-start gap-2">
                           <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-gray-600 dark:text-gray-400">{rec}</span>
+                          <span className="text-gray-600 dark:text-gray-400">{String(rec)}</span>
                         </li>
                       ))}
                     </ul>
@@ -611,7 +600,7 @@ const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({
                       {Object.entries(analysis.keyInformation.financialMetrics).map(([key, value]) => (
                         <div key={key} className="flex justify-between">
                           <span className="font-medium capitalize">{key.replace('_', ' ')}:</span>
-                          <span className="text-gray-600 dark:text-gray-400">{value}</span>
+                          <span className="text-gray-600 dark:text-gray-400">{String(value)}</span>
                         </div>
                       ))}
                     </div>
