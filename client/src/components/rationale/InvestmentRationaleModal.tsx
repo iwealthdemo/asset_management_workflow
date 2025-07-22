@@ -49,9 +49,10 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
   // Create rationale mutation
   const createRationaleMutation = useMutation({
     mutationFn: async (data: { content: string; type: 'manual' | 'ai_generated'; templateId?: number }) => {
-      return apiRequest(`/api/investments/${investmentId}/rationales`, 'POST', data);
+      return apiRequest('POST', `/api/investments/${investmentId}/rationales`, data);
     },
-    onSuccess: () => {
+    onSuccess: async (response: Response) => {
+      const result = await response.json();
       queryClient.invalidateQueries({ queryKey: [`/api/investments/${investmentId}/rationales`] });
       toast({
         title: "Rationale Added",
@@ -73,9 +74,10 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
   // Generate comprehensive AI rationale mutation  
   const generateAIRationaleMutation = useMutation({
     mutationFn: async (templateId: number) => {
-      return apiRequest(`/api/investments/${investmentId}/rationales/generate-comprehensive`, 'POST', { templateId });
+      return apiRequest('POST', `/api/investments/${investmentId}/rationales/generate-comprehensive`, { templateId });
     },
-    onSuccess: (result: any) => {
+    onSuccess: async (response: Response) => {
+      const result = await response.json();
       queryClient.invalidateQueries({ queryKey: [`/api/investments/${investmentId}/rationales`] });
       const metadata = result?.metadata;
       toast({
