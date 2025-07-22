@@ -75,9 +75,9 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
     mutationFn: async (templateId: number) => {
       return apiRequest(`/api/investments/${investmentId}/rationales/generate-comprehensive`, 'POST', { templateId });
     },
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: [`/api/investments/${investmentId}/rationales`] });
-      const metadata = result.metadata;
+      const metadata = result?.metadata;
       toast({
         title: "Comprehensive Proposal Generated",
         description: `AI-powered investment proposal generated using ${metadata?.dataSourcesCounts?.documents || 0} documents, ${metadata?.dataSourcesCounts?.crossDocQueries || 0} document queries, and ${metadata?.dataSourcesCounts?.webSearchQueries || 0} web searches.`,

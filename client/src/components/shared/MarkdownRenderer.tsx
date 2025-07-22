@@ -55,16 +55,16 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
     
     return text.replace(tableRegex, (match, header, rows) => {
       const headerCells = header.split('|')
-        .filter(cell => cell.trim())
-        .map(cell => `<th class="border border-gray-300 dark:border-gray-600 px-4 py-2 bg-gray-50 dark:bg-gray-700 font-semibold text-left">${cell.trim()}</th>`)
+        .filter((cell: string) => cell.trim())
+        .map((cell: string) => `<th class="border border-gray-300 dark:border-gray-600 px-4 py-2 bg-gray-50 dark:bg-gray-700 font-semibold text-left">${cell.trim()}</th>`)
         .join('');
 
       const bodyRows = rows.trim().split('\n')
-        .filter(row => row.trim())
-        .map(row => {
+        .filter((row: string) => row.trim())
+        .map((row: string) => {
           const cells = row.split('|')
-            .filter(cell => cell.trim())
-            .map(cell => `<td class="border border-gray-300 dark:border-gray-600 px-4 py-2">${cell.trim()}</td>`)
+            .filter((cell: string) => cell.trim())
+            .map((cell: string) => `<td class="border border-gray-300 dark:border-gray-600 px-4 py-2">${cell.trim()}</td>`)
             .join('');
           return `<tr>${cells}</tr>`;
         }).join('');

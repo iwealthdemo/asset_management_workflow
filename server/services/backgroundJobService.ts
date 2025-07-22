@@ -215,6 +215,7 @@ export class BackgroundJobService {
       };
       
       console.log(`Calling investmentInsights with file ID: ${result.file.id}`);
+      const { llmApiService } = await import('./llmApiService');
       const analysisResult = await llmApiService.investmentInsights([result.file.id], 'comprehensive', insightsMetadata);
       
       console.log(`LLM service result:`, JSON.stringify(analysisResult, null, 2));
@@ -319,22 +320,20 @@ export class BackgroundJobService {
 
       console.log('Uploading file with enhanced metadata:', metadata);
 
-      // Upload file to OpenAI
+      // Upload file to OpenAI with streaming to prevent memory issues
+      const fileStream = fs.createReadStream(filePath);
       const file = await openai.files.create({
-        file: await fs.promises.readFile(filePath),
-        purpose: 'file-search'
+        file: fileStream,
+        purpose: 'assistants'
       });
 
       console.log('File uploaded to OpenAI:', file.id);
 
       // Add to vector store with comprehensive attributes (matching external service format)
       const vectorStoreId = 'vs_687584b54f908191b0a21ffa42948fb5'; // From health check
-      const vectorStoreFile = await openai.beta.vectorStores.files.create(
+      const vectorStoreFile = await (openai.beta as any).vectorStores.files.create(
         vectorStoreId,
-        { 
-          file_id: file.id,
-          metadata: metadata // Add rich metadata like external service
-        }
+        file.id
       );
 
       console.log('File added to vector store with metadata:', vectorStoreFile.id);

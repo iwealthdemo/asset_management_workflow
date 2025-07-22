@@ -73,7 +73,7 @@ export class PrepareAIService {
       const customAttributes = {
         document_id: documentId.toString(),
         request_id: documentRecord?.requestId?.toString() || 'unknown',
-        upload_user_id: documentRecord?.uploadedBy?.toString() || 'unknown',
+        upload_user_id: documentRecord?.uploaderId?.toString() || 'unknown',
         system_source: 'investment_approval_system',
         processed_timestamp: new Date().toISOString()
       };
