@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle, AlertTriangle, Clock, Eye, ChevronDown, ChevronUp, Edit, Send, FileText, Upload, X, Save } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -74,17 +74,19 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
     },
   });
 
-  // Initialize form when investment details are loaded
-  if (investmentDetails && !isInlineEditing) {
-    editForm.reset({
-      targetCompany: investmentDetails.targetCompany || "",
-      investmentType: investmentDetails.investmentType || "equity",
-      amount: investmentDetails.amount?.toString() || "",
-      expectedReturn: investmentDetails.expectedReturn?.toString() || "",
-      description: investmentDetails.description || "",
-      riskLevel: investmentDetails.riskLevel || "medium",
-    });
-  }
+  // Initialize form when investment details are loaded using useEffect
+  useEffect(() => {
+    if (investmentDetails && !isInlineEditing) {
+      editForm.reset({
+        targetCompany: investmentDetails.targetCompany || "",
+        investmentType: investmentDetails.investmentType || "equity",
+        amount: investmentDetails.amount?.toString() || "",
+        expectedReturn: investmentDetails.expectedReturn?.toString() || "",
+        description: investmentDetails.description || "",
+        riskLevel: investmentDetails.riskLevel || "medium",
+      });
+    }
+  }, [investmentDetails, isInlineEditing]);
 
   // Mutations
   const editDraftMutation = useMutation({
