@@ -344,11 +344,18 @@ export class BackgroundJobService {
         throw new Error('vectorStores.files API not available');
       }
 
-      // Add to vector store with comprehensive attributes (matching external service format)
+      // Add to vector store with comprehensive metadata (using correct Node.js API)
       const vectorStoreId = 'vs_687584b54f908191b0a21ffa42948fb5'; // From health check
+      
+      // Convert all metadata values to strings as required by Node.js OpenAI API
+      const stringMetadata: Record<string, string> = {};
+      for (const [key, value] of Object.entries(metadata)) {
+        stringMetadata[key] = String(value);
+      }
+      
       const vectorStoreFile = await openai.vectorStores.files.create(vectorStoreId, {
         file_id: file.id,
-        attributes: metadata
+        metadata: stringMetadata
       });
 
       console.log('File added to vector store with metadata:', vectorStoreFile.id);
