@@ -68,12 +68,22 @@ interface DocumentAnalysisCardProps {
   document: Document;
   requestType: string;
   requestId: number;
+  hideRiskAssessment?: boolean;
+  hideKeyInfoHeader?: boolean;
+  simplifiedView?: boolean;
+  showAnalysisLabel?: boolean;
+  showOnlyProcessed?: boolean;
 }
 
 const DocumentAnalysisCard: React.FC<DocumentAnalysisCardProps> = ({ 
   document, 
   requestType, 
-  requestId 
+  requestId,
+  hideRiskAssessment = false,
+  hideKeyInfoHeader = false,
+  simplifiedView = false,
+  showAnalysisLabel = true,
+  showOnlyProcessed = false
 }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
