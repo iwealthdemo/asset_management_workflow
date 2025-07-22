@@ -239,6 +239,12 @@ function TaskCard({
 }) {
   const Icon = getTaskIcon(task.taskType);
   const [analyzingDocument, setAnalyzingDocument] = useState<number | null>(null);
+  
+  // State for section expand/collapse functionality
+  const [isDocumentsExpanded, setIsDocumentsExpanded] = useState(false);
+  const [isResearchExpanded, setIsResearchExpanded] = useState(false);
+  const [isRationaleExpanded, setIsRationaleExpanded] = useState(false);
+  const [isApprovalExpanded, setIsApprovalExpanded] = useState(true); // Keep approval history expanded by default
 
   const { toast } = useToast();
   
@@ -398,88 +404,163 @@ function TaskCard({
         {isExpanded && requestData && (
           <div className="mt-6 space-y-6 pt-6 border-t">
             {/* I. Attached Documents */}
-            <div className="space-y-4">
-              <h4 className="font-semibold flex items-center gap-2 text-base">
-                <FileText className="h-4 w-4" />
-                Attached Documents ({documents?.length || 0})
-              </h4>
-              
-              {/* Individual Document Analysis Cards - Simplified */}
-              {documents && documents.length > 0 && (
-                <div className="space-y-4">
-                  {documents.map((document: any) => (
-                    <DocumentAnalysisCard
-                      key={document.id}
-                      document={document}
-                      requestType={task.requestType}
+            {documents && documents.length > 0 && (
+              <Card>
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
+                  onClick={() => setIsDocumentsExpanded(!isDocumentsExpanded)}
+                >
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <FileText className="h-4 w-4" />
+                      Attached Documents
+                    </CardTitle>
+                    {isDocumentsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </div>
+                </CardHeader>
+                {isDocumentsExpanded && (
+                  <CardContent className="pt-0 pb-4">
+                    <div className="space-y-3">
+                      {documents.map((document: any) => (
+                        <DocumentAnalysisCard
+                          key={document.id}
+                          document={document}
+                          requestType={task.requestType}
+                          requestId={task.requestId}
+                          hideRiskAssessment={true}
+                          hideKeyInfoHeader={true}
+                          simplifiedView={true}
+                        />
+                      ))}
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            )}
+
+            {/* II. Research & Analysis */}
+            {documents && documents.length > 0 && (
+              <Card>
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
+                  onClick={() => setIsResearchExpanded(!isResearchExpanded)}
+                >
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Search className="h-4 w-4" />
+                      Research & Analysis
+                    </CardTitle>
+                    {isResearchExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </div>
+                </CardHeader>
+                {isResearchExpanded && (
+                  <CardContent className="pt-0 pb-4">
+                    <UnifiedSearchInterface 
+                      documents={documents}
                       requestId={task.requestId}
-                      hideRiskAssessment={true}
-                      hideKeyInfoHeader={true}
-                      simplifiedView={true}
+                      requestType={task.requestType}
+                      isExpanded={isResearchExpanded}
+                      onExpandedChange={setIsResearchExpanded}
                     />
-                  ))}
+                  </CardContent>
+                )}
+              </Card>
+            )}
+
+            {/* III. Investment Rationale */}
+            <Card>
+              <CardHeader 
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
+                onClick={() => setIsRationaleExpanded(!isRationaleExpanded)}
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <FileText className="h-4 w-4" />
+                    Investment Rationale
+                  </CardTitle>
+                  {isRationaleExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </div>
+              </CardHeader>
+              {isRationaleExpanded && (
+                <CardContent className="pt-0 pb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">Target Company:</span>
+                      <span className="font-semibold">{requestData.targetCompany}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">Risk Level:</span>
+                      <Badge className={
+                        requestData.riskLevel === 'low' ? 'bg-green-100 text-green-800' :
+                        requestData.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }>
+                        {requestData.riskLevel}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <span className="text-sm text-gray-600 block mb-2">Investment Rationale / Description:</span>
+                    <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px]">
+                      {requestData.description || 'No description provided by the analyst'}
+                    </p>
+                  </div>
+                </CardContent>
               )}
-            </div>
-
-            {/* II. Research and Analysis */}
-            <div className="space-y-4">
-              <h4 className="font-semibold flex items-center gap-2 text-base">
-                <Search className="h-4 w-4" />
-                Research and Analysis
-              </h4>
-              
-              {/* Unified Search Interface */}
-              <UnifiedSearchInterface
-                requestId={task.requestId}
-                documents={documents || []}
-              />
-            </div>
-
-            {/* III. Investment Rationale / Description */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-3 text-base">Investment Rationale / Description</h4>
-              <p className="text-gray-800 bg-white p-3 rounded border min-h-[60px]">
-                {requestData.description || 'No description provided by the analyst'}
-              </p>
-            </div>
+            </Card>
 
             {/* IV. Approval History */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-4 text-base">Approval History</h4>
-              {approvalHistory && approvalHistory.length > 0 ? (
-                <div className="space-y-3">
-                  {approvalHistory.map((approval: any) => (
-                    <div key={approval.id} className="flex items-center space-x-3 p-3 bg-white rounded-lg">
-                      {getStatusIcon(approval.status)}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium">
-                            Stage {approval.stage} - {approval.status === 'approve' ? 'approved' : approval.status}
-                          </p>
-                          <Badge className={getStatusColor(approval.status === 'approve' ? 'approved' : approval.status)}>
-                            {approval.status === 'approve' ? 'approved' : approval.status}
-                          </Badge>
-                        </div>
-                        {approval.approvedAt && (
-                          <p className="text-xs text-gray-500">
-                            {format(new Date(approval.approvedAt), 'MMM dd, yyyy HH:mm')}
-                          </p>
-                        )}
-                        <div className="mt-1">
-                          <p className="text-xs text-gray-500 font-medium">Comments:</p>
-                          <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                            {approval.comments || 'No comments provided'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+            <Card>
+              <CardHeader 
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
+                onClick={() => setIsApprovalExpanded(!isApprovalExpanded)}
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <CheckCircle className="h-4 w-4" />
+                    Approval History
+                  </CardTitle>
+                  {isApprovalExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </div>
-              ) : (
-                <p className="text-gray-500 text-center py-4">No approval history available</p>
+              </CardHeader>
+              {isApprovalExpanded && (
+                <CardContent className="pt-0 pb-4">
+                  <div className="space-y-3">
+                    {approvalHistory && approvalHistory.length > 0 ? (
+                      approvalHistory.map((approval: any) => (
+                        <div key={approval.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                          {getStatusIcon(approval.status)}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium">
+                                Stage {approval.stage} - {approval.status === 'approve' ? 'approved' : approval.status}
+                              </p>
+                              <Badge className={getStatusColor(approval.status === 'approve' ? 'approved' : approval.status)}>
+                                {approval.status === 'approve' ? 'approved' : approval.status}
+                              </Badge>
+                            </div>
+                            {approval.approvedAt && (
+                              <p className="text-xs text-gray-500">
+                                {format(new Date(approval.approvedAt), 'MMM dd, yyyy HH:mm')}
+                              </p>
+                            )}
+                            <div className="mt-1">
+                              <p className="text-xs text-gray-500 font-medium">Comments:</p>
+                              <p className="text-sm text-gray-600 bg-white p-2 rounded">
+                                {approval.comments || 'No comments provided'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No approval history available</p>
+                    )}
+                  </div>
+                </CardContent>
               )}
-            </div>
+            </Card>
 
 
 
