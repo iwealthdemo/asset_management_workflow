@@ -69,24 +69,25 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
     },
   });
 
-  // Generate AI rationale mutation
+  // Generate comprehensive AI rationale mutation
   const generateAIRationaleMutation = useMutation({
     mutationFn: async (templateId: number) => {
-      return apiRequest(`/api/investments/${investmentId}/rationales/generate`, 'POST', { templateId });
+      return apiRequest(`/api/investments/${investmentId}/rationales/generate-comprehensive`, 'POST', { templateId });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: [`/api/investments/${investmentId}/rationales`] });
+      const metadata = result.metadata;
       toast({
-        title: "AI Rationale Generated",
-        description: "AI-powered investment rationale has been generated successfully.",
+        title: "Comprehensive Proposal Generated",
+        description: `AI-powered investment proposal generated using ${metadata?.dataSourcesCounts?.documents || 0} documents, ${metadata?.dataSourcesCounts?.crossDocQueries || 0} document queries, and ${metadata?.dataSourcesCounts?.webSearchQueries || 0} web searches.`,
       });
       onClose();
       setSelectedTemplateId('');
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to generate AI rationale.",
+        description: error?.response?.data?.message || "Failed to generate comprehensive proposal.",
         variant: "destructive",
       });
     },
@@ -199,7 +200,7 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Brain className="h-5 w-5" />
-                  AI-Powered Rationale Generation
+                  Comprehensive Proposal Generation
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -265,16 +266,18 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
                   </div>
                 )}
 
-                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-                    How AI Generation Works
-                  </h4>
-                  <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                    <li>• AI analyzes attached documents and investment details</li>
-                    <li>• Generates comprehensive rationale using selected template structure</li>
-                    <li>• Includes financial analysis, risk assessment, and recommendations</li>
-                    <li>• Results are based on document content and market analysis</li>
-                  </ul>
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                  <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-2">
+                    🧠 World-Class AI Analysis
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    Generates comprehensive investment proposals by integrating:
+                    <br />• All existing document analysis & insights
+                    <br />• Complete research Q&A history 
+                    <br />• Real-time web search & market data
+                    <br />• Professional template structure with word limits
+                    <br />• OpenAI file_search + web_search tools
+                  </p>
                 </div>
 
                 <div className="flex justify-end space-x-3">
@@ -288,12 +291,12 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
                     {generateAIRationaleMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Generating...
+                        Generating Comprehensive Analysis...
                       </>
                     ) : (
                       <>
                         <Sparkles className="h-4 w-4 mr-2" />
-                        Generate AI Rationale
+                        Generate Comprehensive Proposal
                       </>
                     )}
                   </Button>

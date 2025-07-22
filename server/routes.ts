@@ -1728,6 +1728,32 @@ Note: This is an AI-generated analysis based on the selected template structure.
     }
   });
 
+  // Comprehensive AI rationale generation route
+  app.post('/api/investments/:id/rationales/generate-comprehensive', authMiddleware, async (req, res) => {
+    try {
+      const investmentId = parseInt(req.params.id);
+      const { templateId } = req.body;
+      
+      // Import the service
+      const { comprehensiveProposalService } = await import('./services/comprehensiveProposalService');
+      
+      // Generate comprehensive proposal
+      const result = await comprehensiveProposalService.generateComprehensiveProposal({
+        investmentId,
+        templateId,
+        userId: req.userId!
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error generating comprehensive proposal:', error);
+      res.status(500).json({ 
+        message: 'Failed to generate comprehensive proposal',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
