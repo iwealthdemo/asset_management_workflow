@@ -178,37 +178,27 @@ ${webInsights || 'No previous web search results'}
     // Build tools array
     const tools: any[] = [];
 
-    // Add file_search tool if we have vector store files
-    if (vectorStoreFileIds.length > 0) {
-      // Get vector store ID from environment or use a default
-      const vectorStoreId = process.env.OPENAI_VECTOR_STORE_ID || 'vs_default';
-      
-      tools.push({
-        type: "file_search",
-        file_search: {
-          vector_store_ids: [vectorStoreId],
-          ...(vectorStoreFileIds.length > 0 && {
-            filters: vectorStoreFileIds.length === 1 
-              ? {
-                  type: "eq",
-                  key: "file_id", 
-                  value: vectorStoreFileIds[0]
-                }
-              : {
-                  type: "or",
-                  filters: vectorStoreFileIds.map(fileId => ({
-                    type: "eq",
-                    key: "file_id",
-                    value: fileId
-                  }))
-                }
-          })
-        }
-      });
-    }
+    // Temporarily disable all tools to test basic OpenAI Responses API functionality
+    // TODO: Re-enable file_search and web_search once basic API is working
+    // if (vectorStoreFileIds.length > 0) {
+    //   const vectorStoreId = process.env.OPENAI_VECTOR_STORE_ID || 'vs_default';
+    //   tools.push({
+    //     type: "file_search",
+    //     file_search: {
+    //       vector_store_ids: [vectorStoreId]
+    //     }
+    //   });
+    // }
 
-    // Note: web_search_preview is not available in current OpenAI API
-    // Web search results are already included in the contextual input above
+    // Temporarily remove web_search tool to test basic functionality first
+    // TODO: Re-enable once we determine the correct OpenAI Responses API format for web search
+    // const searchQuery = `${investment.targetCompany} ${investment.investmentType} investment analysis 2025 financial performance market outlook`;
+    // tools.push({
+    //   type: "web_search", 
+    //   query: searchQuery
+    // });
+
+    console.log(`Tools configured: ${tools.length} tools (file_search: ${tools.some(t => t.type === 'file_search')}, web_search: ${tools.some(t => t.type === 'web_search')})`);
 
     // Build comprehensive prompt
     const prompt = `${contextualInput}
@@ -218,9 +208,9 @@ COMPREHENSIVE PROPOSAL GENERATION INSTRUCTIONS:
 You are an expert investment analyst generating a world-class investment proposal. Use ALL available information sources:
 
 1. DOCUMENT INTELLIGENCE: Reference the document analysis summaries and insights provided above
-2. RESEARCH HISTORY: Build upon the Q&A research already conducted including web search results
-3. FILE SEARCH: Access detailed information from uploaded documents via file_search (if available)
-4. INVESTMENT DETAILS: Use the specific investment parameters provided
+2. RESEARCH HISTORY: Build upon the Q&A research already conducted  
+3. WEB SEARCH: Current market data and insights are included in the context above from previous research
+4. FILE SEARCH: Access detailed information from uploaded documents via file_search tool
 5. TEMPLATE ADHERENCE: Follow the exact template structure with specified word limits
 
 TEMPLATE REQUIREMENTS:
@@ -235,7 +225,7 @@ Focus Areas: ${section.focusAreas.join(', ')}
 QUALITY STANDARDS:
 - Professional investment-grade analysis suitable for committee review
 - Integrate ALL existing analysis and research findings
-- Leverage web search results already provided in the context
+- Leverage the web search results and market data already provided in the context
 - Reference specific documents and data sources
 - Maintain exact word limits for each section
 - Provide clear, actionable recommendations
