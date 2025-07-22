@@ -116,17 +116,63 @@ export class GetInsightsService {
 
       console.log('Document is ready for insights generation');
 
-      // Generate summary
-      const summaryPrompt = `Please search through the documents in the vector store and find the document "${document.originalName}" or any document related to "${document.originalName}". Then summarize that document in one clear and concise paragraph, capturing the key ideas without missing critical points. Ensure the summary is easy to understand and avoids excessive detail.`;
+      // Generate comprehensive summary
+      const summaryPrompt = `You are a senior investment analyst. Please analyze the document "${document.originalName}" and provide a comprehensive executive summary of approximately 300-400 words covering:
+
+1. **Document Type and Purpose**: What type of document this is and its primary objective
+2. **Key Financial Metrics**: Revenue, profit, growth rates, and important financial performance indicators
+3. **Business Highlights**: Major achievements, strategic initiatives, and operational performance
+4. **Market Position**: Competitive standing, market share, and industry context
+5. **Investment Relevance**: Critical information that would impact investment decisions
+
+Structure the response as a cohesive executive summary that flows naturally from one section to the next. Focus on concrete data and measurable outcomes from the document. Write in a professional tone suitable for senior management and investors.`;
       
       const summary = await this.getRawResponse(summaryPrompt);
-      console.log('Summary generated successfully');
+      console.log('Comprehensive summary generated successfully');
 
-      // Generate insights
-      const insightsPrompt = `Please search through the documents in the vector store and find the document "${document.originalName}" or any document related to "${document.originalName}". Then identify and summarize the three most important insights from that document. Present each insight as a separate bullet point, ensuring each is clear, concise, and highlights the significance of the finding.`;
+      // Generate comprehensive insights
+      const insightsPrompt = `You are a senior investment analyst providing detailed investment insights. Analyze the document "${document.originalName}" thoroughly and provide comprehensive investment insights of approximately 500-600 words covering:
+
+## 1. Executive Summary
+Brief overview of the investment opportunity and key takeaways
+
+## 2. Financial Performance Analysis
+- Revenue trends, growth patterns, and year-over-year changes
+- Profitability metrics including margins and EBITDA performance
+- Cash flow generation and balance sheet strength
+- Key financial ratios and how they compare to industry benchmarks
+- Debt levels, liquidity position, and capital structure
+
+## 3. Business Strengths and Investment Highlights
+- Core competitive advantages and market position
+- Growth drivers and expansion opportunities
+- Management track record and strategic execution
+- Product/service differentiation and market demand
+- Notable achievements and operational milestones
+
+## 4. Risk Assessment and Challenges
+- Business and operational risks identified in the document
+- Market, regulatory, and competitive challenges
+- Financial risks including debt, liquidity, or profitability concerns
+- External factors that could impact performance
+- Risk mitigation strategies mentioned
+
+## 5. Investment Recommendation and Outlook
+- Overall investment attractiveness based on document analysis
+- Key factors supporting or challenging the investment thesis
+- Critical metrics and KPIs to monitor going forward
+- Strategic recommendations for management
+- Next steps in due diligence process
+
+## 6. Key Questions for Further Investigation
+- Areas requiring additional clarification from management
+- Missing information or data points needed
+- Potential red flags or concerns requiring deeper analysis
+
+Provide specific evidence from the document content to support each point. Structure your analysis with clear headings and focus on actionable insights that would inform investment decision-making. Target approximately 500-600 words total with detailed professional analysis.`;
       
       const insights = await this.getRawResponse(insightsPrompt);
-      console.log('Insights generated successfully');
+      console.log('Comprehensive insights generated successfully');
 
       // Update document with insights
       await storage.updateDocument(documentId, {

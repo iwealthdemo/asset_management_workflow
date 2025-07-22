@@ -291,55 +291,103 @@ export class BackgroundJobService {
       // Use the same vector store that the LLM service uses
       const vectorStoreId = 'vs_687584b54f908191b0a21ffa42948fb5'; // From health check
 
-      console.log(`Generating local analysis for file ${fileId} using vector store ${vectorStoreId}`);
+      console.log(`Generating comprehensive local analysis for file ${fileId} using vector store ${vectorStoreId}`);
 
-      // Create a comprehensive analysis prompt
-      const analysisPrompt = `Please provide a comprehensive investment analysis of this document. Include:
+      // Create comprehensive prompts for both summary and insights
+      const summaryPrompt = `You are a senior investment analyst. Analyze this document and provide a comprehensive executive summary of approximately 300-400 words that covers:
 
-1. **Executive Summary**: Brief overview of the document's key points
-2. **Financial Analysis**: Key financial metrics, performance indicators, and trends
-3. **Risk Assessment**: Identify potential risks and challenges
-4. **Investment Insights**: Recommendations and strategic considerations
-5. **Key Findings**: Most important takeaways for investment decision-making
+1. **Document Overview**: What type of document this is and its primary purpose
+2. **Key Financial Highlights**: Main revenue, profit, growth metrics, and financial performance indicators
+3. **Business Performance**: Operational achievements, market position, and strategic initiatives
+4. **Critical Information**: Most important data points an investor should know
+5. **Context and Implications**: What this document reveals about the company's trajectory
 
-Format your response in markdown with clear sections and bullet points for easy reading.`;
+Write in a professional, analytical tone suitable for investment decision-making. Focus on concrete facts and figures from the document.`;
 
-      // Use OpenAI Responses API with exact same format as working cross-document query
-      const fileSearchTool = {
+      const insightsPrompt = `You are a senior investment analyst providing detailed investment insights. Analyze this document thoroughly and provide comprehensive investment insights of approximately 500-600 words covering:
+
+## 1. Executive Summary
+Brief overview of the investment opportunity and key takeaways
+
+## 2. Financial Analysis
+- Revenue trends and growth patterns
+- Profitability metrics and margin analysis  
+- Cash flow and balance sheet strength
+- Key financial ratios and performance indicators
+- Comparative performance vs industry benchmarks
+
+## 3. Investment Highlights
+- Core business strengths and competitive advantages
+- Growth drivers and market opportunities
+- Management execution and strategic direction
+- Notable achievements and milestones
+
+## 4. Risk Assessment
+- Business and operational risks
+- Financial and market risks
+- Regulatory and competitive challenges
+- Potential threats to investment thesis
+
+## 5. Investment Recommendation
+- Overall investment attractiveness
+- Key factors supporting the investment case
+- Critical metrics to monitor
+- Recommended next steps for due diligence
+
+## 6. Key Questions for Management
+- Strategic priorities and execution plans
+- Market expansion opportunities
+- Risk mitigation strategies
+
+Structure your response with clear headings and specific evidence from the document. Focus on actionable insights that would inform investment decisions. Aim for approximately 500-600 words total.`;
+
+      // Generate summary using file search
+      const summaryTools = [{
         type: "file_search" as const,
-        vector_store_ids: [vectorStoreId],
-        filters: {
-          type: "eq" as const,
-          key: "file_id", 
-          value: fileId
+        file_search: {
+          vector_store_ids: [vectorStoreId],
+          file_filter: {
+            type: "eq" as const,
+            key: "file_id",
+            value: fileId
+          }
         }
-      };
+      }];
 
-      const responsePayload = {
-        model: "gpt-4o" as const,
-        tools: [fileSearchTool],
-        input: analysisPrompt
-      };
+      console.log('Generating comprehensive summary...');
+      const summaryResponse = await openai.responses.create({
+        model: "gpt-4o",
+        tools: summaryTools,
+        input: summaryPrompt,
+        temperature: 0.3
+      });
 
-      console.log('Using Responses API payload:', JSON.stringify(responsePayload, null, 2));
-
-      const response = await openai.responses.create(responsePayload);
-      const analysisContent = response.output_text;
-      
-      if (!analysisContent) {
-        throw new Error('No analysis content generated');
+      const summary = summaryResponse.output_text;
+      if (!summary) {
+        throw new Error('No summary content generated');
       }
 
-      // Generate summary (first 500 characters)
-      const summary = analysisContent.length > 500 
-        ? analysisContent.substring(0, 500) + '...' 
-        : analysisContent;
+      // Generate detailed insights using file search
+      console.log('Generating detailed investment insights...');
+      const insightsResponse = await openai.responses.create({
+        model: "gpt-4o",
+        tools: summaryTools,
+        input: insightsPrompt,
+        temperature: 0.3
+      });
 
-      console.log(`Local OpenAI analysis completed: ${analysisContent.length} characters`);
+      const insights = insightsResponse.output_text;
+      if (!insights) {
+        throw new Error('No insights content generated');
+      }
+
+      console.log(`Local OpenAI analysis completed:`);
+      console.log(`- Summary: ${summary.length} characters`);
+      console.log(`- Insights: ${insights.length} characters`);
 
       return {
         summary,
-        insights: analysisContent
+        insights
       };
 
     } catch (error: any) {
