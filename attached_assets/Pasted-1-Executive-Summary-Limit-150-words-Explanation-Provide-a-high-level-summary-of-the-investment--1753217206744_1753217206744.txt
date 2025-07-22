@@ -1,0 +1,94 @@
+1. Executive Summary (Limit: 150 words)
+Explanation: Provide a high-level summary of the investment opportunity. This section should give a quick overview of the company, the stock’s performance, and why the investment is being recommended. It should also include the key points that will be detailed further in the document.
+
+Key Focus Areas:
+
+Brief description of the company.
+
+Investment rationale.
+
+Key investment metrics and expected return.
+
+2. Company Overview (Limit: 200 words)
+Explanation: This section should provide a detailed background of the company, including its history, business model, key products/services, competitive positioning, and market presence. Discuss the company's growth trajectory and its performance in the market.
+
+Key Focus Areas:
+
+Company history and background.
+
+Industry and market position.
+
+Key revenue streams and growth drivers.
+
+3. Industry Analysis (Limit: 250 words)
+Explanation: Analyze the industry in which the company operates. Discuss the trends, opportunities, and potential challenges that could impact the company's performance. This should include an overview of the market size, competitive landscape, regulatory environment, and growth potential.
+
+Key Focus Areas:
+
+Industry growth prospects.
+
+Key trends and drivers.
+
+Competitive dynamics (e.g., market share, key players, barriers to entry).
+
+Regulatory considerations.
+
+4. Investment Rationale (Limit: 300 words)
+Explanation: Justify why this investment is attractive. Discuss the company's financial performance, its valuation, and why the stock is an appropriate investment. Address both quantitative (e.g., valuation metrics, profitability) and qualitative factors (e.g., management quality, strategic positioning).
+
+Key Focus Areas:
+
+Company’s financial health (revenue, profitability, growth).
+
+Valuation metrics (P/E, EV/EBITDA, etc.).
+
+Risk/reward profile.
+
+Competitive advantages and management strength.
+
+5. Risk Assessment (Limit: 200 words)
+Explanation: Identify and analyze the potential risks associated with the investment. Discuss market risks, company-specific risks, and external factors (e.g., macroeconomic risks, regulatory changes). Provide an overall risk assessment and the mitigation strategies.
+
+Key Focus Areas:
+
+Market risk (e.g., economic cycles, interest rates).
+
+Company-specific risk (e.g., management, operational challenges).
+
+Regulatory and geopolitical risk.
+
+Risk mitigation strategies.
+
+6. Financial Overview and Forecast (Limit: 250 words)
+Explanation: Provide a detailed analysis of the company’s financials, including past performance (e.g., revenue, earnings, margins) and projected performance over the next 3-5 years. This should include key financial metrics and a summary of your financial models.
+
+Key Focus Areas:
+
+Past financial performance (revenue, profitability, etc.).
+
+Financial forecasts (revenue growth, margins, etc.).
+
+Key financial ratios (e.g., ROE, debt/equity ratio).
+
+Key assumptions behind the financial forecast.
+
+7. Valuation and Price Target (Limit: 200 words)
+Explanation: Provide the valuation of the stock and a price target based on your analysis. Discuss the methodology used for the valuation (e.g., DCF, comparable company analysis, precedent transactions) and justify the target price.
+
+Key Focus Areas:
+
+Valuation methodology.
+
+Target price and expected return.
+
+Sensitivity analysis (e.g., how price target may change under different assumptions).
+
+8. Recommendation (Limit: 100 words)
+Explanation: This section should summarize your final recommendation to the investment committee. Clearly state whether you recommend approving the investment, and any next steps.
+
+Key Focus Areas:
+
+Clear recommendation (e.g., Buy, Hold, Sell).
+
+Next steps or actions required.
+
