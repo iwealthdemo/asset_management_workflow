@@ -162,17 +162,36 @@ export class BackgroundJobService {
     // Step 2: Uploading to vector store
     await this.updateJobProgress(job.id, 'uploading', 2, 50);
     
-    // Use LLM API service with minimal attributes (OpenAI max: 16 properties total)
-    const { llmApiService } = await import('./llmApiService');
-    const minimalAttributes = {
-      document_id: job.documentId.toString(),
-      request_id: job.requestId?.toString() || 'unknown'
-    };
+    let uploadResult;
+    let fileId;
     
-    const result = await llmApiService.uploadAndVectorize(filePath, document.fileName, minimalAttributes);
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to prepare document for AI');
+    try {
+      // Try LLM API service first
+      const { llmApiService } = await import('./llmApiService');
+      const minimalAttributes = {
+        document_id: job.documentId.toString(),
+        request_id: job.requestId?.toString() || 'unknown'
+      };
+      
+      uploadResult = await llmApiService.uploadAndVectorize(filePath, document.fileName, minimalAttributes);
+      
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || 'LLM service upload failed');
+      }
+      
+      if (!uploadResult.file?.id) {
+        throw new Error('Upload succeeded but no file ID returned');
+      }
+      
+      fileId = uploadResult.file.id;
+      console.log('✅ LLM service upload successful, file ID:', fileId);
+      
+    } catch (error) {
+      console.log(`⚠️ LLM service upload failed (${error.message}), using local OpenAI upload`);
+      
+      // Fallback: Use local OpenAI API for upload
+      fileId = await this.uploadToOpenAIDirect(filePath, document, job);
+      console.log('✅ Local OpenAI upload successful, file ID:', fileId);
     }
     
     // Step 3: Generating comprehensive analysis
@@ -183,15 +202,15 @@ export class BackgroundJobService {
     let insights;
     
     try {
-      // Try LLM service first
-      // Limited metadata for insights call  
+      // Try LLM service first - use the file ID, not filename
       const insightsMetadata = {
         document_id: job.documentId.toString(),
         request_id: job.requestId?.toString() || 'unknown',
         analysis_type: 'comprehensive'
       };
       
-      analysisResult = await llmApiService.investmentInsights([document.fileName], 'comprehensive', insightsMetadata);
+      console.log(`Calling investmentInsights with file ID: ${fileId}`);
+      analysisResult = await llmApiService.investmentInsights([fileId], 'comprehensive', insightsMetadata);
       
       console.log(`LLM service result:`, JSON.stringify(analysisResult, null, 2));
       
@@ -200,16 +219,26 @@ export class BackgroundJobService {
         summary = insights.length > 500 ? insights.substring(0, 500) + '...' : insights;
         console.log('✅ Using LLM service generated analysis');
       } else {
-        throw new Error('LLM service returned unsuccessful result');
+        throw new Error(`LLM service returned unsuccessful result: ${analysisResult.error || 'Unknown error'}`);
       }
       
     } catch (error) {
-      console.log(`⚠️ LLM service failed (${error.message}), using fallback analysis`);
+      console.log(`⚠️ LLM service insights failed (${error.message}), using local OpenAI fallback`);
       
-      // Fallback: Generate structured analysis based on document content
-      const fallbackAnalysis = await this.generateFallbackAnalysis(document, job);
-      summary = fallbackAnalysis.summary;
-      insights = fallbackAnalysis.insights;
+      // Since upload succeeded, we have the file in vector store
+      // Use local OpenAI API for generating insights via vector store query
+      try {
+        const localAnalysis = await this.generateLocalOpenAIAnalysis(fileId, document, job);
+        summary = localAnalysis.summary;
+        insights = localAnalysis.insights;
+        console.log('✅ Using local OpenAI analysis via vector store');
+      } catch (localError) {
+        console.log(`⚠️ Local OpenAI also failed (${localError.message}), using basic fallback`);
+        // Last resort: basic text analysis
+        const fallbackAnalysis = await this.generateFallbackAnalysis(document, job);
+        summary = fallbackAnalysis.summary;
+        insights = fallbackAnalysis.insights;
+      }
     }
     
     // Step 4: Saving analysis results
@@ -259,6 +288,123 @@ export class BackgroundJobService {
         console.error('Error in job processor:', error);
       }
     }, 30000); // 30 seconds
+  }
+
+  /**
+   * Upload document to OpenAI directly when LLM service fails
+   */
+  private async uploadToOpenAIDirect(filePath: string, document: any, job: BackgroundJob): Promise<string> {
+    const { default: OpenAI } = await import('openai');
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    try {
+      console.log(`Uploading ${document.fileName} directly to OpenAI...`);
+      
+      // Upload file to OpenAI
+      const file = await openai.files.create({
+        file: fs.createReadStream(filePath),
+        purpose: 'assistants',
+      });
+
+      console.log(`File uploaded with ID: ${file.id}`);
+
+      // Add to vector store (same one used by LLM service)
+      const vectorStoreId = 'vs_687584b54f908191b0a21ffa42948fb5';
+      
+      const vectorStoreFile = await openai.beta.vectorStores.files.create(
+        vectorStoreId,
+        {
+          file_id: file.id,
+        }
+      );
+
+      console.log(`File added to vector store: ${vectorStoreId}, status: ${vectorStoreFile.status}`);
+
+      return file.id;
+
+    } catch (error) {
+      console.error('Direct OpenAI upload failed:', error);
+      throw new Error(`Direct OpenAI upload failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Generate analysis using local OpenAI API when LLM service insights fail
+   */
+  private async generateLocalOpenAIAnalysis(fileId: string, document: any, job: BackgroundJob): Promise<{ summary: string; insights: string }> {
+    const { default: OpenAI } = await import('openai');
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    try {
+      // Use the same vector store that the LLM service uses
+      const vectorStoreId = 'vs_687584b54f908191b0a21ffa42948fb5'; // From health check
+
+      console.log(`Generating local analysis for file ${fileId} using vector store ${vectorStoreId}`);
+
+      // Create a comprehensive analysis prompt
+      const analysisPrompt = `Please provide a comprehensive investment analysis of this document. Include:
+
+1. **Executive Summary**: Brief overview of the document's key points
+2. **Financial Analysis**: Key financial metrics, performance indicators, and trends
+3. **Risk Assessment**: Identify potential risks and challenges
+4. **Investment Insights**: Recommendations and strategic considerations
+5. **Key Findings**: Most important takeaways for investment decision-making
+
+Format your response in markdown with clear sections and bullet points for easy reading.`;
+
+      // Use OpenAI Responses API with file_search
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'user',
+            content: analysisPrompt
+          }
+        ],
+        tools: [
+          {
+            type: 'file_search',
+            file_search: {
+              type: 'vector_store',
+              vector_store_ids: [vectorStoreId],
+              filter: {
+                type: 'eq',
+                key: 'file_id',
+                value: fileId
+              }
+            }
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 4000
+      });
+
+      const analysisContent = response.choices[0].message.content;
+      
+      if (!analysisContent) {
+        throw new Error('No analysis content generated');
+      }
+
+      // Generate summary (first 500 characters)
+      const summary = analysisContent.length > 500 
+        ? analysisContent.substring(0, 500) + '...' 
+        : analysisContent;
+
+      console.log(`Local OpenAI analysis completed: ${analysisContent.length} characters`);
+
+      return {
+        summary,
+        insights: analysisContent
+      };
+
+    } catch (error) {
+      console.error('Local OpenAI analysis failed:', error);
+      throw new Error(`Local OpenAI analysis failed: ${error.message}`);
+    }
   }
 
   /**
