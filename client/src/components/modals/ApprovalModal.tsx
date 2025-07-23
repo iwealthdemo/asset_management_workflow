@@ -139,7 +139,7 @@ export function ApprovalModal({ isOpen, onClose, task }: ApprovalModalProps) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Request ID</p>
-                  <p className="text-lg font-semibold">{requestData.requestId}</p>
+                  <p className="text-lg font-semibold">{requestData?.requestId}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">
@@ -147,25 +147,25 @@ export function ApprovalModal({ isOpen, onClose, task }: ApprovalModalProps) {
                   </p>
                   <p className="text-lg font-semibold">
                     {task.requestType === 'investment' 
-                      ? requestData.targetCompany 
-                      : `$${requestData.amount}`}
+                      ? requestData?.targetCompany 
+                      : `$${requestData?.amount}`}
                   </p>
                 </div>
-                {task.requestType === 'investment' && requestData.riskLevel && (
+                {task.requestType === 'investment' && requestData?.riskLevel && (
                   <div>
                     <p className="text-sm font-medium text-gray-600">Risk Level</p>
                     <Badge className={
-                      requestData.riskLevel === 'high' ? 'bg-red-100 text-red-800' :
-                      requestData.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                      requestData?.riskLevel === 'high' ? 'bg-red-100 text-red-800' :
+                      requestData?.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                       'bg-green-100 text-green-800'
                     }>
-                      {requestData.riskLevel} risk
+                      {requestData?.riskLevel} risk
                     </Badge>
                   </div>
                 )}
                 <div>
                   <p className="text-sm font-medium text-gray-600">Amount</p>
-                  <p className="text-lg font-semibold">${requestData.amount}</p>
+                  <p className="text-lg font-semibold">${requestData?.amount}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">
@@ -173,8 +173,8 @@ export function ApprovalModal({ isOpen, onClose, task }: ApprovalModalProps) {
                   </p>
                   <p className="text-lg font-semibold">
                     {task.requestType === 'investment' 
-                      ? `${requestData.expectedReturn}%` 
-                      : requestData.paymentTimeline}
+                      ? `${requestData?.expectedReturn}%` 
+                      : requestData?.paymentTimeline}
                   </p>
                 </div>
               </div>
@@ -182,7 +182,7 @@ export function ApprovalModal({ isOpen, onClose, task }: ApprovalModalProps) {
               <div className="mt-4">
                 <p className="text-sm font-medium text-gray-600 mb-2">Investment Rationale / Description</p>
                 <p className="text-gray-800 bg-white p-3 rounded border min-h-[60px]">
-                  {requestData.description || 'No description provided by the analyst'}
+                  {requestData?.description || 'No description provided by the analyst'}
                 </p>
               </div>
             </CardContent>

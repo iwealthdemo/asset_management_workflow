@@ -94,7 +94,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
 
   // Initialize form when investment details are loaded using useEffect
   useEffect(() => {
-    if (investmentDetails && !isInlineEditing) {
+    if (investmentDetails && typeof investmentDetails === 'object' && 'targetCompany' in investmentDetails && !isInlineEditing) {
       editForm.reset({
         targetCompany: investmentDetails.targetCompany || "",
         investmentType: investmentDetails.investmentType || "equity",
@@ -547,10 +547,10 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
           <div className="flex items-center justify-center p-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        ) : investmentDetails ? (
+        ) : investmentDetails && typeof investmentDetails === 'object' ? (
           <div className="space-y-6">
             {/* I. Attached Documents */}
-            {documents && documents.length > 0 && (
+            {documents && Array.isArray(documents) && documents.length > 0 && (
               <Card>
                 <CardHeader 
                   className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
@@ -567,7 +567,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                 {isDocumentsExpanded && (
                   <CardContent className="pt-0 pb-4">
                   <div className="space-y-3">
-                    {documents.map((doc: any) => (
+                    {Array.isArray(documents) && documents.map((doc: any) => (
                       <DocumentAnalysisCard
                         key={doc.id}
                         document={doc}
@@ -584,7 +584,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
             )}
 
             {/* II. Research & Analysis */}
-            {documents && documents.length > 0 && (
+            {documents && Array.isArray(documents) && documents.length > 0 && (
               <Card>
                 <CardHeader 
                   className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
@@ -601,7 +601,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                 {isResearchExpanded && (
                   <CardContent className="pt-0 pb-4">
                     <UnifiedSearchInterface 
-                      documents={documents}
+                      documents={Array.isArray(documents) ? documents : []}
                       requestId={investment.id}
                       requestType="investment"
                       isExpanded={isResearchExpanded}
@@ -740,12 +740,15 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                   </Form>
                 ) : (
                   <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px]">
-                    {investmentDetails.description || 'No description provided by the analyst'}
+                    {(investmentDetails && typeof investmentDetails === 'object' && 'description' in investmentDetails) 
+                      ? investmentDetails.description || 'No description provided by the analyst'
+                      : 'No description provided by the analyst'}
                   </p>
                 )}
                 
                 {/* Draft Actions */}
-                {(investmentDetails.status.toLowerCase() === 'draft' || investmentDetails.status.toLowerCase() === 'changes_requested') && (
+                {(investmentDetails && typeof investmentDetails === 'object' && 'status' in investmentDetails && 
+                  (investmentDetails.status?.toLowerCase() === 'draft' || investmentDetails.status?.toLowerCase() === 'changes_requested')) && (
                   <div className="mt-4 flex gap-2">
                     {isInlineEditing ? (
                       <>
@@ -790,7 +793,8 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                     >
                       <Send className="h-4 w-4" />
                       {submitDraftMutation.isPending ? 'Submitting...' : 
-                       investmentDetails.status.toLowerCase() === 'changes_requested' ? 'Resubmit for Approval' : 'Submit for Approval'}
+                       (investmentDetails && typeof investmentDetails === 'object' && 'status' in investmentDetails && 
+                        investmentDetails.status?.toLowerCase() === 'changes_requested') ? 'Resubmit for Approval' : 'Submit for Approval'}
                     </Button>
                   </div>
                 )}
@@ -852,11 +856,11 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                     )}
                     
                     {/* Existing Documents */}
-                    {documents && documents.length > 0 && (
+                    {documents && Array.isArray(documents) && documents.length > 0 && (
                       <div>
                         <label className="block text-sm font-medium mb-2">Existing Documents</label>
                         <div className="space-y-2">
-                          {documents.map((doc: any) => (
+                          {Array.isArray(documents) && documents.map((doc: any) => (
                             <div key={doc.id} className={`flex items-center justify-between p-2 rounded border ${
                               filesToDelete.includes(doc.id) ? 'bg-red-50 border-red-200' : 'bg-white'
                             }`}>
@@ -1097,7 +1101,8 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
         isOpen={isRationaleModalOpen}
         onClose={() => setIsRationaleModalOpen(false)}
         investmentId={investment?.id}
-        investmentType={investmentDetails?.investmentType}
+        investmentType={(investmentDetails && typeof investmentDetails === 'object' && 'investmentType' in investmentDetails) 
+          ? investmentDetails.investmentType : 'equity'}
       />
       
       {/* Delete Confirmation Dialog */}
