@@ -65,7 +65,7 @@ export function TextEnhancementModal({
       const response = await apiRequest('POST', '/api/text/enhance', {
         text: originalText,
         type: type
-      }) as { enhancedText: string };
+      }) as unknown as { enhancedText: string };
 
       setEnhancements(prev => 
         prev.map(e => e.type === type ? { ...e, text: response.enhancedText, loading: false } : e)
@@ -99,7 +99,7 @@ export function TextEnhancementModal({
         const response = await apiRequest('POST', '/api/text/enhance', {
           text: originalText,
           type: type
-        }) as { enhancedText: string };
+        }) as unknown as { enhancedText: string };
         return { type, text: response.enhancedText };
       } catch (error) {
         console.error(`Enhancement failed for ${type}:`, error);
