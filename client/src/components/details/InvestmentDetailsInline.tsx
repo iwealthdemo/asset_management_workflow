@@ -116,11 +116,27 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
       });
     },
     onSuccess: () => {
+      // Invalidate investment-specific queries
       queryClient.invalidateQueries({ queryKey: [`/api/investments/${investment.id}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
+      
+      // Invalidate task and approval queries (for approvers to see changes)
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/approvals'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/approvals/investment/${investment.id}`] });
+      
+      // Invalidate document queries
       queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment.id}`] });
+      
+      // Invalidate dashboard queries (for approver dashboards)
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/recent-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+      
+      // Invalidate task count for sidebar updates
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks/count'] });
+      
       toast({ title: "Investment updated successfully" });
       setIsInlineEditing(false);
     },
@@ -149,10 +165,27 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate document-specific queries
       queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      
+      // Invalidate investment-specific queries
+      queryClient.invalidateQueries({ queryKey: [`/api/investments/${investment.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
+      
+      // Invalidate task and approval queries (for approvers)
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/approvals'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/approvals/investment/${investment.id}`] });
+      
+      // Invalidate dashboard queries (critical for approver visibility)
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/recent-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+      
+      // Invalidate task count for sidebar updates
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks/count'] });
+      
       setUploadedFiles([]);
       toast({ title: "Files uploaded successfully" });
     },
@@ -169,10 +202,27 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
       return Promise.all(deletePromises);
     },
     onSuccess: () => {
+      // Invalidate document-specific queries
       queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      
+      // Invalidate investment-specific queries
+      queryClient.invalidateQueries({ queryKey: [`/api/investments/${investment.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
+      
+      // Invalidate task and approval queries (for approvers)
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/approvals'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/approvals/investment/${investment.id}`] });
+      
+      // Invalidate dashboard queries (critical for approver visibility)
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/recent-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+      
+      // Invalidate task count for sidebar updates
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks/count'] });
+      
       setFilesToDelete([]);
       toast({ title: "Documents deleted successfully" });
     },
@@ -186,11 +236,27 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
       return apiRequest('POST', `/api/investments/${investment.id}/submit`);
     },
     onSuccess: () => {
+      // Invalidate investment-specific queries
       queryClient.invalidateQueries({ queryKey: [`/api/investments/${investment.id}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
+      
+      // Invalidate task and approval queries (critical for approvers to see resubmission)
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/approvals'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/approvals/investment/${investment.id}`] });
+      
+      // Invalidate document queries (so approvers see new documents)
       queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/investment/${investment.id}`] });
+      
+      // Invalidate dashboard queries (critical for approver dashboards)
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/recent-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+      
+      // Invalidate task count for sidebar updates
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks/count'] });
+      
       toast({ title: "Investment submitted for approval successfully" });
       setIsInlineEditing(false);
     },

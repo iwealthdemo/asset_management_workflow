@@ -49,10 +49,26 @@ export function ApprovalModal({ isOpen, onClose, task }: ApprovalModalProps) {
       return response.json()
     },
     onSuccess: () => {
+      // Invalidate task-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] })
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks/count"] }) // Add this for sidebar task count
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/count"] })
+      
+      // Invalidate approval-related queries
+      queryClient.invalidateQueries({ queryKey: ["/api/approvals"] })
       queryClient.invalidateQueries({ queryKey: [`/api/approvals/${task?.requestType}/${task?.requestId}`] })
+      
+      // Invalidate investment-specific queries (critical for analyst view updates)
+      queryClient.invalidateQueries({ queryKey: [`/api/investments/${task?.requestId}`] })
+      queryClient.invalidateQueries({ queryKey: ["/api/investments"] })
+      
+      // Invalidate document queries (ensures document visibility across users)
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] })
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/${task?.requestType}/${task?.requestId}`] })
+      
+      // Invalidate dashboard queries (for all user dashboards)
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent-requests"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] })
       
       toast({
         title: "Approval processed",
