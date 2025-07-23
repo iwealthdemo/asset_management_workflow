@@ -800,7 +800,7 @@ function TaskCard({
                         Please review the requested changes and update your proposal accordingly.
                       </p>
                       <Button
-                        onClick={() => window.location.href = '/my-investments'}
+                        onClick={() => window.location.href = '/investments'}
                         className="flex items-center gap-2"
                       >
                         <FileText className="h-4 w-4" />

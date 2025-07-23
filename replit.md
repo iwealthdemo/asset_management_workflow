@@ -221,6 +221,7 @@ The application uses a comprehensive CSS custom properties-based theming system 
 - July 23, 2025. Cleaned up document categories by removing unwanted entries (Others, sakjb, sjhdb) from database to provide clean category selection options.
 - July 23, 2025. Fixed sidebar task count not updating in real-time after task completion. Added cache invalidation for "/api/tasks/count" query key in both MyTasks page and ApprovalModal components. Task count badge now updates immediately when tasks are completed without requiring logout/login.
 - July 23, 2025. Resolved duplicate "Investment Rationale" sections confusion in My Investments view. Renamed first section to "Analyst Notes" (shows original analyst description/notes from investment creation) and kept second section as "Investment Rationale" (shows formal AI-generated or manual rationales). Fixed both InvestmentDetailsInline and MyTasks components to provide clear distinction between analyst's initial notes and formal investment analysis documents. Enhanced MyTasks to separate sections properly with independent expand/collapse functionality.
+- July 23, 2025. Fixed 404 error when clicking "Go to My Investments" link from My Tasks section. Corrected routing path from '/my-investments' to '/investments' to match the actual route defined in App.tsx. Navigation between My Tasks and My Investments now works correctly without broken links.
 
 ## User Preferences
 
