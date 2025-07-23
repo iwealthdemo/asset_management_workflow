@@ -593,9 +593,12 @@ function TaskCard({
               {isRationaleExpanded && (
                 <CardContent className="pt-0 pb-4">
                   {/* Show Analyst's Original Notes */}
-                  <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px] mb-4">
-                    {requestData?.description || 'No description provided by the analyst'}
-                  </p>
+                  <div className="bg-gray-50 p-3 rounded border min-h-[60px] mb-4">
+                    <MarkdownRenderer 
+                      content={requestData?.description || 'No description provided by the analyst'}
+                      className="text-gray-800"
+                    />
+                  </div>
                 </CardContent>
               )}
             </Card>
