@@ -277,13 +277,31 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
         pdf.text(`Template: ${rationale.template.name}`, margin, 90);
       }
       
-      // Add content (strip markdown formatting for PDF)
+      // Add content (strip markdown formatting for PDF and fix spacing)
       let yPosition = 110;
-      const contentLines = rationale.content
+      
+      // Clean and normalize the content text
+      let cleanContent = rationale.content
         .replace(/#{1,6}\s/g, '') // Remove markdown headers
         .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold formatting
         .replace(/\*(.*?)\*/g, '$1') // Remove italic formatting
-        .split('\n');
+        .replace(/\|\s*\|\s*/g, ' | ') // Fix table separators
+        .replace(/\s+/g, ' ') // Normalize multiple spaces to single space
+        .trim();
+      
+      // Fix letter spacing issues (like "p o s t - t a x" -> "post-tax")
+      // Handle compound words with hyphens first
+      cleanContent = cleanContent.replace(/(\w)\s+(\w)\s+(\w)\s+(\w)\s*-\s*(\w)\s+(\w)\s+(\w)/g, '$1$2$3$4-$5$6$7');
+      // Handle regular spaced-out words
+      cleanContent = cleanContent.replace(/\b(\w)\s+(\w)\s+(\w)\s+(\w)\s+(\w)\s+(\w)\b/g, '$1$2$3$4$5$6');
+      cleanContent = cleanContent.replace(/\b(\w)\s+(\w)\s+(\w)\s+(\w)\s+(\w)\b/g, '$1$2$3$4$5');
+      cleanContent = cleanContent.replace(/\b(\w)\s+(\w)\s+(\w)\s+(\w)\b/g, '$1$2$3$4');
+      cleanContent = cleanContent.replace(/\b(\w)\s+(\w)\s+(\w)\b/g, '$1$2$3');
+      
+      // Final cleanup for any remaining letter spacing issues  
+      cleanContent = cleanContent.replace(/(?<=\w)\s+(?=\w)/g, '');
+      
+      const contentLines = cleanContent.split('\n').filter(line => line.trim());
       
       pdf.setFontSize(10);
       contentLines.forEach((line: string) => {
