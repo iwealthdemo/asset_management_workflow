@@ -788,11 +788,14 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                     </div>
                   </Form>
                 ) : (
-                  <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px]">
-                    {(investmentDetails && typeof investmentDetails === 'object' && 'description' in investmentDetails) 
-                      ? (investmentDetails as any).description || 'No description provided by the analyst'
-                      : 'No description provided by the analyst'}
-                  </p>
+                  <div className="bg-gray-50 p-3 rounded border min-h-[60px]">
+                    <MarkdownRenderer 
+                      content={(investmentDetails && typeof investmentDetails === 'object' && 'description' in investmentDetails) 
+                        ? (investmentDetails as any).description || 'No description provided by the analyst'
+                        : 'No description provided by the analyst'}
+                      className="text-gray-800"
+                    />
+                  </div>
                 )}
                 
                 {/* Draft Actions */}
