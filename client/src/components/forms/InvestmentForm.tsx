@@ -58,7 +58,7 @@ export function InvestmentForm() {
         ...data,
         amount: data.amount.toString(),
         expectedReturn: data.expectedReturn.toString(),
-        status: "new", // Set status to "new" for submit for approval
+        status: "opportunity", // Set status to "opportunity" for admin review
       }
       console.log("Converted API data:", apiData)
       const response = await apiRequest("POST", "/api/investments", apiData)

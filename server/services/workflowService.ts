@@ -4,6 +4,7 @@ import { notificationService } from "./notificationService";
 export class WorkflowService {
   private approvalWorkflows = {
     investment: [
+      { stage: 0, approverRole: 'admin', slaHours: 24 }, // Admin review for "opportunity" status
       { stage: 1, approverRole: 'manager', slaHours: 48 },
       { stage: 2, approverRole: 'committee_member', slaHours: 72 },
       { stage: 3, approverRole: 'finance', slaHours: 24 },
@@ -31,6 +32,21 @@ export class WorkflowService {
     await this.createApprovalTask(requestType, requestId, firstStage.stage);
   }
 
+  // New method for starting Admin review for "opportunity" status
+  async startAdminReview(requestId: number) {
+    // Create approval record for admin review (stage 0)
+    await storage.createApproval({
+      requestType: 'investment',
+      requestId,
+      stage: 0,
+      approverId: null,
+      status: 'pending',
+    });
+
+    // Create task for admin review
+    await this.createApprovalTask('investment', requestId, 0);
+  }
+
   async processApproval(
     requestType: string,
     requestId: number,
@@ -53,6 +69,9 @@ export class WorkflowService {
       
       if (action === 'approve') {
         switch (approver?.role) {
+          case 'admin':
+            statusText = 'Admin approved';
+            break;
           case 'manager':
             statusText = 'Manager approved';
             break;
@@ -67,6 +86,9 @@ export class WorkflowService {
         }
       } else if (action === 'reject') {
         switch (approver?.role) {
+          case 'admin':
+            statusText = 'admin_rejected'; // Special status for admin rejection
+            break;
           case 'manager':
             statusText = 'Manager rejected';
             break;
@@ -105,14 +127,23 @@ export class WorkflowService {
       }
 
       if (action === 'approve') {
-        // Update request status with approval status
-        if (requestType === 'investment') {
-          await storage.updateInvestmentRequest(requestId, { status: statusText });
-        } else if (requestType === 'cash_request') {
-          await storage.updateCashRequest(requestId, { status: statusText });
+        // Special handling for Admin approval (stage 0)
+        if (approver?.role === 'admin' && currentApproval.stage === 0) {
+          // Admin approved - set status to "new" and start regular workflow
+          if (requestType === 'investment') {
+            await storage.updateInvestmentRequest(requestId, { status: 'new' });
+          }
+          // Start the regular manager workflow (stage 1)
+          await this.startApprovalWorkflow(requestType as 'investment' | 'cash_request', requestId);
+        } else {
+          // Regular approval flow
+          if (requestType === 'investment') {
+            await storage.updateInvestmentRequest(requestId, { status: statusText });
+          } else if (requestType === 'cash_request') {
+            await storage.updateCashRequest(requestId, { status: statusText });
+          }
+          await this.moveToNextStage(requestType, requestId, currentApproval.stage);
         }
-        
-        await this.moveToNextStage(requestType, requestId, currentApproval.stage);
       } else if (action === 'reject') {
         await this.rejectRequest(requestType, requestId, approver?.role);
       } else if (action === 'changes_requested') {
@@ -160,6 +191,9 @@ export class WorkflowService {
     let rejectionStatus = 'rejected';
     if (approverRole) {
       switch (approverRole) {
+        case 'admin':
+          rejectionStatus = 'admin_rejected';
+          break;
         case 'manager':
           rejectionStatus = 'Manager rejected';
           break;

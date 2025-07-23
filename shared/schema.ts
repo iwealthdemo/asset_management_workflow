@@ -29,7 +29,7 @@ export const investmentRequests = pgTable("investment_requests", {
   expectedReturn: decimal("expected_return", { precision: 5, scale: 2 }),
   description: text("description"),
   riskLevel: text("risk_level").notNull(), // low, medium, high
-  status: text("status").notNull().default("draft"), // draft, pending, approved, rejected
+  status: text("status").notNull().default("draft"), // draft, opportunity, new, approved, rejected, admin_rejected, changes_requested
   currentApprovalStage: integer("current_approval_stage").default(0),
   slaDeadline: timestamp("sla_deadline"),
   createdAt: timestamp("created_at").defaultNow(),

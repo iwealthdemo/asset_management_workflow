@@ -428,11 +428,15 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case 'opportunity':
+        return <AlertTriangle className="w-4 h-4" />;
+      case 'Admin approved':
       case 'Manager approved':
       case 'Committee approved':
       case 'Finance approved':
       case 'approved':
         return <CheckCircle className="w-4 h-4" />;
+      case 'admin_rejected':
       case 'Manager rejected':
       case 'Committee rejected':
       case 'Finance rejected':

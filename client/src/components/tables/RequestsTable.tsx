@@ -21,11 +21,15 @@ export function RequestsTable({ requests }: RequestsTableProps) {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case 'opportunity':
+        return <AlertTriangle className="h-4 w-4 text-purple-600" />
+      case 'Admin approved':
       case 'Manager approved':
       case 'Committee approved':
       case 'Finance approved':
       case 'approved':
         return <CheckCircle className="h-4 w-4 text-green-600" />
+      case 'admin_rejected':
       case 'Manager rejected':
       case 'Committee rejected':
       case 'Finance rejected':
@@ -44,14 +48,18 @@ export function RequestsTable({ requests }: RequestsTableProps) {
     switch (status) {
       case 'Draft':
         return 'bg-gray-100 text-gray-800'
+      case 'opportunity':
+        return 'bg-purple-100 text-purple-800'
       case 'New':
       case 'Modified':
         return 'bg-blue-100 text-blue-800'
+      case 'Admin approved':
       case 'Manager approved':
       case 'Committee approved':
       case 'Finance approved':
       case 'approved':
         return 'bg-green-100 text-green-800'
+      case 'admin_rejected':
       case 'Manager rejected':
       case 'Committee rejected':
       case 'Finance rejected':

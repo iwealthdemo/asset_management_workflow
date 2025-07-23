@@ -18,8 +18,12 @@ export class InvestmentService {
         status,
       });
 
-      // Only start approval workflow if status is not 'draft'
-      if (status.toLowerCase() !== 'draft') {
+      // Start appropriate workflow based on status
+      if (status === 'opportunity') {
+        // Start admin review for opportunity status
+        await workflowService.startAdminReview(request.id);
+      } else if (status !== 'draft' && status !== 'changes_requested') {
+        // Start regular approval workflow for other non-draft statuses
         await workflowService.startApprovalWorkflow('investment', request.id);
       }
 

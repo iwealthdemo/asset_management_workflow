@@ -661,12 +661,14 @@ function getStatusColor(status: string) {
     case 'completed':
     case 'approved':
     case 'approve':
+    case 'Admin approved':
     case 'Manager approved':
     case 'Committee approved':
     case 'Finance approved':
       return 'bg-green-100 text-green-800';
     case 'overdue':
     case 'rejected':
+    case 'admin_rejected':
     case 'Manager rejected':
     case 'Committee rejected':
     case 'Finance rejected':
@@ -678,11 +680,15 @@ function getStatusColor(status: string) {
 
 function getStatusColorForBadge(status: string) {
   switch (status) {
+    case 'opportunity':
+      return 'bg-purple-100 text-purple-800';
+    case 'Admin approved':
     case 'Manager approved':
     case 'Committee approved':
     case 'Finance approved':
     case 'approved':
       return 'bg-green-100 text-green-800';
+    case 'admin_rejected':
     case 'Manager rejected':
     case 'Committee rejected':
     case 'Finance rejected':
@@ -699,11 +705,13 @@ function getStatusColorForBadge(status: string) {
 
 function getStatusIcon(status: string) {
   switch (status) {
+    case 'Admin approved':
     case 'Manager approved':
     case 'Committee approved':
     case 'Finance approved':
     case 'approved':
       return <CheckCircle className="w-4 h-4" />;
+    case 'admin_rejected':
     case 'Manager rejected':
     case 'Committee rejected':
     case 'Finance rejected':
