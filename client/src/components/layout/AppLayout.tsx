@@ -271,20 +271,34 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                {/* Clickable Logo to open sidebar */}
-                <Button 
-                  variant="ghost" 
-                  onClick={() => setIsSidebarOpen(true)}
-                  className="flex items-center space-x-3 hover:bg-accent p-2 rounded-lg"
-                >
-                  <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                    <BarChart3 className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <h1 className="text-lg font-semibold">ABCBank</h1>
-                    <p className="text-xs text-muted-foreground">Investment Portal</p>
-                  </div>
-                </Button>
+                {/* Clickable Logo to open sidebar - hidden when sidebar is open */}
+                {!isSidebarOpen && (
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => setIsSidebarOpen(true)}
+                    className="flex items-center space-x-3 hover:bg-accent p-2 rounded-lg"
+                  >
+                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                      <BarChart3 className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <h1 className="text-lg font-semibold">ABCBank</h1>
+                      <p className="text-xs text-muted-foreground">Investment Portal</p>
+                    </div>
+                  </Button>
+                )}
+                
+                {/* Simple menu button when sidebar is open */}
+                {isSidebarOpen && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="hover:bg-accent"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                )}
                 
                 <h2 className="text-2xl font-semibold text-gray-900">
                   {location === '/' ? 'Dashboard' : 
