@@ -13,9 +13,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { FileUpload } from "@/components/ui/file-upload"
 import { MultiTabDocumentUpload } from "@/components/documents/MultiTabDocumentUpload"
 import { Card, CardContent } from "@/components/ui/card"
+import { TextEnhancementModal } from "@/components/ai/TextEnhancementModal"
 import { insertInvestmentRequestSchema } from "@shared/schema"
 import { z } from "zod"
 import { useLocation } from "wouter"
+import { Sparkles } from "lucide-react"
 
 const formSchema = insertInvestmentRequestSchema.omit({
   requestId: true,
@@ -40,6 +42,7 @@ interface DocumentUploadTab {
 export function InvestmentForm() {
   const [, setLocation] = useLocation()
   const [documentTabs, setDocumentTabs] = useState<DocumentUploadTab[]>([])
+  const [isEnhancementModalOpen, setIsEnhancementModalOpen] = useState(false)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -389,13 +392,26 @@ export function InvestmentForm() {
 
           <div className="mt-6">
             <Label htmlFor="description">Investment Description</Label>
-            <Textarea
-              id="description"
-              rows={4}
-              placeholder="Describe the investment opportunity..."
-              {...form.register("description")}
-              className="mt-2"
-            />
+            <div className="relative">
+              <Textarea
+                id="description"
+                rows={4}
+                placeholder="Describe the investment opportunity..."
+                {...form.register("description")}
+                className="mt-2"
+              />
+              {/* AI Enhancement Button */}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="absolute bottom-2 right-2 h-8 w-8 p-0 hover:bg-primary hover:text-primary-foreground transition-colors"
+                onClick={() => setIsEnhancementModalOpen(true)}
+                title="AI Text Enhancement"
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            </div>
             {form.formState.errors.description && (
               <p className="text-sm text-red-600">{form.formState.errors.description.message}</p>
             )}
@@ -467,6 +483,20 @@ export function InvestmentForm() {
           {createInvestment.isPending ? "Submitting..." : "Submit for Approval"}
         </Button>
       </div>
+
+      {/* AI Text Enhancement Modal */}
+      <TextEnhancementModal
+        isOpen={isEnhancementModalOpen}
+        onClose={() => setIsEnhancementModalOpen(false)}
+        originalText={form.watch("description") || ""}
+        onApply={(enhancedText) => {
+          form.setValue("description", enhancedText);
+          toast({
+            title: "Text Enhanced",
+            description: "Your investment description has been improved with AI.",
+          });
+        }}
+      />
     </form>
   )
 }

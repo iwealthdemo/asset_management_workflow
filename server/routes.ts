@@ -12,6 +12,7 @@ import { backgroundJobService } from "./services/backgroundJobService";
 import { fileUpload } from "./utils/fileUpload";
 import { db } from "./db";
 import { insertInvestmentRequestSchema, insertCashRequestSchema, insertUserSchema, insertTemplateSchema, insertInvestmentRationaleSchema, documents, backgroundJobs } from "@shared/schema";
+import { enhanceText, type EnhancementType } from "./services/textEnhancementService.js";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import path from "path";
@@ -1464,6 +1465,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Text Enhancement API
+  app.post('/api/text/enhance', authMiddleware, async (req, res) => {
+    try {
+      const { text, type } = req.body;
+      
+      if (!text || !text.trim()) {
+        return res.status(400).json({ message: 'Text is required' });
+      }
+      
+      if (!['professional', 'grammar', 'clarity', 'rewrite'].includes(type)) {
+        return res.status(400).json({ message: 'Invalid enhancement type' });
+      }
+      
+      const enhancedText = await enhanceText(text, type as EnhancementType);
+      res.json({ enhancedText });
+    } catch (error) {
+      console.error('Text enhancement error:', error);
+      res.status(500).json({ message: 'Failed to enhance text' });
     }
   });
 
