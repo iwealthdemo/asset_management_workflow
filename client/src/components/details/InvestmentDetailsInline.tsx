@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import DocumentAnalysisCard from "@/components/documents/DocumentAnalysisCard";
 import UnifiedSearchInterface from "@/components/documents/UnifiedSearchInterface";
 import InvestmentRationaleModal from "@/components/rationale/InvestmentRationaleModal";
+import { EnhancedDocumentCategorySelector } from "@/components/documents/EnhancedDocumentCategorySelector";
 import MarkdownRenderer from "@/components/documents/MarkdownRenderer";
 
 // Edit form schema
@@ -45,6 +46,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   const [isInlineEditing, setIsInlineEditing] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [filesToDelete, setFilesToDelete] = useState<number[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<any[]>([]);
   const [isRationaleExpanded, setIsRationaleExpanded] = useState(false);
   const [isDocumentsExpanded, setIsDocumentsExpanded] = useState(false);
   const [isResearchExpanded, setIsResearchExpanded] = useState(false);
@@ -148,12 +150,19 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
 
   const uploadFilesMutation = useMutation({
     mutationFn: async () => {
+      if (uploadedFiles.length === 0) return;
+      
       const formData = new FormData();
       uploadedFiles.forEach((file) => {
-        formData.append('files', file);
+        formData.append('documents', file);
       });
       formData.append('requestType', 'investment');
       formData.append('requestId', investment.id.toString());
+      
+      // Add categories data
+      if (selectedCategories.length > 0) {
+        formData.append('categories', JSON.stringify(selectedCategories));
+      }
 
       const response = await fetch('/api/documents/upload', {
         method: 'POST',
@@ -161,7 +170,8 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const errorText = await response.text();
+        throw new Error(`Upload failed: ${errorText}`);
       }
       return response.json();
     },
@@ -485,6 +495,10 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setUploadedFiles(prev => [...prev, ...files]);
+  };
+
+  const handleCategoriesChange = (categories: any[]) => {
+    setSelectedCategories(categories);
   };
 
   const handleRemoveUploadedFile = (index: number) => {
@@ -838,27 +852,34 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                   <div className="mt-6 p-4 border rounded-lg bg-gray-50">
                     <h5 className="font-medium mb-3">Document Management</h5>
                     
-                    {/* File Upload */}
+                    {/* Enhanced Document Upload with Categories */}
                     <div className="mb-4">
-                      <label className="block text-sm font-medium mb-2">Upload New Documents</label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="file"
-                          multiple
-                          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
-                          onChange={handleFileUpload}
-                          className="flex-1"
+                      <label className="block text-sm font-medium mb-3">Upload New Documents with Categories</label>
+                      <div className="space-y-4">
+                        <EnhancedDocumentCategorySelector
+                          onCategoriesChange={setSelectedCategories}
+                          initialCategories={[]}
+                          disabled={false}
                         />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => document.querySelector('input[type="file"]')?.click()}
-                          className="flex items-center gap-2"
-                        >
-                          <Upload className="h-4 w-4" />
-                          Browse
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="file"
+                            multiple
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+                            onChange={handleFileUpload}
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.querySelector('input[type="file"]')?.click()}
+                            className="flex items-center gap-2"
+                          >
+                            <Upload className="h-4 w-4" />
+                            Browse
+                          </Button>
+                        </div>
                       </div>
                     </div>
                     
