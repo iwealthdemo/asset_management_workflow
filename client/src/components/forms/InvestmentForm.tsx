@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { FileUpload } from "@/components/ui/file-upload"
-import { DocumentCategorySelector } from "@/components/documents/DocumentCategorySelector"
+import { EnhancedDocumentCategorySelector } from "@/components/documents/EnhancedDocumentCategorySelector"
 import { Card, CardContent } from "@/components/ui/card"
 import { insertInvestmentRequestSchema } from "@shared/schema"
 import { z } from "zod"
@@ -33,8 +33,7 @@ type FormData = z.infer<typeof formSchema>
 export function InvestmentForm() {
   const [, setLocation] = useLocation()
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>()
-  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number | undefined>()
+  const [selectedCategories, setSelectedCategories] = useState<{categoryId: number, customCategoryName?: string}[]>([])
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -74,11 +73,9 @@ export function InvestmentForm() {
         })
         formData.append('requestType', 'investment')
         formData.append('requestId', investment.id.toString())
-        if (selectedCategoryId) {
-          formData.append('categoryId', selectedCategoryId.toString())
-        }
-        if (selectedSubcategoryId) {
-          formData.append('subcategoryId', selectedSubcategoryId.toString())
+        // Add multiple categories if selected
+        if (selectedCategories.length > 0) {
+          formData.append('categories', JSON.stringify(selectedCategories))
         }
         
         const uploadResponse = await fetch('/api/documents/upload', {
@@ -304,15 +301,9 @@ export function InvestmentForm() {
           
           {/* Document Categorization */}
           <div className="mb-6">
-            <DocumentCategorySelector
-              selectedCategoryId={selectedCategoryId}
-              selectedSubcategoryId={selectedSubcategoryId}
-              onCategoryChange={(categoryId, subcategoryId) => {
-                setSelectedCategoryId(categoryId);
-                setSelectedSubcategoryId(subcategoryId);
-              }}
-              size="default"
-              showLabels={true}
+            <EnhancedDocumentCategorySelector
+              onCategoriesChange={setSelectedCategories}
+              initialCategories={selectedCategories}
             />
           </div>
           
@@ -325,9 +316,9 @@ export function InvestmentForm() {
               maxSize={50 * 1024 * 1024}
               onFilesChange={setUploadedFiles}
             />
-            {uploadedFiles.length > 0 && selectedCategoryId && (
+            {uploadedFiles.length > 0 && selectedCategories.length > 0 && (
               <p className="text-sm text-muted-foreground">
-                Files will be categorized under the selected category and subcategory
+                Files will be categorized with {selectedCategories.length} selected {selectedCategories.length === 1 ? 'category' : 'categories'}
               </p>
             )}
           </div>

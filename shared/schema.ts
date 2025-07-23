@@ -101,14 +101,12 @@ export const documentCategories = pgTable("document_categories", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Document subcategories table
-export const documentSubcategories = pgTable("document_subcategories", {
+// Document-category associations table (for multiple categories per document)
+export const documentCategoryAssociations = pgTable("document_category_associations", {
   id: serial("id").primaryKey(),
+  documentId: integer("document_id").references(() => documents.id).notNull(),
   categoryId: integer("category_id").references(() => documentCategories.id).notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  isActive: boolean("is_active").default(true),
-  isSystem: boolean("is_system").default(false), // system vs user-created
+  customCategoryName: text("custom_category_name"), // for "Others" category with custom name
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -123,9 +121,9 @@ export const documents = pgTable("documents", {
   uploaderId: integer("uploader_id").references(() => users.id),
   requestType: text("request_type").notNull(), // investment, cash_request
   requestId: integer("request_id").notNull(),
-  // Document categorization
+  // Legacy categorization fields (keeping for backward compatibility)
   categoryId: integer("category_id").references(() => documentCategories.id),
-  subcategoryId: integer("subcategory_id").references(() => documentSubcategories.id),
+  subcategoryId: integer("subcategory_id"),
   isAutoCategorized: boolean("is_auto_categorized").default(false), // AI vs manual categorization
   // Document analysis fields
   analysisStatus: text("analysis_status").default("pending"), // pending, processing, completed, failed
@@ -284,16 +282,19 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const documentCategoriesRelations = relations(documentCategories, ({ many }) => ({
-  subcategories: many(documentSubcategories),
   documents: many(documents),
+  associations: many(documentCategoryAssociations),
 }));
 
-export const documentSubcategoriesRelations = relations(documentSubcategories, ({ one, many }) => ({
+export const documentCategoryAssociationsRelations = relations(documentCategoryAssociations, ({ one }) => ({
+  document: one(documents, {
+    fields: [documentCategoryAssociations.documentId],
+    references: [documents.id],
+  }),
   category: one(documentCategories, {
-    fields: [documentSubcategories.categoryId],
+    fields: [documentCategoryAssociations.categoryId],
     references: [documentCategories.id],
   }),
-  documents: many(documents),
 }));
 
 export const investmentRequestsRelations = relations(investmentRequests, ({ one, many }) => ({
@@ -327,11 +328,8 @@ export const documentsRelations = relations(documents, ({ one, many }) => ({
     fields: [documents.categoryId],
     references: [documentCategories.id],
   }),
-  subcategory: one(documentSubcategories, {
-    fields: [documents.subcategoryId],
-    references: [documentSubcategories.id],
-  }),
   queries: many(documentQueries),
+  categoryAssociations: many(documentCategoryAssociations),
 }));
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
@@ -413,7 +411,7 @@ export const insertDocumentCategorySchema = createInsertSchema(documentCategorie
   createdAt: true,
 });
 
-export const insertDocumentSubcategorySchema = createInsertSchema(documentSubcategories).omit({
+export const insertDocumentCategoryAssociationSchema = createInsertSchema(documentCategoryAssociations).omit({
   id: true,
   createdAt: true,
 });

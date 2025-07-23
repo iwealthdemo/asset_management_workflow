@@ -4,8 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { ChevronDown, ChevronRight, FileText, Download, Eye, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -17,8 +15,6 @@ interface Document {
   mimeType: string;
   analysisStatus?: string;
   createdAt: string;
-  categoryId?: number;
-  subcategoryId?: number;
   uploader: {
     firstName: string;
     lastName: string;
@@ -33,12 +29,12 @@ interface DocumentCategory {
   isSystem: boolean;
 }
 
-interface DocumentSubcategory {
+interface DocumentCategoryAssociation {
   id: number;
+  documentId: number;
   categoryId: number;
-  name: string;
-  description?: string;
-  isSystem: boolean;
+  customCategoryName?: string;
+  category: DocumentCategory;
 }
 
 interface DocumentCategoryViewProps {
@@ -62,14 +58,35 @@ export function DocumentCategoryView({
 }: DocumentCategoryViewProps) {
   const [openCategories, setOpenCategories] = useState<Set<number>>(new Set());
 
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [] } = useQuery<DocumentCategory[]>({
     queryKey: ['/api/document-categories'],
     enabled: true
   });
 
-  const { data: subcategories = [] } = useQuery({
-    queryKey: ['/api/document-subcategories'],
-    enabled: true
+  // Get category associations for all documents
+  const { data: documentCategories = {} } = useQuery({
+    queryKey: ['/api/documents-categories', documents.map(d => d.id)],
+    queryFn: async () => {
+      const associations: { [documentId: number]: DocumentCategoryAssociation[] } = {};
+      
+      for (const doc of documents) {
+        try {
+          const response = await fetch(`/api/documents/${doc.id}/categories`, {
+            credentials: 'include'
+          });
+          if (response.ok) {
+            associations[doc.id] = await response.json();
+          } else {
+            associations[doc.id] = [];
+          }
+        } catch (error) {
+          associations[doc.id] = [];
+        }
+      }
+      
+      return associations;
+    },
+    enabled: documents.length > 0
   });
 
   const toggleCategory = (categoryId: number) => {
@@ -116,41 +133,43 @@ export function DocumentCategoryView({
     }
   };
 
-  // Group documents by category and subcategory
-  const groupedDocuments = categories.reduce((acc: any, category: DocumentCategory) => {
-    const categoryDocs = documents.filter(doc => doc.categoryId === category.id);
+  // Group documents by their assigned categories using the new association system
+  const groupedDocuments = categories.reduce((acc: any, category) => {
+    const categoryDocs: { document: Document; associations: DocumentCategoryAssociation[] }[] = [];
+
+    documents.forEach(doc => {
+      const docAssociations = documentCategories[doc.id] || [];
+      const hasThisCategory = docAssociations.some(assoc => assoc.categoryId === category.id);
+      
+      if (hasThisCategory) {
+        categoryDocs.push({
+          document: doc,
+          associations: docAssociations.filter(assoc => assoc.categoryId === category.id)
+        });
+      }
+    });
+
     if (categoryDocs.length > 0) {
       acc[category.id] = {
         category,
-        subcategories: {},
-        uncategorizedDocs: categoryDocs.filter(doc => !doc.subcategoryId)
+        documents: categoryDocs
       };
-
-      // Group by subcategory
-      subcategories
-        .filter((sub: DocumentSubcategory) => sub.categoryId === category.id)
-        .forEach((subcategory: DocumentSubcategory) => {
-          const subDocs = categoryDocs.filter(doc => doc.subcategoryId === subcategory.id);
-          if (subDocs.length > 0) {
-            acc[category.id].subcategories[subcategory.id] = {
-              subcategory,
-              documents: subDocs
-            };
-          }
-        });
     }
     return acc;
   }, {});
 
-  // Handle uncategorized documents
-  const uncategorizedDocs = documents.filter(doc => !doc.categoryId);
+  // Handle uncategorized documents (those without any category associations)
+  const uncategorizedDocs = documents.filter(doc => {
+    const docAssociations = documentCategories[doc.id] || [];
+    return docAssociations.length === 0;
+  });
+  
   if (uncategorizedDocs.length > 0) {
-    const uncategorizedCategory = categories.find((cat: DocumentCategory) => cat.name === 'Uncategorized');
+    const uncategorizedCategory = categories.find(cat => cat.name === 'Uncategorized');
     if (uncategorizedCategory) {
       groupedDocuments[uncategorizedCategory.id] = {
         category: uncategorizedCategory,
-        subcategories: {},
-        uncategorizedDocs
+        documents: uncategorizedDocs.map(doc => ({ document: doc, associations: [] }))
       };
     }
   }
@@ -171,10 +190,9 @@ export function DocumentCategoryView({
   return (
     <div className="space-y-4">
       {Object.values(groupedDocuments).map((group: any) => {
-        const { category, subcategories, uncategorizedDocs } = group;
+        const { category, documents: categoryDocs } = group;
         const isOpen = openCategories.has(category.id);
-        const totalDocs = uncategorizedDocs.length + 
-          Object.values(subcategories).reduce((sum: number, sub: any) => sum + sub.documents.length, 0);
+        const totalDocs = categoryDocs.length;
 
         return (
           <Card key={category.id}>
@@ -201,124 +219,64 @@ export function DocumentCategoryView({
               
               <CollapsibleContent>
                 <CardContent className="pt-0">
-                  {/* Subcategorized documents */}
-                  {Object.values(subcategories).map((subGroup: any) => {
-                    const { subcategory, documents: subDocs } = subGroup;
-                    return (
-                      <div key={subcategory.id} className="mb-6">
-                        <div className="flex items-center gap-2 mb-3">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <h4 className="font-medium">{subcategory.name}</h4>
-                          <Badge variant="outline" className="text-xs">
-                            {subDocs.length}
-                          </Badge>
-                        </div>
-                        <div className="pl-6 space-y-2">
-                          {subDocs.map((doc: Document) => (
-                            <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
-                              <div className="flex items-center gap-3 flex-1">
-                                {getAnalysisStatusIcon(doc.analysisStatus)}
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm truncate">{doc.originalName}</p>
-                                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                    <span>{formatFileSize(doc.fileSize)}</span>
-                                    <span>Uploaded {formatDistanceToNow(new Date(doc.createdAt))} ago</span>
-                                    <span>by {doc.uploader.firstName} {doc.uploader.lastName}</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Badge variant="outline" className="text-xs">
-                                  {getAnalysisStatusText(doc.analysisStatus)}
-                                </Badge>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => onDocumentPreview?.(doc.id)}
-                                  title="Preview"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => onDocumentDownload?.(doc.id)}
-                                  title="Download"
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                                {showAnalysisActions && doc.analysisStatus !== 'processing' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => onDocumentAnalyze?.(doc.id)}
-                                    title="Analyze"
-                                  >
-                                    Analyze
-                                  </Button>
-                                )}
-                              </div>
+                  <div className="space-y-2">
+                    {categoryDocs.map(({ document: doc, associations }: any) => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3 flex-1">
+                          {getAnalysisStatusIcon(doc.analysisStatus)}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{doc.originalName}</p>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>{formatFileSize(doc.fileSize)}</span>
+                              <span>Uploaded {formatDistanceToNow(new Date(doc.createdAt))} ago</span>
+                              <span>by {doc.uploader.firstName} {doc.uploader.lastName}</span>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Uncategorized documents in this category */}
-                  {uncategorizedDocs.length > 0 && (
-                    <div>
-                      {Object.keys(subcategories).length > 0 && <Separator className="mb-4" />}
-                      <div className="space-y-2">
-                        {uncategorizedDocs.map((doc: Document) => (
-                          <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center gap-3 flex-1">
-                              {getAnalysisStatusIcon(doc.analysisStatus)}
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm truncate">{doc.originalName}</p>
-                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                  <span>{formatFileSize(doc.fileSize)}</span>
-                                  <span>Uploaded {formatDistanceToNow(new Date(doc.createdAt))} ago</span>
-                                  <span>by {doc.uploader.firstName} {doc.uploader.lastName}</span>
-                                </div>
+                            {/* Show custom category names if any */}
+                            {associations.length > 0 && associations.some((assoc: any) => assoc.customCategoryName) && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {associations.filter((assoc: any) => assoc.customCategoryName).map((assoc: any) => (
+                                  <Badge key={assoc.id} variant="outline" className="text-xs">
+                                    {assoc.customCategoryName}
+                                  </Badge>
+                                ))}
                               </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Badge variant="outline" className="text-xs">
-                                {getAnalysisStatusText(doc.analysisStatus)}
-                              </Badge>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onDocumentPreview?.(doc.id)}
-                                title="Preview"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onDocumentDownload?.(doc.id)}
-                                title="Download"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              {showAnalysisActions && doc.analysisStatus !== 'processing' && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => onDocumentAnalyze?.(doc.id)}
-                                  title="Analyze"
-                                >
-                                  Analyze
-                                </Button>
-                              )}
-                            </div>
+                            )}
                           </div>
-                        ))}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Badge variant="outline" className="text-xs">
+                            {getAnalysisStatusText(doc.analysisStatus)}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onDocumentPreview?.(doc.id)}
+                            title="Preview"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onDocumentDownload?.(doc.id)}
+                            title="Download"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          {showAnalysisActions && doc.analysisStatus !== 'processing' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onDocumentAnalyze?.(doc.id)}
+                              title="Analyze"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </CardContent>
               </CollapsibleContent>
             </Collapsible>

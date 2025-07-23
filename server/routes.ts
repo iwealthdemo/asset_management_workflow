@@ -379,7 +379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Document routes
   app.post('/api/documents/upload', authMiddleware, fileUpload.array('documents'), async (req, res) => {
     try {
-      const { requestType, requestId, categoryId, subcategoryId } = req.body;
+      const { requestType, requestId, categories, categoryId, subcategoryId } = req.body;
       const files = req.files as Express.Multer.File[];
       
       if (!files || files.length === 0) {
@@ -399,7 +399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           requestId: parseInt(requestId),
         };
         
-        // Add category information if provided
+        // Legacy support: Add single category information if provided
         if (categoryId) {
           documentData.categoryId = parseInt(categoryId);
         }
@@ -408,6 +408,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         const document = await storage.createDocument(documentData);
+        
+        // Handle multiple category associations
+        if (categories && categories.length > 0) {
+          const categoryList = Array.isArray(categories) ? categories : JSON.parse(categories);
+          for (const category of categoryList) {
+            await storage.createDocumentCategoryAssociation(
+              document.id,
+              category.categoryId,
+              category.customCategoryName || null
+            );
+          }
+        }
+        
         documents.push(document);
         
         // Document uploaded successfully - manual analysis trigger will be available in UI
@@ -1476,18 +1489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/document-subcategories', authMiddleware, async (req, res) => {
-    try {
-      const { categoryId } = req.query;
-      const subcategories = await storage.getDocumentSubcategories(
-        categoryId ? parseInt(categoryId as string) : undefined
-      );
-      res.json(subcategories);
-    } catch (error) {
-      console.error('Error fetching document subcategories:', error);
-      res.status(500).json({ error: 'Failed to fetch document subcategories' });
-    }
-  });
+  // Legacy route removed - subcategories no longer used
 
   app.post('/api/document-categories', authMiddleware, async (req, res) => {
     try {
@@ -1512,26 +1514,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/document-subcategories', authMiddleware, async (req, res) => {
+  // Multiple categories per document routes
+  app.post('/api/documents/:documentId/categories', authMiddleware, async (req, res) => {
     try {
-      const { categoryId, name, description } = req.body;
+      const documentId = parseInt(req.params.documentId);
+      const { categoryId, customCategoryName } = req.body;
       
-      if (!categoryId || !name) {
-        return res.status(400).json({ error: 'Category ID and name are required' });
+      if (!categoryId) {
+        return res.status(400).json({ error: 'Category ID is required' });
       }
 
-      const subcategory = await storage.createDocumentSubcategory({
-        categoryId: parseInt(categoryId),
-        name,
-        description,
-        isSystem: false,
-        isActive: true
-      });
+      const association = await storage.createDocumentCategoryAssociation(
+        documentId,
+        parseInt(categoryId),
+        customCategoryName
+      );
       
-      res.json(subcategory);
+      res.json(association);
     } catch (error) {
-      console.error('Error creating document subcategory:', error);
-      res.status(500).json({ error: 'Failed to create document subcategory' });
+      console.error('Error creating document category association:', error);
+      res.status(500).json({ error: 'Failed to add category to document' });
+    }
+  });
+
+  app.get('/api/documents/:documentId/categories', authMiddleware, async (req, res) => {
+    try {
+      const documentId = parseInt(req.params.documentId);
+      const associations = await storage.getDocumentCategoryAssociations(documentId);
+      res.json(associations);
+    } catch (error) {
+      console.error('Error fetching document categories:', error);
+      res.status(500).json({ error: 'Failed to fetch document categories' });
+    }
+  });
+
+  app.delete('/api/documents/:documentId/categories/:categoryId', authMiddleware, async (req, res) => {
+    try {
+      const documentId = parseInt(req.params.documentId);
+      const categoryId = parseInt(req.params.categoryId);
+      
+      await storage.deleteDocumentCategoryAssociation(documentId, categoryId);
+      res.json({ message: 'Category removed from document successfully' });
+    } catch (error) {
+      console.error('Error removing document category:', error);
+      res.status(500).json({ error: 'Failed to remove category from document' });
     }
   });
 

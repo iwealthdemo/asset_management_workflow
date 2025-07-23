@@ -1,13 +1,12 @@
 import { 
   users, investmentRequests, cashRequests, approvals, tasks, documents, 
-  documentCategories, documentSubcategories,
+  documentCategories, documentCategoryAssociations,
   notifications, templates, auditLogs, approvalWorkflows, backgroundJobs,
   documentQueries, crossDocumentQueries, webSearchQueries, sequences, investmentRationales,
   type User, type InsertUser, type InvestmentRequest, type InsertInvestmentRequest,
   type CashRequest, type InsertCashRequest, type Approval, type InsertApproval,
   type Task, type InsertTask, type Document, type InsertDocument,
   type DocumentCategory, type InsertDocumentCategory,
-  type DocumentSubcategory, type InsertDocumentSubcategory,
   type Notification, type InsertNotification, type Template, type InsertTemplate,
   type BackgroundJob, type InsertBackgroundJob, type DocumentQuery, type InsertDocumentQuery,
   type CrossDocumentQuery, type InsertCrossDocumentQuery, type WebSearchQuery, type InsertWebSearchQuery,
@@ -63,10 +62,13 @@ export interface IStorage {
   
   // Document category operations
   getDocumentCategories(): Promise<DocumentCategory[]>;
-  getDocumentSubcategories(categoryId?: number): Promise<DocumentSubcategory[]>;
   createDocumentCategory(category: InsertDocumentCategory): Promise<DocumentCategory>;
-  createDocumentSubcategory(subcategory: InsertDocumentSubcategory): Promise<DocumentSubcategory>;
-  getDocumentsByCategory(categoryId?: number, subcategoryId?: number): Promise<Document[]>;
+  getDocumentsByCategory(categoryId?: number): Promise<Document[]>;
+  
+  // Multiple categories per document operations
+  createDocumentCategoryAssociation(documentId: number, categoryId: number, customCategoryName?: string): Promise<any>;
+  getDocumentCategoryAssociations(documentId: number): Promise<any[]>;
+  deleteDocumentCategoryAssociation(documentId: number, categoryId: number): Promise<void>;
   
   // Notification operations
   createNotification(notification: InsertNotification): Promise<Notification>;
@@ -1040,20 +1042,48 @@ export class DatabaseStorage implements IStorage {
       .orderBy(documentCategories.name);
   }
 
-  async getDocumentSubcategories(categoryId?: number): Promise<DocumentSubcategory[]> {
-    const query = db
-      .select()
-      .from(documentSubcategories)
-      .where(eq(documentSubcategories.isActive, true));
+  // Multiple categories per document operations
+  async createDocumentCategoryAssociation(documentId: number, categoryId: number, customCategoryName?: string): Promise<any> {
+    const [association] = await db
+      .insert(documentCategoryAssociations)
+      .values({
+        documentId,
+        categoryId,
+        customCategoryName
+      })
+      .returning();
+    return association;
+  }
 
-    if (categoryId) {
-      query.where(and(
-        eq(documentSubcategories.isActive, true),
-        eq(documentSubcategories.categoryId, categoryId)
-      ));
-    }
+  async getDocumentCategoryAssociations(documentId: number): Promise<any[]> {
+    return await db
+      .select({
+        id: documentCategoryAssociations.id,
+        documentId: documentCategoryAssociations.documentId,
+        categoryId: documentCategoryAssociations.categoryId,
+        customCategoryName: documentCategoryAssociations.customCategoryName,
+        createdAt: documentCategoryAssociations.createdAt,
+        category: {
+          id: documentCategories.id,
+          name: documentCategories.name,
+          icon: documentCategories.icon,
+          description: documentCategories.description
+        }
+      })
+      .from(documentCategoryAssociations)
+      .leftJoin(documentCategories, eq(documentCategoryAssociations.categoryId, documentCategories.id))
+      .where(eq(documentCategoryAssociations.documentId, documentId));
+  }
 
-    return await query.orderBy(documentSubcategories.name);
+  async deleteDocumentCategoryAssociation(documentId: number, categoryId: number): Promise<void> {
+    await db
+      .delete(documentCategoryAssociations)
+      .where(
+        and(
+          eq(documentCategoryAssociations.documentId, documentId),
+          eq(documentCategoryAssociations.categoryId, categoryId)
+        )
+      );
   }
 
   async createDocumentCategory(category: InsertDocumentCategory): Promise<DocumentCategory> {
@@ -1064,26 +1094,43 @@ export class DatabaseStorage implements IStorage {
     return newCategory;
   }
 
-  async createDocumentSubcategory(subcategory: InsertDocumentSubcategory): Promise<DocumentSubcategory> {
-    const [newSubcategory] = await db
-      .insert(documentSubcategories)
-      .values(subcategory)
-      .returning();
-    return newSubcategory;
-  }
 
-  async getDocumentsByCategory(categoryId?: number, subcategoryId?: number): Promise<Document[]> {
-    let query = db
-      .select()
-      .from(documents);
 
-    if (subcategoryId) {
-      query = query.where(eq(documents.subcategoryId, subcategoryId));
-    } else if (categoryId) {
-      query = query.where(eq(documents.categoryId, categoryId));
+  async getDocumentsByCategory(categoryId?: number): Promise<Document[]> {
+    if (!categoryId) {
+      return await db
+        .select()
+        .from(documents)
+        .orderBy(desc(documents.createdAt));
     }
 
-    return await query.orderBy(desc(documents.createdAt));
+    // Get documents that have this category association
+    const documentsWithCategory = await db
+      .select({
+        id: documents.id,
+        fileName: documents.fileName,
+        originalName: documents.originalName,
+        fileSize: documents.fileSize,
+        mimeType: documents.mimeType,
+        fileUrl: documents.fileUrl,
+        uploaderId: documents.uploaderId,
+        requestType: documents.requestType,
+        requestId: documents.requestId,
+        categoryId: documents.categoryId,
+        subcategoryId: documents.subcategoryId,
+        isAutoCategorized: documents.isAutoCategorized,
+        analysisStatus: documents.analysisStatus,
+        analysis: documents.analysis,
+        summary: documents.summary,
+        insights: documents.insights,
+        createdAt: documents.createdAt,
+      })
+      .from(documents)
+      .innerJoin(documentCategoryAssociations, eq(documents.id, documentCategoryAssociations.documentId))
+      .where(eq(documentCategoryAssociations.categoryId, categoryId))
+      .orderBy(desc(documents.createdAt));
+
+    return documentsWithCategory;
   }
 
   // Sequence operations
