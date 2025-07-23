@@ -32,49 +32,29 @@ export function TextEnhancementModal({
   originalText, 
   onApply 
 }: TextEnhancementModalProps) {
-  const [enhancements, setEnhancements] = useState<Enhancement[]>([
-    { type: 'professional', text: '', loading: false },
-    { type: 'grammar', text: '', loading: false },
-    { type: 'clarity', text: '', loading: false },
-    { type: 'rewrite', text: '', loading: false }
-  ]);
+  const [enhancedText, setEnhancedText] = useState<string>('');
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [selectedEnhancement, setSelectedEnhancement] = useState<string>('');
 
-  const enhancementLabels = {
-    professional: 'Professional Tone',
-    grammar: 'Grammar & Vocabulary',
-    clarity: 'Clarity & Structure',
-    rewrite: 'Complete Rewrite'
-  };
+  // Single comprehensive enhancement that includes all improvements
 
-  const enhancementDescriptions = {
-    professional: 'Make language more formal and business-appropriate',
-    grammar: 'Fix spelling, grammar, and vocabulary issues',
-    clarity: 'Improve readability and structure',
-    rewrite: 'Restructure for maximum impact and persuasiveness'
-  };
-
-  const handleEnhance = async (type: EnhancementType) => {
+  const handleEnhance = async () => {
     if (!originalText.trim()) return;
 
-    setEnhancements(prev => 
-      prev.map(e => e.type === type ? { ...e, loading: true } : e)
-    );
+    setIsEnhancing(true);
 
     try {
       const response = await apiRequest('POST', '/api/text/enhance', {
         text: originalText,
-        type: type
+        type: 'professional' // Type doesn't matter as backend uses single comprehensive prompt
       }) as unknown as { enhancedText: string };
 
-      setEnhancements(prev => 
-        prev.map(e => e.type === type ? { ...e, text: response.enhancedText, loading: false } : e)
-      );
+      setEnhancedText(response.enhancedText);
     } catch (error) {
       console.error('Enhancement failed:', error);
-      setEnhancements(prev => 
-        prev.map(e => e.type === type ? { ...e, loading: false } : e)
-      );
+      setEnhancedText('');
+    } finally {
+      setIsEnhancing(false);
     }
   };
 
@@ -83,39 +63,7 @@ export function TextEnhancementModal({
     onClose();
   };
 
-  const handleEnhanceAll = async () => {
-    if (!originalText.trim()) return;
-    
-    const types: EnhancementType[] = ['professional', 'grammar', 'clarity', 'rewrite'];
-    
-    // Set all to loading
-    setEnhancements(prev => 
-      prev.map(e => ({ ...e, loading: true }))
-    );
-
-    // Process all enhancements in parallel
-    const promises = types.map(async (type) => {
-      try {
-        const response = await apiRequest('POST', '/api/text/enhance', {
-          text: originalText,
-          type: type
-        }) as unknown as { enhancedText: string };
-        return { type, text: response.enhancedText };
-      } catch (error) {
-        console.error(`Enhancement failed for ${type}:`, error);
-        return { type, text: '' };
-      }
-    });
-
-    const results = await Promise.all(promises);
-    
-    setEnhancements(prev => 
-      prev.map(e => {
-        const result = results.find(r => r.type === e.type);
-        return { ...e, text: result?.text || '', loading: false };
-      })
-    );
-  };
+  // Single enhancement function replaces "Enhance All"
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -133,17 +81,17 @@ export function TextEnhancementModal({
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-medium">Original Text</h3>
               <Button 
-                onClick={handleEnhanceAll}
+                onClick={handleEnhance}
                 size="sm"
                 className="gap-2"
-                disabled={!originalText.trim() || enhancements.some(e => e.loading)}
+                disabled={!originalText.trim() || isEnhancing}
               >
-                {enhancements.some(e => e.loading) ? (
+                {isEnhancing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Sparkles className="h-4 w-4" />
                 )}
-                Enhance All
+                Enhance Text
               </Button>
             </div>
             <Textarea 
@@ -153,88 +101,104 @@ export function TextEnhancementModal({
             />
           </div>
 
-          {/* Enhancement Options */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {enhancements.map((enhancement) => (
-              <div key={enhancement.type} className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Badge variant="secondary" className="mb-1">
-                      {enhancementLabels[enhancement.type]}
-                    </Badge>
-                    <p className="text-sm text-muted-foreground">
-                      {enhancementDescriptions[enhancement.type]}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEnhance(enhancement.type)}
-                    disabled={!originalText.trim() || enhancement.loading}
-                  >
-                    {enhancement.loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-
-                {enhancement.loading ? (
-                  <div className="flex items-center justify-center py-8 text-muted-foreground">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    Enhancing...
-                  </div>
-                ) : enhancement.text ? (
-                  <div className="space-y-2">
-                    <Textarea 
-                      value={enhancement.text}
-                      readOnly
-                      className="min-h-[100px] bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleApply(enhancement.text)}
-                        className="gap-2"
-                      >
-                        <Check className="h-4 w-4" />
-                        Apply This
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setSelectedEnhancement(enhancement.text)}
-                      >
-                        Preview
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="py-8 text-center text-muted-foreground">
-                    Click enhance to see AI suggestions
-                  </div>
-                )}
-              </div>
-            ))}
+          {/* Enhancement Features Description */}
+          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+              Comprehensive AI Enhancement
+            </h4>
+            <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+              Our AI will improve your text by:
+            </p>
+            <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+              <li>• <strong>Grammar & Language:</strong> Fix spelling, grammar, and vocabulary issues</li>
+              <li>• <strong>Professional Tone:</strong> Convert to formal business terminology</li>
+              <li>• <strong>Clarity & Structure:</strong> Improve readability and organization</li>
+              <li>• <strong>Content Preservation:</strong> Keep all key facts and data intact</li>
+            </ul>
           </div>
+
+          {/* Enhanced Text Result */}
+          {isEnhancing ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              <Loader2 className="h-8 w-8 animate-spin mr-3" />
+              <div>
+                <p className="font-medium">Enhancing your text...</p>
+                <p className="text-sm">This may take a few seconds</p>
+              </div>
+            </div>
+          ) : enhancedText ? (
+            <div className="space-y-4">
+              <h3 className="font-medium">Enhanced Text</h3>
+              <Textarea 
+                value={enhancedText}
+                readOnly
+                className="min-h-[120px] bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
+              />
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleApply(enhancedText)}
+                  className="gap-2"
+                >
+                  <Check className="h-4 w-4" />
+                  Apply Enhancement
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedEnhancement(enhancedText)}
+                >
+                  Preview Changes
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleEnhance}
+                  disabled={isEnhancing}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Re-enhance
+                </Button>
+              </div>
+            </div>
+          ) : originalText.trim() ? (
+            <div className="py-12 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+              <Sparkles className="h-12 w-12 mx-auto mb-4 text-primary/50" />
+              <p className="font-medium">Ready to enhance your text</p>
+              <p className="text-sm">Click "Enhance Text" to improve grammar, tone, and clarity</p>
+            </div>
+          ) : (
+            <div className="py-12 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+              <p>Enter some text above to get started</p>
+            </div>
+          )}
 
           {/* Preview Section */}
           {selectedEnhancement && (
             <div className="border-t pt-4">
-              <h3 className="font-medium mb-2">Preview</h3>
-              <Textarea 
-                value={selectedEnhancement}
-                readOnly
-                className="min-h-[120px] bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800"
-              />
-              <div className="flex gap-2 mt-2">
+              <h3 className="font-medium mb-2">Side-by-Side Comparison</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">Original</h4>
+                  <Textarea 
+                    value={originalText}
+                    readOnly
+                    className="min-h-[120px] bg-muted"
+                  />
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-2 text-green-600 dark:text-green-400">Enhanced</h4>
+                  <Textarea 
+                    value={selectedEnhancement}
+                    readOnly
+                    className="min-h-[120px] bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
                 <Button
                   onClick={() => handleApply(selectedEnhancement)}
                   className="gap-2"
                 >
                   <Check className="h-4 w-4" />
-                  Apply This Version
+                  Apply Enhancement
                 </Button>
                 <Button
                   variant="outline"
