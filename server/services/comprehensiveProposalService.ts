@@ -204,9 +204,10 @@ TEMPLATE REQUIREMENTS:
 Generate a comprehensive proposal following this exact structure:
 
 ${(template.templateData as any)?.sections?.map((section: any, index: number) => `
-**${index + 1}. ${section.name} (Limit: ${section.wordLimit} words)**
+**${index + 1}. ${section.name}**
 ${section.description}
 Focus Areas: ${section.focusAreas.join(', ')}
+Target Length: ${section.wordLimit} words
 `).join('\n') || 'No template sections available'}
 
 QUALITY STANDARDS:
@@ -214,8 +215,9 @@ QUALITY STANDARDS:
 - Integrate ALL existing analysis and research findings
 - Supplement with current market data from web_search tool
 - Reference specific documents and data sources
-- Maintain exact word limits for each section
 - Provide clear, actionable recommendations
+- Do NOT include word limit references in final output
+- Do NOT include meta-commentary about word limits or formatting
 
 TARGET COMPANY: ${investment.targetCompany}
 INVESTMENT TYPE: ${investment.investmentType}  
@@ -238,7 +240,9 @@ Generate the comprehensive investment proposal now:`;
 - Use > blockquotes for key recommendations
 - Format the proposal as a professional document with proper markdown
 
-Generate the comprehensive investment proposal now with proper markdown formatting.`
+Generate the comprehensive investment proposal now with proper markdown formatting.
+
+IMPORTANT: Do NOT include any word limit references, meta-commentary about templates, or conclusions about formatting in your response. Generate ONLY the clean, professional investment analysis content.`
       });
 
       const processingTime = Date.now() - startTime;
