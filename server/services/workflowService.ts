@@ -160,8 +160,28 @@ export class WorkflowService {
           await this.moveToNextStage(requestType, requestId, currentApproval.stage);
         }
       } else if (action === 'reject') {
+        // Notify previous approvers before rejecting
+        if (currentApproval.stage > 0) { // Only notify if not the first stage
+          await notificationService.notifyPreviousApprovers(
+            requestType, 
+            requestId, 
+            'rejected', 
+            approver?.role || 'unknown',
+            comments
+          );
+        }
         await this.rejectRequest(requestType, requestId, approver?.role);
       } else if (action === 'changes_requested') {
+        // Notify previous approvers before requesting changes
+        if (currentApproval.stage > 0) { // Only notify if not the first stage
+          await notificationService.notifyPreviousApprovers(
+            requestType, 
+            requestId, 
+            'changes_requested', 
+            approver?.role || 'unknown',
+            comments
+          );
+        }
         await this.requestChanges(requestType, requestId);
       }
 

@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 import { useUser, useLogout } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -326,16 +327,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 )}
 
                 {/* Notifications */}
-                <div className="relative">
-                  <Button variant="ghost" size="icon">
-                    <Bell className="h-5 w-5" />
-                    {unreadNotifications > 0 && (
-                      <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                        {unreadNotifications}
-                      </Badge>
-                    )}
-                  </Button>
-                </div>
+                <NotificationDropdown />
                 
                 {/* Theme Toggle */}
                 <ThemeToggle />

@@ -75,6 +75,77 @@ export class NotificationService {
     });
   }
 
+  async notifyPreviousApprovers(
+    requestType: string, 
+    requestId: number, 
+    higherStageAction: 'rejected' | 'changes_requested' | 'cancelled',
+    higherStageRole: string,
+    higherStageComments?: string
+  ) {
+    try {
+      // Get investment/cash request details for summary
+      let request;
+      if (requestType === 'investment') {
+        request = await storage.getInvestmentRequest(requestId);
+      } else {
+        request = await storage.getCashRequest(requestId);
+      }
+
+      if (!request) return;
+
+      // Get current cycle approvals to find previous approvers
+      const currentApprovals = await storage.getCurrentCycleApprovalsByRequest(requestType, requestId);
+      const approvedApprovals = currentApprovals.filter(approval => 
+        approval.status.includes('approved') && approval.approverId
+      );
+
+      // Create investment summary for popup display
+      const investmentSummary = {
+        requestId: request.requestId,
+        targetCompany: requestType === 'investment' ? (request as any).targetCompany : 'N/A',
+        amount: request.amount,
+        investmentType: requestType === 'investment' ? (request as any).investmentType : 'cash_request',
+        expectedReturn: requestType === 'investment' ? (request as any).expectedReturn : null,
+        riskLevel: requestType === 'investment' ? (request as any).riskLevel : null,
+      };
+
+      // Role name mapping for user-friendly display
+      const roleNames = {
+        admin: 'Admin',
+        manager: 'Manager', 
+        committee_member: 'Committee',
+        finance: 'Finance'
+      };
+
+      const higherStageName = roleNames[higherStageRole as keyof typeof roleNames] || higherStageRole;
+      const actionText = higherStageAction === 'changes_requested' ? 'requested changes' : higherStageAction;
+
+      // Notify each previous approver
+      for (const approval of approvedApprovals) {
+        if (approval.approverId) {
+          const approverRole = await storage.getUser(approval.approverId);
+          const approverRoleName = roleNames[approverRole?.role as keyof typeof roleNames] || approverRole?.role;
+
+          await storage.createNotification({
+            userId: approval.approverId,
+            title: `Investment ${actionText} by ${higherStageName}`,
+            message: `${request.requestId} (${investmentSummary.targetCompany}) that you approved as ${approverRoleName} has been ${actionText} by ${higherStageName}`,
+            type: 'higher_stage_action',
+            relatedType: requestType,
+            relatedId: requestId,
+            previousApproverStage: approval.stage,
+            higherStageAction,
+            higherStageRole,
+            higherStageComments: higherStageComments || null,
+            investmentSummary,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error notifying previous approvers:', error);
+    }
+  }
+
   async notifySLABreach(userId: number, requestType: string, requestId: number) {
     await storage.createNotification({
       userId,

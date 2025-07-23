@@ -79,6 +79,7 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   getUserNotifications(userId: number): Promise<Notification[]>;
   markNotificationAsRead(id: number): Promise<void>;
+  deleteNotification(id: number): Promise<void>;
   
   // Template operations
   createTemplate(template: InsertTemplate): Promise<Template>;
@@ -523,6 +524,10 @@ export class DatabaseStorage implements IStorage {
 
   async markNotificationAsRead(id: number): Promise<void> {
     await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
+  }
+
+  async deleteNotification(id: number): Promise<void> {
+    await db.delete(notifications).where(eq(notifications.id, id));
   }
 
   async createTemplate(template: InsertTemplate): Promise<Template> {

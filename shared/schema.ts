@@ -149,10 +149,16 @@ export const notifications = pgTable("notifications", {
   userId: integer("user_id").references(() => users.id),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  type: text("type").notNull(), // task_assigned, approval_needed, sla_warning, status_update
+  type: text("type").notNull(), // task_assigned, approval_needed, sla_warning, status_update, higher_stage_action
   isRead: boolean("is_read").default(false),
   relatedType: text("related_type"), // investment, cash_request, task
   relatedId: integer("related_id"),
+  // Enhanced fields for previous approver notifications
+  previousApproverStage: integer("previous_approver_stage"), // The stage the user previously approved
+  higherStageAction: text("higher_stage_action"), // rejected, changes_requested, cancelled
+  higherStageRole: text("higher_stage_role"), // committee_member, finance, etc.
+  higherStageComments: text("higher_stage_comments"), // Comments from higher stage
+  investmentSummary: json("investment_summary"), // Quick summary for popup display
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -1447,11 +1447,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/notifications/:id/read', authMiddleware, async (req, res) => {
+  app.patch('/api/notifications/:id/read', authMiddleware, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.markNotificationAsRead(id);
-      res.json({ message: 'Notification marked as read' });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.delete('/api/notifications/:id', authMiddleware, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteNotification(id);
+      res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: 'Internal server error' });
     }
