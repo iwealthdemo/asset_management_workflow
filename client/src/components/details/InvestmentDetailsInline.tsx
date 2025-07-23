@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,8 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   const [isRationaleModalOpen, setIsRationaleModalOpen] = useState(false);
   const [editingRationaleId, setEditingRationaleId] = useState<number | null>(null);
   const [editingRationaleContent, setEditingRationaleContent] = useState('');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [rationaleToDelete, setRationaleToDelete] = useState<number | null>(null);
 
   // Fetch detailed investment data when expanded
   const { data: investmentDetails, isLoading: isInvestmentLoading } = useQuery({
@@ -332,10 +335,17 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
     }
   };
 
-  const handleDeleteRationale = async (rationaleId: number) => {
-    if (window.confirm('Are you sure you want to delete this investment rationale? This action cannot be undone.')) {
-      deleteRationaleMutation.mutate(rationaleId);
+  const handleDeleteRationale = (rationaleId: number) => {
+    setRationaleToDelete(rationaleId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (rationaleToDelete) {
+      deleteRationaleMutation.mutate(rationaleToDelete);
     }
+    setDeleteConfirmOpen(false);
+    setRationaleToDelete(null);
   };
 
   const handleCancelInlineEdit = () => {
@@ -1019,6 +1029,26 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
         investmentId={investment?.id}
         investmentType={investmentDetails?.investmentType}
       />
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Investment Rationale</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this investment rationale? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Collapsible>
   );
 }
