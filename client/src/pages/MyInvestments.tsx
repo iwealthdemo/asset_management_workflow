@@ -33,6 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 
 // Filter interfaces
 interface InvestmentFilters {
+  searchRequestId: string;
   selectedCompanies: string[];
   selectedRiskLevels: string[];
   selectedInvestmentTypes: string[];
@@ -51,6 +52,7 @@ export default function MyInvestments() {
   
   // Filter state
   const [filters, setFilters] = useState<InvestmentFilters>({
+    searchRequestId: '',
     selectedCompanies: [],
     selectedRiskLevels: [],
     selectedInvestmentTypes: [],
@@ -84,6 +86,11 @@ export default function MyInvestments() {
     if (!investments) return [];
     
     return investments.filter((inv: any) => {
+      // Search by Request ID filter
+      if (filters.searchRequestId.trim() && !inv.requestId.toLowerCase().includes(filters.searchRequestId.toLowerCase())) {
+        return false;
+      }
+      
       // Company filter
       if (filters.selectedCompanies.length > 0 && !filters.selectedCompanies.includes(inv.targetCompany)) {
         return false;
@@ -132,6 +139,7 @@ export default function MyInvestments() {
   // Clear all filters
   const clearFilters = () => {
     setFilters({
+      searchRequestId: '',
       selectedCompanies: [],
       selectedRiskLevels: [],
       selectedInvestmentTypes: [],
@@ -147,6 +155,7 @@ export default function MyInvestments() {
   // Count active filters
   const activeFilterCount = useMemo(() => {
     let count = 0;
+    if (filters.searchRequestId.trim()) count++;
     if (filters.selectedCompanies.length > 0) count++;
     if (filters.selectedRiskLevels.length > 0) count++;
     if (filters.selectedInvestmentTypes.length > 0) count++;
@@ -260,6 +269,18 @@ export default function MyInvestments() {
           <CollapsibleContent>
             <Card className="mb-4 p-4 border-2 border-dashed border-blue-200 dark:border-blue-800">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                
+                {/* Search by Request ID */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Search by Request ID</Label>
+                  <Input
+                    type="text"
+                    placeholder="Enter Request ID (e.g., INV-2025-0032)"
+                    value={filters.searchRequestId}
+                    onChange={(e) => setFilters(prev => ({ ...prev, searchRequestId: e.target.value }))}
+                    className="w-full"
+                  />
+                </div>
                 
                 {/* Company Filter */}
                 <div className="space-y-2">
