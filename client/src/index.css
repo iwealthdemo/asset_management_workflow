@@ -201,8 +201,8 @@
     animation: scaleIn 0.2s ease-out;
   }
   
-  .animate-slide-in-right {
-    animation: slideInRight 0.3s ease-out;
+  .animate-slide-in-left {
+    animation: slideInLeft 0.3s ease-out;
   }
   
   @keyframes fadeIn {
@@ -232,9 +232,9 @@
     }
   }
   
-  @keyframes slideInRight {
+  @keyframes slideInLeft {
     from {
-      transform: translateX(100%);
+      transform: translateX(-100%);
       opacity: 0;
     }
     to {

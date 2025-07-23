@@ -243,7 +243,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           />
           
           {/* Sidebar Panel */}
-          <div className="fixed right-0 top-0 h-full w-72 bg-card shadow-xl z-50 animate-slide-in-right">
+          <div className="fixed left-0 top-0 h-full w-72 bg-card shadow-xl z-50 animate-slide-in-left">
             <SidebarContent />
           </div>
         </>
