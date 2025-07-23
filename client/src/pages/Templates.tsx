@@ -36,6 +36,7 @@ const Templates: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [sections, setSections] = useState([{ name: '', description: '', wordLimit: 200 }]);
 
   // Fetch templates
@@ -66,13 +67,12 @@ const Templates: React.FC = () => {
 
   const createTemplateMutation = useMutation({
     mutationFn: async (data: TemplateFormData) => {
-      return apiRequest('/api/templates', 'POST', data);
+      return apiRequest('POST', '/api/templates', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/templates/investment'] });
       setIsCreateModalOpen(false);
-      form.reset();
-      setSections([{ name: '', description: '', wordLimit: 200 }]);
+      resetForm();
       toast({
         title: "Template Created",
         description: "Template has been created successfully.",
@@ -87,9 +87,32 @@ const Templates: React.FC = () => {
     },
   });
 
+  const updateTemplateMutation = useMutation({
+    mutationFn: async (data: TemplateFormData & { id: number }) => {
+      const { id, ...updateData } = data;
+      return apiRequest('PUT', `/api/templates/${id}`, updateData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/templates/investment'] });
+      setEditingTemplate(null);
+      resetForm();
+      toast({
+        title: "Template Updated",
+        description: "Template has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update template.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteTemplateMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/templates/${id}`, 'DELETE');
+      return apiRequest('DELETE', `/api/templates/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/templates/investment'] });
@@ -124,6 +147,32 @@ const Templates: React.FC = () => {
     form.setValue('templateData.sections', updatedSections);
   };
 
+  const resetForm = () => {
+    form.reset();
+    setSections([{ name: '', description: '', wordLimit: 200 }]);
+    setEditingTemplate(null);
+    setIsCreateModalOpen(false);
+  };
+
+  const handleEditTemplate = (template: Template) => {
+    setEditingTemplate(template);
+    const templateData = typeof template.templateData === 'string' 
+      ? JSON.parse(template.templateData) 
+      : template.templateData;
+    
+    form.reset({
+      name: template.name,
+      investmentType: template.investmentType as any,
+      description: template.description || '',
+      templateData: {
+        sections: templateData.sections || [{ name: '', description: '', wordLimit: 200 }]
+      }
+    });
+    
+    setSections(templateData.sections || [{ name: '', description: '', wordLimit: 200 }]);
+    setIsCreateModalOpen(true);
+  };
+
   const onSubmit = (data: TemplateFormData) => {
     const formData = {
       ...data,
@@ -131,7 +180,12 @@ const Templates: React.FC = () => {
         sections: sections.filter(s => s.name && s.description)
       }
     };
-    createTemplateMutation.mutate(formData);
+    
+    if (editingTemplate) {
+      updateTemplateMutation.mutate({ ...formData, id: editingTemplate.id });
+    } else {
+      createTemplateMutation.mutate(formData);
+    }
   };
 
   const getInvestmentTypeColor = (type: string) => {
@@ -166,7 +220,7 @@ const Templates: React.FC = () => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5" />
-                Create Investment Analysis Template
+                {editingTemplate ? 'Edit Investment Analysis Template' : 'Create Investment Analysis Template'}
               </DialogTitle>
             </DialogHeader>
 
@@ -295,15 +349,22 @@ const Templates: React.FC = () => {
                   <Button 
                     type="button" 
                     variant="outline" 
-                    onClick={() => setIsCreateModalOpen(false)}
+                    onClick={resetForm}
                   >
                     Cancel
                   </Button>
                   <Button 
                     type="submit" 
-                    disabled={createTemplateMutation.isPending}
+                    disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}
                   >
-                    {createTemplateMutation.isPending ? 'Creating...' : 'Create Template'}
+                    {createTemplateMutation.isPending 
+                      ? 'Creating...' 
+                      : updateTemplateMutation.isPending 
+                      ? 'Updating...'
+                      : editingTemplate 
+                      ? 'Update Template' 
+                      : 'Create Template'
+                    }
                   </Button>
                 </div>
               </form>
@@ -337,21 +398,34 @@ const Templates: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteTemplateMutation.mutate(template.id);
-                          }}
-                          disabled={deleteTemplateMutation.isPending}
-                        >
-                          {deleteTemplateMutation.isPending ? (
-                            <span className="animate-spin">⏳</span>
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditTemplate(template);
+                            }}
+                            disabled={updateTemplateMutation.isPending}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteTemplateMutation.mutate(template.id);
+                            }}
+                            disabled={deleteTemplateMutation.isPending}
+                          >
+                            {deleteTemplateMutation.isPending ? (
+                              <span className="animate-spin">⏳</span>
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </CardHeader>
                   </CollapsibleTrigger>

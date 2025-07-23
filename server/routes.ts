@@ -1603,6 +1603,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/templates/:id', authMiddleware, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = insertTemplateSchema.partial().parse(req.body);
+      const template = await storage.updateTemplate(id, {
+        ...updateData,
+        updatedAt: new Date()
+      });
+      res.json(template);
+    } catch (error) {
+      console.error('Error updating template:', error);
+      res.status(500).json({ message: 'Failed to update template' });
+    }
+  });
+
   app.delete('/api/templates/:id', authMiddleware, async (req, res) => {
     try {
       const id = parseInt(req.params.id);

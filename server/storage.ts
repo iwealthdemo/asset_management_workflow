@@ -1134,6 +1134,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Template operations
+  async updateTemplate(id: number, template: Partial<InsertTemplate>): Promise<Template> {
+    const [updatedTemplate] = await db
+      .update(templates)
+      .set({ ...template, updatedAt: new Date() })
+      .where(eq(templates.id, id))
+      .returning();
+    return updatedTemplate;
+  }
+
   async deleteTemplate(id: number): Promise<void> {
     await db.delete(templates).where(eq(templates.id, id));
   }
@@ -1182,10 +1191,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(investmentRationales.id, id))
       .returning();
     return updatedRationale;
-  }
-
-  async deleteInvestmentRationale(id: number): Promise<void> {
-    await db.delete(investmentRationales).where(eq(investmentRationales.id, id));
   }
 
   async deleteInvestmentRationale(id: number): Promise<void> {
