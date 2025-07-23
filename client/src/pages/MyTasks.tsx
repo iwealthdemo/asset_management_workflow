@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
-import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye, Search, DollarSign, TrendingUp } from "lucide-react";
+import { Clock, CheckSquare, AlertTriangle, Calendar, User, Download, FileText, File, ChevronDown, ChevronUp, CheckCircle, XCircle, Eye, Search, DollarSign, TrendingUp, Edit, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +15,9 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DocumentAnalysisCard from '@/components/documents/DocumentAnalysisCard';
 import UnifiedSearchInterface from '@/components/documents/UnifiedSearchInterface';
+import InvestmentRationaleModal from '@/components/rationale/InvestmentRationaleModal';
+import MarkdownRenderer from '@/components/documents/MarkdownRenderer';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function MyTasks() {
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
@@ -245,8 +248,14 @@ function TaskCard({
   const [isResearchExpanded, setIsResearchExpanded] = useState(false);
   const [isRationaleExpanded, setIsRationaleExpanded] = useState(false);
   const [isApprovalExpanded, setIsApprovalExpanded] = useState(true); // Keep approval history expanded by default
+  const [isRationaleModalOpen, setIsRationaleModalOpen] = useState(false);
+  const [editingRationaleId, setEditingRationaleId] = useState<number | null>(null);
+  const [editingRationaleContent, setEditingRationaleContent] = useState('');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [rationaleToDelete, setRationaleToDelete] = useState<number | null>(null);
 
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const { data: requestData } = useQuery({
     queryKey: [`/api/${task.requestType.replace('_', '-')}s/${task.requestId}`],
@@ -261,6 +270,12 @@ function TaskCard({
   const { data: documents } = useQuery({
     queryKey: [`/api/documents/${task.requestType}/${task.requestId}`],
     enabled: isExpanded,
+  });
+
+  // Fetch rationales for investment tasks
+  const { data: rationales } = useQuery({
+    queryKey: [`/api/investments/${task.requestId}/rationales`],
+    enabled: isExpanded && task.requestType === 'investment',
   });
 
   // DocumentAnalysisCard component now handles the analysis results directly
@@ -304,14 +319,92 @@ function TaskCard({
     }
   };
 
-  // handleGetInsights removed - DocumentAnalysisCard handles insights directly
+  // Rationale mutation functions
+  const saveRationaleEdit = useMutation({
+    mutationFn: async ({ rationaleId, content }: { rationaleId: number; content: string }) => {
+      const response = await apiRequest('PUT', `/api/investments/rationales/${rationaleId}`, { content });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/investments/${task.requestId}/rationales`] });
+      setEditingRationaleId(null);
+      setEditingRationaleContent('');
+      toast({ title: "Rationale updated successfully" });
+    },
+    onError: () => {
+      toast({ 
+        title: "Error updating rationale", 
+        variant: "destructive" 
+      });
+    }
+  });
 
-  // handlePrepareForAI removed - DocumentAnalysisCard handles this directly
+  const deleteRationale = useMutation({
+    mutationFn: async (rationaleId: number) => {
+      const response = await apiRequest('DELETE', `/api/investments/rationales/${rationaleId}`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/investments/${task.requestId}/rationales`] });
+      setDeleteConfirmOpen(false);
+      setRationaleToDelete(null);
+      toast({ title: "Rationale deleted successfully" });
+    },
+    onError: () => {
+      toast({ 
+        title: "Error deleting rationale", 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const downloadRationale = async (rationale: any) => {
+    try {
+      // Import jsPDF dynamically
+      const jsPDF = (await import('jspdf')).default;
+      const doc = new jsPDF();
+      
+      // Set up the document
+      doc.setFontSize(16);
+      doc.text('Investment Rationale', 20, 20);
+      
+      doc.setFontSize(12);
+      doc.text(`Investment: ${requestData?.targetCompany || 'N/A'}`, 20, 35);
+      doc.text(`Author: ${rationale.authorName}`, 20, 45);
+      doc.text(`Created: ${format(new Date(rationale.createdAt), 'MMM dd, yyyy HH:mm')}`, 20, 55);
+      doc.text(`Type: ${rationale.type === 'manual' ? 'Manual Entry' : 'AI Generated'}`, 20, 65);
+      
+      // Process the content to handle spacing issues
+      let processedContent = rationale.content
+        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+        .replace(/(\w)\s+(\w)/g, '$1$2') // Remove spaces between letters within words
+        .replace(/([a-z])\s*-\s*([a-z])/gi, '$1-$2') // Fix hyphenated words
+        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove markdown bold
+        .replace(/##\s*(.*?)[\r\n]/g, '$1\n') // Clean headers
+        .trim();
+      
+      // Add content with proper text wrapping
+      const lines = doc.splitTextToSize(processedContent, 170); // 170mm width for A4
+      doc.text(lines, 20, 80);
+      
+      // Save the PDF
+      doc.save(`investment-rationale-${rationale.id}.pdf`);
+      
+      toast({ title: "Rationale downloaded successfully" });
+    } catch (error) {
+      console.error('PDF download failed:', error);
+      toast({ 
+        title: "Error downloading rationale", 
+        variant: "destructive" 
+      });
+    }
+  };
 
 
 
   
   return (
+    <>
     <Card className={`hover:shadow-md transition-shadow ${
       task.status === 'overdue' ? 'border-l-4 border-red-500' : ''
     }`}>
@@ -469,45 +562,125 @@ function TaskCard({
 
             {/* III. Investment Rationale */}
             <Card>
-              <CardHeader 
-                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
-                onClick={() => setIsRationaleExpanded(!isRationaleExpanded)}
-              >
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-base">
+                  <CardTitle className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
                     Investment Rationale
                   </CardTitle>
-                  {isRationaleExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsRationaleModalOpen(true)}
+                  >
+                    Create Rationale
+                  </Button>
                 </div>
               </CardHeader>
-              {isRationaleExpanded && (
-                <CardContent className="pt-0 pb-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">Target Company:</span>
-                      <span className="font-semibold">{requestData.targetCompany}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">Risk Level:</span>
-                      <Badge className={
-                        requestData.riskLevel === 'low' ? 'bg-green-100 text-green-800' :
-                        requestData.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }>
-                        {requestData.riskLevel}
-                      </Badge>
-                    </div>
+              <CardContent className="pt-0">
+                {rationales && rationales.length > 0 ? (
+                  <div className="space-y-4">
+                    {rationales.map((rationale: any) => (
+                      <Card key={rationale.id} className="bg-gray-50 border-l-4 border-blue-500">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {rationale.type === 'manual' ? 'Manual Entry' : 'AI Generated'}
+                                </Badge>
+                                <span className="text-xs text-gray-500">
+                                  by {rationale.authorName} • {format(new Date(rationale.createdAt), 'MMM dd, yyyy HH:mm')}
+                                </span>
+                              </div>
+                              
+                              {editingRationaleId === rationale.id ? (
+                                <div className="space-y-3">
+                                  <Textarea
+                                    value={editingRationaleContent}
+                                    onChange={(e) => setEditingRationaleContent(e.target.value)}
+                                    rows={10}
+                                    className="w-full"
+                                  />
+                                  <div className="flex justify-end gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditingRationaleId(null);
+                                        setEditingRationaleContent('');
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => saveRationaleEdit.mutate({
+                                        rationaleId: rationale.id,
+                                        content: editingRationaleContent
+                                      })}
+                                      disabled={saveRationaleEdit.isPending}
+                                    >
+                                      {saveRationaleEdit.isPending ? 'Saving...' : 'Save'}
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="prose prose-sm max-w-none">
+                                  <MarkdownRenderer content={rationale.content} />
+                                </div>
+                              )}
+                            </div>
+                            
+                            {editingRationaleId !== rationale.id && (
+                              <div className="flex gap-1 ml-4">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => downloadRationale(rationale)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Download className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingRationaleId(rationale.id);
+                                    setEditingRationaleContent(rationale.content);
+                                  }}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setRationaleToDelete(rationale.id);
+                                    setDeleteConfirmOpen(true);
+                                  }}
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                  
-                  <div className="mb-4">
-                    <span className="text-sm text-gray-600 block mb-2">Investment Rationale / Description:</span>
-                    <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px]">
-                      {requestData.description || 'No description provided by the analyst'}
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-2">No investment rationale available</p>
+                    <p className="text-sm text-gray-500">
+                      Create a detailed investment analysis to help with decision making.
                     </p>
                   </div>
-                </CardContent>
-              )}
+                )}
+              </CardContent>
             </Card>
 
             {/* IV. Approval History */}
@@ -638,6 +811,45 @@ function TaskCard({
         )}
       </CardContent>
     </Card>
+    
+    {/* Investment Rationale Modal */}
+    <InvestmentRationaleModal
+      isOpen={isRationaleModalOpen}
+      onClose={() => setIsRationaleModalOpen(false)}
+      investmentId={task.requestId}
+      investmentType={requestData?.investmentType}
+    />
+    
+    {/* Delete Confirmation Dialog */}
+    <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Investment Rationale</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete this investment rationale? This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => {
+            setDeleteConfirmOpen(false);
+            setRationaleToDelete(null);
+          }}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              if (rationaleToDelete) {
+                deleteRationale.mutate(rationaleToDelete);
+              }
+            }}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>
   );
 }
 
