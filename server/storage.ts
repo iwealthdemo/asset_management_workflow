@@ -30,6 +30,7 @@ export interface IStorage {
   createInvestmentRequest(request: InsertInvestmentRequest): Promise<InvestmentRequest>;
   updateInvestmentRequest(id: number, request: Partial<InsertInvestmentRequest>): Promise<InvestmentRequest>;
   getInvestmentRequests(filters?: { userId?: number; status?: string }): Promise<InvestmentRequest[]>;
+  softDeleteInvestmentRequest(id: number, userId: number): Promise<boolean>;
   
   // Cash request operations
   getCashRequest(id: number): Promise<CashRequest | undefined>;
@@ -202,12 +203,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getInvestmentRequest(id: number): Promise<InvestmentRequest | undefined> {
-    const [request] = await db.select().from(investmentRequests).where(eq(investmentRequests.id, id));
+    const [request] = await db.select().from(investmentRequests).where(
+      and(
+        eq(investmentRequests.id, id),
+        sql`${investmentRequests.deletedAt} IS NULL`
+      )
+    );
     return request || undefined;
   }
 
   async getInvestmentRequestByRequestId(requestId: string): Promise<InvestmentRequest | undefined> {
-    const [request] = await db.select().from(investmentRequests).where(eq(investmentRequests.requestId, requestId));
+    const [request] = await db.select().from(investmentRequests).where(
+      and(
+        eq(investmentRequests.requestId, requestId),
+        sql`${investmentRequests.deletedAt} IS NULL`
+      )
+    );
     return request || undefined;
   }
 
@@ -221,10 +232,51 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async softDeleteInvestmentRequest(id: number, userId: number): Promise<boolean> {
+    try {
+      // Check if the request exists and belongs to the user
+      const request = await this.getInvestmentRequest(id);
+      if (!request || request.requesterId !== userId) {
+        return false;
+      }
+
+      // Check if the request can be deleted (business rules)
+      const canDelete = this.canDeleteInvestmentRequest(request.status);
+      if (!canDelete) {
+        return false;
+      }
+
+      // Soft delete by setting deletedAt timestamp
+      await db.update(investmentRequests)
+        .set({ deletedAt: new Date() })
+        .where(eq(investmentRequests.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error('Error soft deleting investment request:', error);
+      return false;
+    }
+  }
+
+  private canDeleteInvestmentRequest(status: string): boolean {
+    // Define which statuses allow deletion
+    const deletableStatuses = ['draft', 'rejected', 'admin_rejected', 'changes_requested', 'opportunity'];
+    
+    // Allow deletion of pending requests only if no approvals have started
+    if (status === 'new') {
+      return true; // We'll check for approvals in the API layer
+    }
+    
+    return deletableStatuses.includes(status);
+  }
+
   async getInvestmentRequests(filters?: { userId?: number; status?: string }): Promise<InvestmentRequest[]> {
     let query = db.select().from(investmentRequests);
     
     const conditions: any[] = [];
+    
+    // Always filter out soft-deleted records
+    conditions.push(sql`${investmentRequests.deletedAt} IS NULL`);
     
     if (filters?.userId) {
       conditions.push(eq(investmentRequests.requesterId, filters.userId));
@@ -234,9 +286,7 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(investmentRequests.status, filters.status));
     }
     
-    if (conditions.length > 0) {
-      query = query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
-    }
+    query = query.where(and(...conditions));
     
     const results = await query.orderBy(desc(investmentRequests.createdAt));
     return results;

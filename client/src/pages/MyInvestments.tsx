@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { 
   Briefcase, 
   DollarSign, 
@@ -21,11 +22,14 @@ import {
   ChevronUp,
   Clock,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import { InvestmentDetailsInline } from "@/components/details/InvestmentDetailsInline";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 // Filter interfaces
 interface InvestmentFilters {
@@ -458,6 +462,41 @@ function InvestmentList({ investments, onToggleDetails, expandedInvestment }: {
   onToggleDetails: (id: number) => void, 
   expandedInvestment: number | null 
 }) {
+  const { toast } = useToast();
+
+  const deleteInvestmentMutation = useMutation({
+    mutationFn: async (investmentId: number) => {
+      const response = await apiRequest('DELETE', `/api/investments/${investmentId}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete investment');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/investments"] });
+      toast({
+        title: "Investment deleted",
+        description: "The investment request has been successfully deleted.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete investment",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const canDeleteInvestment = (status: string) => {
+    const deletableStatuses = ['draft', 'rejected', 'admin_rejected', 'changes_requested', 'opportunity', 'Draft'];
+    return deletableStatuses.includes(status);
+  };
+
+  const handleDeleteInvestment = (investmentId: number) => {
+    deleteInvestmentMutation.mutate(investmentId);
+  };
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Draft':
@@ -560,6 +599,42 @@ function InvestmentList({ investments, onToggleDetails, expandedInvestment }: {
                 </div>
                 
                 <p className="text-sm text-gray-600 mb-4">{investment.description}</p>
+              </div>
+              
+              {/* Action buttons */}
+              <div className="flex flex-col gap-2 ml-4">
+                {canDeleteInvestment(investment.status) && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        className="w-10 h-10 p-0"
+                        disabled={deleteInvestmentMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Investment Request</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this investment request for {investment.targetCompany}? 
+                          This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDeleteInvestment(investment.id)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
             </div>
             

@@ -32,6 +32,7 @@ export const investmentRequests = pgTable("investment_requests", {
   status: text("status").notNull().default("draft"), // draft, opportunity, new, approved, rejected, admin_rejected, changes_requested
   currentApprovalStage: integer("current_approval_stage").default(0),
   slaDeadline: timestamp("sla_deadline"),
+  deletedAt: timestamp("deleted_at"), // Soft delete timestamp
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

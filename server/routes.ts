@@ -225,6 +225,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete('/api/investments/:id', authMiddleware, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.userId!;
+
+      // Check for existing approvals to prevent deletion of requests in workflow
+      const approvals = await storage.getApprovalsByRequest('investment', id);
+      if (approvals.length > 0) {
+        return res.status(400).json({ 
+          message: 'Cannot delete investment request that has approvals. Request is already in the approval workflow.' 
+        });
+      }
+
+      const success = await storage.softDeleteInvestmentRequest(id, userId);
+      
+      if (!success) {
+        return res.status(400).json({ 
+          message: 'Cannot delete this investment request. It may not exist, belong to you, or be in a non-deletable status.' 
+        });
+      }
+      
+      res.json({ message: 'Investment request deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting investment:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Route for submitting draft for approval - placed before the generic PUT route
   app.post('/api/investments/:id/submit', authMiddleware, async (req, res) => {
     try {
