@@ -95,13 +95,14 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   // Initialize form when investment details are loaded using useEffect
   useEffect(() => {
     if (investmentDetails && typeof investmentDetails === 'object' && 'targetCompany' in investmentDetails && !isInlineEditing) {
+      const details = investmentDetails as any;
       editForm.reset({
-        targetCompany: investmentDetails.targetCompany || "",
-        investmentType: investmentDetails.investmentType || "equity",
-        amount: investmentDetails.amount?.toString() || "",
-        expectedReturn: investmentDetails.expectedReturn?.toString() || "",
-        description: investmentDetails.description || "",
-        riskLevel: investmentDetails.riskLevel || "medium",
+        targetCompany: details.targetCompany || "",
+        investmentType: details.investmentType || "equity",
+        amount: details.amount?.toString() || "",
+        expectedReturn: details.expectedReturn?.toString() || "",
+        description: details.description || "",
+        riskLevel: details.riskLevel || "medium",
       });
     }
   }, [investmentDetails, isInlineEditing]);
@@ -109,7 +110,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   // Mutations
   const editDraftMutation = useMutation({
     mutationFn: async (data: z.infer<typeof editFormSchema>) => {
-      return apiRequest('PATCH', `/api/investments/${investment.id}`, {
+      return apiRequest('PUT', `/api/investments/${investment.id}`, {
         ...data,
         amount: parseFloat(data.amount),
         expectedReturn: parseFloat(data.expectedReturn),
@@ -401,26 +402,6 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
     }
   };
 
-  const handleDeleteRationale = (rationaleId: number) => {
-    setRationaleToDelete(rationaleId);
-    setDeleteConfirmOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (rationaleToDelete) {
-      deleteRationaleMutation.mutate(rationaleToDelete);
-    }
-    setDeleteConfirmOpen(false);
-    setRationaleToDelete(null);
-  };
-
-  const handleCancelInlineEdit = () => {
-    editForm.reset();
-    setIsInlineEditing(false);
-    setUploadedFiles([]);
-    setFilesToDelete([]);
-  };
-
   const handleSaveInlineEdit = async () => {
     try {
       // Validate form
@@ -444,8 +425,61 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
     }
   };
 
-  const handleSubmitDraft = () => {
-    submitDraftMutation.mutate();
+  const handleCancelInlineEdit = () => {
+    setIsInlineEditing(false);
+    setUploadedFiles([]);
+    setFilesToDelete([]);
+    // Reset form to original values
+    if (investmentDetails && typeof investmentDetails === 'object') {
+      const details = investmentDetails as any;
+      editForm.reset({
+        targetCompany: details.targetCompany || "",
+        investmentType: details.investmentType || "equity",
+        amount: details.amount?.toString() || "",
+        expectedReturn: details.expectedReturn?.toString() || "",
+        description: details.description || "",
+        riskLevel: details.riskLevel || "medium",
+      });
+    }
+  };
+
+  const handleSubmitDraft = async () => {
+    try {
+      // First save any pending changes
+      if (isInlineEditing) {
+        const formData = editForm.getValues();
+        const validatedData = editFormSchema.parse(formData);
+        await editDraftMutation.mutateAsync(validatedData);
+        
+        // Upload new files if any
+        if (uploadedFiles.length > 0) {
+          await uploadFilesMutation.mutateAsync();
+        }
+        
+        // Delete files if any
+        if (filesToDelete.length > 0) {
+          await deleteDocumentMutation.mutateAsync();
+        }
+      }
+      
+      // Then submit for approval
+      await submitDraftMutation.mutateAsync();
+    } catch (error) {
+      console.error('Submit failed:', error);
+    }
+  };
+
+  const handleDeleteRationale = (rationaleId: number) => {
+    setRationaleToDelete(rationaleId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (rationaleToDelete) {
+      deleteRationaleMutation.mutate(rationaleToDelete);
+    }
+    setDeleteConfirmOpen(false);
+    setRationaleToDelete(null);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -547,7 +581,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
           <div className="flex items-center justify-center p-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        ) : investmentDetails && typeof investmentDetails === 'object' ? (
+        ) : investmentDetails && typeof investmentDetails === 'object' && 'targetCompany' in investmentDetails ? (
           <div className="space-y-6">
             {/* I. Attached Documents */}
             {documents && Array.isArray(documents) && documents.length > 0 && (
@@ -741,14 +775,14 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                 ) : (
                   <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px]">
                     {(investmentDetails && typeof investmentDetails === 'object' && 'description' in investmentDetails) 
-                      ? investmentDetails.description || 'No description provided by the analyst'
+                      ? (investmentDetails as any).description || 'No description provided by the analyst'
                       : 'No description provided by the analyst'}
                   </p>
                 )}
                 
                 {/* Draft Actions */}
                 {(investmentDetails && typeof investmentDetails === 'object' && 'status' in investmentDetails && 
-                  (investmentDetails.status?.toLowerCase() === 'draft' || investmentDetails.status?.toLowerCase() === 'changes_requested')) && (
+                  ((investmentDetails as any).status?.toLowerCase() === 'draft' || (investmentDetails as any).status?.toLowerCase() === 'changes_requested')) && (
                   <div className="mt-4 flex gap-2">
                     {isInlineEditing ? (
                       <>
@@ -794,7 +828,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                       <Send className="h-4 w-4" />
                       {submitDraftMutation.isPending ? 'Submitting...' : 
                        (investmentDetails && typeof investmentDetails === 'object' && 'status' in investmentDetails && 
-                        investmentDetails.status?.toLowerCase() === 'changes_requested') ? 'Resubmit for Approval' : 'Submit for Approval'}
+                        (investmentDetails as any).status?.toLowerCase() === 'changes_requested') ? 'Resubmit for Approval' : 'Submit for Approval'}
                     </Button>
                   </div>
                 )}
