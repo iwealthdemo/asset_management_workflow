@@ -129,12 +129,12 @@ export class WorkflowService {
       if (action === 'approve') {
         // Special handling for Admin approval (stage 0)
         if (approver?.role === 'admin' && currentApproval.stage === 0) {
-          // Admin approved - set status to "new" and start regular workflow
+          // Admin approved - set status to "new" and move to stage 1 (manager)
           if (requestType === 'investment') {
             await storage.updateInvestmentRequest(requestId, { status: 'new' });
           }
-          // Start the regular manager workflow (stage 1)
-          await this.startApprovalWorkflow(requestType as 'investment' | 'cash_request', requestId);
+          // Move directly to next stage (manager - stage 1) instead of restarting workflow
+          await this.moveToNextStage(requestType, requestId, currentApproval.stage);
         } else {
           // Regular approval flow
           if (requestType === 'investment') {
