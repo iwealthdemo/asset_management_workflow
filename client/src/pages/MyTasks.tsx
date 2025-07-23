@@ -597,9 +597,6 @@ function TaskCard({
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    {rationale.type === 'manual' ? 'Manual Entry' : 'AI Generated'}
-                                  </Badge>
                                   <span className="text-xs text-gray-500">
                                     by {rationale.authorName} • {format(new Date(rationale.createdAt), 'MMM dd, yyyy HH:mm')}
                                   </span>
