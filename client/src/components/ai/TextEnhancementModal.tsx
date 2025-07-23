@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Sparkles, RefreshCw, Check, X, Edit, Save } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { MarkdownRenderer } from "@/components/shared/MarkdownRenderer";
 
 interface TextEnhancementModalProps {
   isOpen: boolean;
@@ -185,17 +186,21 @@ export function TextEnhancementModal({
               </div>
 
               {/* Enhanced Text Display/Edit */}
-              <Textarea 
-                value={isEditing ? editableText : enhancedText}
-                onChange={isEditing ? (e) => setEditableText(e.target.value) : undefined}
-                readOnly={!isEditing}
-                className={`min-h-[120px] ${
-                  isEditing 
-                    ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/20' 
-                    : 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
-                }`}
-                placeholder="Enhanced text will appear here..."
-              />
+              {isEditing ? (
+                <Textarea 
+                  value={editableText}
+                  onChange={(e) => setEditableText(e.target.value)}
+                  className="min-h-[120px] border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/20"
+                  placeholder="Edit your enhanced text here..."
+                />
+              ) : (
+                <div className="min-h-[120px] p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-md">
+                  <MarkdownRenderer 
+                    content={enhancedText} 
+                    className="text-sm"
+                  />
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex gap-2 justify-end">
