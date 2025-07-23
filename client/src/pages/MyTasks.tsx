@@ -564,7 +564,7 @@ function TaskCard({
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
                     <FileText className="h-4 w-4" />
                     Investment Rationale
                   </CardTitle>
@@ -578,6 +578,16 @@ function TaskCard({
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
+                {/* Show Analyst's Original Notes */}
+                {requestData?.description && (
+                  <div className="mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
+                    <div className="flex items-center gap-2 mb-2">
+                      <User className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">Analyst's Notes</span>
+                    </div>
+                    <p className="text-sm text-blue-700">{requestData.description}</p>
+                  </div>
+                )}
                 {rationales && rationales.length > 0 ? (
                   <div className="space-y-4">
                     {rationales.map((rationale: any) => (
