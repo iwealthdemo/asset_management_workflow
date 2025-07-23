@@ -61,7 +61,6 @@ export async function enhanceText(text: string, type: EnhancementType = 'profess
     const response = await openai.responses.create({
       model: "gpt-4o",
       input: enhancementInput,
-      temperature: 0.3, // Lower temperature for more consistent, professional output
     });
 
     const enhancedText = response.output?.[0]?.content?.[0]?.text?.trim();
