@@ -134,7 +134,7 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
 
 ${section.description}
 
-Focus Areas: ${section.focusAreas.join(', ')}
+Focus Areas: ${(section.focusAreas || []).join(', ') || 'Not specified'}
 
 [Enter your analysis here for ${section.name}]
 
@@ -315,6 +315,11 @@ Focus Areas: ${section.focusAreas.join(', ')}
                               <div key={index} className="text-xs bg-white dark:bg-gray-900 p-2 rounded border">
                                 <div className="font-medium">{section.name}</div>
                                 <div className="text-gray-500">{section.description} ({section.wordLimit} words)</div>
+                                {section.focusAreas && section.focusAreas.length > 0 && (
+                                  <div className="text-gray-600 dark:text-gray-400 mt-1">
+                                    <strong>Focus Areas:</strong> {section.focusAreas.join(', ')}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
