@@ -30,6 +30,7 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
   const [activeTab, setActiveTab] = useState('manual');
   const [manualContent, setManualContent] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [manualTemplateId, setManualTemplateId] = useState<string>('');
 
   // Fetch templates for AI generation
   const { data: templates } = useQuery({
@@ -61,6 +62,7 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
       onClose();
       setManualContent('');
       setSelectedTemplateId('');
+      setManualTemplateId('');
     },
     onError: () => {
       toast({
@@ -86,6 +88,7 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
       });
       onClose();
       setSelectedTemplateId('');
+      setManualTemplateId('');
     },
     onError: (error: any) => {
       toast({
@@ -108,8 +111,38 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
 
     createRationaleMutation.mutate({
       content: manualContent,
-      type: 'manual'
+      type: 'manual',
+      templateId: (manualTemplateId && manualTemplateId !== 'none') ? parseInt(manualTemplateId) : undefined
     });
+  };
+
+  const handleTemplateSelect = (templateId: string) => {
+    setManualTemplateId(templateId);
+    
+    // Clear content if "none" selected
+    if (templateId === 'none' || !templateId) {
+      setManualContent('');
+      return;
+    }
+    
+    // Find selected template and populate skeleton
+    const selectedTemplate = templates?.find((t: any) => t.id.toString() === templateId);
+    if (selectedTemplate && selectedTemplate.templateData?.sections) {
+      const skeleton = selectedTemplate.templateData.sections
+        .map((section: any, index: number) => 
+          `## ${index + 1}. ${section.name}
+
+${section.description}
+
+Focus Areas: ${section.focusAreas.join(', ')}
+
+[Enter your analysis here for ${section.name}]
+
+`
+        ).join('\n');
+      
+      setManualContent(skeleton);
+    }
   };
 
   const handleAIGenerate = () => {
@@ -160,6 +193,28 @@ const InvestmentRationaleModal: React.FC<InvestmentRationaleModalProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Select Template (Optional)
+                  </label>
+                  <Select value={manualTemplateId} onValueChange={handleTemplateSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a template to populate skeleton structure" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Template (Free Form)</SelectItem>
+                      {filteredTemplates.map((template: any) => (
+                        <SelectItem key={template.id} value={template.id.toString()}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Select a template to auto-populate section headers and guidelines, or write freely without a template.
+                  </p>
+                </div>
+                
                 <div>
                   <label className="text-sm font-medium mb-2 block">
                     Investment Rationale Content

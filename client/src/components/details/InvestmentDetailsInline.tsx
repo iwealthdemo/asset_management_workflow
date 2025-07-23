@@ -333,7 +333,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
   };
 
   const handleDeleteRationale = async (rationaleId: number) => {
-    if (confirm('Are you sure you want to delete this investment rationale? This action cannot be undone.')) {
+    if (window.confirm('Are you sure you want to delete this investment rationale? This action cannot be undone.')) {
       deleteRationaleMutation.mutate(rationaleId);
     }
   };
