@@ -249,14 +249,16 @@ export function AppLayout({ children }: AppLayoutProps) {
       {isSidebarOpen && (
         <div 
           ref={sidebarRef}
-          className="fixed left-0 top-0 h-full w-72 bg-card shadow-xl z-50 animate-slide-in-left"
+          className="fixed left-0 top-0 h-full w-72 bg-card shadow-xl z-40 animate-slide-in-left"
         >
           <SidebarContent />
         </div>
       )}
 
-      {/* Main Content - Full Width */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Main Content - Dynamically adjusts when sidebar is open */}
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
+        isSidebarOpen ? 'ml-72' : 'ml-0'
+      }`}>
         {/* Top Bar */}
         <header className="bg-card shadow-sm border-b border-border animate-slide-up">
           <div className="px-6 py-4">
