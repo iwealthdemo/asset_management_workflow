@@ -598,7 +598,7 @@ function TaskCard({
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
                                   <span className="text-xs text-gray-500">
-                                    by {rationale.authorName} • {format(new Date(rationale.createdAt), 'MMM dd, yyyy HH:mm')}
+                                    by {rationale.author?.firstName} {rationale.author?.lastName} • {format(new Date(rationale.createdAt), 'MMM dd, yyyy HH:mm')}
                                   </span>
                                 </div>
                                 

@@ -877,7 +877,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                   <span className="text-xs text-gray-500">
-                                    By {rationale.author?.firstName} {rationale.author?.lastName} • {new Date(rationale.createdAt).toLocaleDateString()}
+                                    by {rationale.author?.firstName} {rationale.author?.lastName} • {new Date(rationale.createdAt).toLocaleDateString()}
                                   </span>
                                   {rationale.template?.name && (
                                     <Badge variant="outline" className="text-xs">
