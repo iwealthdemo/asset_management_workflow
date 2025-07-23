@@ -99,24 +99,18 @@ export async function enhanceText(text: string, type: EnhancementType): Promise<
   const formattedUserPrompt = userPrompt.replace('{originalText}', text.trim());
 
   try {
+    // Use the same OpenAI Responses API pattern as the working comprehensive proposal service
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-    const response = await openai.chat.completions.create({
+    const response = await openai.responses.create({
       model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt
-        },
-        {
-          role: "user",
-          content: formattedUserPrompt
-        }
-      ],
+      input: `${systemPrompt}
+
+${formattedUserPrompt}`,
       temperature: 0.7,
       max_tokens: 1000,
     });
 
-    const enhancedText = response.choices[0]?.message?.content?.trim();
+    const enhancedText = response.output?.[0]?.content?.[0]?.text?.trim();
     
     if (!enhancedText) {
       throw new Error('No enhancement received from AI');
