@@ -216,8 +216,8 @@ QUALITY STANDARDS:
 - Supplement with current market data from web_search tool
 - Reference specific documents and data sources
 - Provide clear, actionable recommendations
-- Do NOT include word limit references in final output
-- Do NOT include meta-commentary about word limits or formatting
+- Use CLEAN section headers without any limit references
+- Generate content that matches target lengths but do NOT mention limits in output
 
 TARGET COMPANY: ${investment.targetCompany}
 INVESTMENT TYPE: ${investment.investmentType}  
@@ -233,16 +233,21 @@ Generate the comprehensive investment proposal now:`;
         input: prompt + `
 
 **MARKDOWN FORMATTING REQUIREMENTS:**
-- Use markdown headers (##, ###) for section titles  
+- Use markdown headers (##, ###) for section titles WITHOUT any word limit references
+- Section headers should be clean: "## Executive Summary" NOT "## Executive Summary (Limit: 150 words)"  
 - Use **bold** for key terms and important points
 - Use bullet points and numbered lists where appropriate
 - Include tables for financial data when relevant
 - Use > blockquotes for key recommendations
 - Format the proposal as a professional document with proper markdown
 
-Generate the comprehensive investment proposal now with proper markdown formatting.
+**CRITICAL FORMATTING RULES:**
+- NEVER include "(Limit: X words)" in any section headers
+- NEVER include "Target Length:" or similar references
+- NEVER include meta-commentary about word limits or templates
+- Generate ONLY clean, professional section headers like "## Company Overview", "## Investment Rationale", etc.
 
-IMPORTANT: Do NOT include any word limit references, meta-commentary about templates, or conclusions about formatting in your response. Generate ONLY the clean, professional investment analysis content.`
+Generate the comprehensive investment proposal now with clean section headers and professional markdown formatting.`
       });
 
       const processingTime = Date.now() - startTime;
