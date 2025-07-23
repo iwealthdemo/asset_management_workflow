@@ -285,6 +285,13 @@ function TaskCard({
     enabled: isExpanded && task.requestType === 'investment',
   });
 
+  // Auto-expand rationale section when rationales exist
+  useEffect(() => {
+    if (rationales && rationales.length > 0 && !isRationaleExpanded) {
+      setIsRationaleExpanded(true);
+    }
+  }, [rationales]);
+
   // DocumentAnalysisCard component now handles the analysis results directly
 
   const getFileIcon = (mimeType: string) => {
