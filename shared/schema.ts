@@ -28,6 +28,7 @@ export const investmentRequests = pgTable("investment_requests", {
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
   expectedReturn: decimal("expected_return", { precision: 5, scale: 2 }),
   description: text("description"),
+  enhancedDescription: text("enhanced_description"), // AI-enhanced version of description
   riskLevel: text("risk_level").notNull(), // low, medium, high
   status: text("status").notNull().default("draft"), // draft, opportunity, new, approved, rejected, admin_rejected, changes_requested
   currentApprovalStage: integer("current_approval_stage").default(0),
@@ -487,8 +488,7 @@ export type Document = typeof documents.$inferSelect;
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type DocumentCategory = typeof documentCategories.$inferSelect;
 export type InsertDocumentCategory = z.infer<typeof insertDocumentCategorySchema>;
-export type DocumentSubcategory = typeof documentSubcategories.$inferSelect;
-export type InsertDocumentSubcategory = z.infer<typeof insertDocumentSubcategorySchema>;
+// Removed DocumentSubcategory - using multiple categories system instead
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Template = typeof templates.$inferSelect;

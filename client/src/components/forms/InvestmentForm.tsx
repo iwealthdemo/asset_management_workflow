@@ -28,6 +28,7 @@ const formSchema = insertInvestmentRequestSchema.omit({
 }).extend({
   expectedReturn: z.string().min(1, "Expected return is required"),
   amount: z.string().min(1, "Amount is required"),
+  enhancedDescription: z.string().optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -54,6 +55,7 @@ export function InvestmentForm() {
       amount: "",
       expectedReturn: "",
       description: "",
+      enhancedDescription: "",
       riskLevel: "medium",
     },
   })
@@ -390,30 +392,52 @@ export function InvestmentForm() {
             </div>
           </div>
 
-          <div className="mt-6">
-            <Label htmlFor="description">Investment Description</Label>
-            <div className="relative">
-              <Textarea
-                id="description"
-                rows={4}
-                placeholder="Describe the investment opportunity..."
-                {...form.register("description")}
-                className="mt-2"
-              />
-              {/* AI Enhancement Button */}
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="absolute bottom-2 right-2 h-8 w-8 p-0 hover:bg-primary hover:text-primary-foreground transition-colors"
-                onClick={() => setIsEnhancementModalOpen(true)}
-                title="AI Text Enhancement"
-              >
-                <Sparkles className="h-4 w-4" />
-              </Button>
+          <div className="mt-6 space-y-4">
+            {/* Original Description */}
+            <div>
+              <Label htmlFor="description">Investment Description</Label>
+              <div className="relative">
+                <Textarea
+                  id="description"
+                  rows={4}
+                  placeholder="Describe the investment opportunity..."
+                  {...form.register("description")}
+                  className="mt-2"
+                />
+                {/* AI Enhancement Button */}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="absolute bottom-2 right-2 h-8 w-8 p-0 hover:bg-primary hover:text-primary-foreground transition-colors"
+                  onClick={() => setIsEnhancementModalOpen(true)}
+                  title="AI Text Enhancement"
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+              </div>
+              {form.formState.errors.description && (
+                <p className="text-sm text-red-600">{form.formState.errors.description.message}</p>
+              )}
             </div>
-            {form.formState.errors.description && (
-              <p className="text-sm text-red-600">{form.formState.errors.description.message}</p>
+
+            {/* Enhanced Description - Only show if it exists */}
+            {form.watch("enhancedDescription") && (
+              <div>
+                <Label htmlFor="enhancedDescription" className="text-green-700 dark:text-green-400">
+                  AI Enhanced Description
+                </Label>
+                <Textarea
+                  id="enhancedDescription"
+                  rows={4}
+                  placeholder="AI enhanced version will appear here..."
+                  {...form.register("enhancedDescription")}
+                  className="mt-2 bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
+                />
+                {form.formState.errors.enhancedDescription && (
+                  <p className="text-sm text-red-600">{form.formState.errors.enhancedDescription.message}</p>
+                )}
+              </div>
             )}
           </div>
 
@@ -490,10 +514,12 @@ export function InvestmentForm() {
         onClose={() => setIsEnhancementModalOpen(false)}
         originalText={form.watch("description") || ""}
         onApply={(enhancedText) => {
-          form.setValue("description", enhancedText);
+          // Save enhanced text to the form
+          form.setValue("enhancedDescription", enhancedText);
+          setIsEnhancementModalOpen(false);
           toast({
             title: "Text Enhanced",
-            description: "Your investment description has been improved with AI.",
+            description: "AI enhanced description added to your investment proposal.",
           });
         }}
       />

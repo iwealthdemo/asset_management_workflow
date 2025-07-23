@@ -149,11 +149,32 @@ export function TextEnhancementModal({
             </div>
           ) : enhancedText ? (
             <div className="space-y-4">
-              <h3 className="font-medium">Enhanced Text</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">Enhanced Text</h3>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleEnhance}
+                    disabled={isEnhancing}
+                    size="sm"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Re-enhance
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedEnhancement(enhancedText)}
+                    size="sm"
+                  >
+                    Preview Changes
+                  </Button>
+                </div>
+              </div>
               <Textarea 
                 value={enhancedText}
-                readOnly
+                onChange={(e) => setEnhancedText(e.target.value)}
                 className="min-h-[120px] bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
+                placeholder="Enhanced text will appear here..."
               />
               <div className="flex gap-2">
                 <Button
@@ -164,18 +185,14 @@ export function TextEnhancementModal({
                   Apply Enhancement
                 </Button>
                 <Button
-                  variant="outline"
-                  onClick={() => setSelectedEnhancement(enhancedText)}
+                  variant="secondary"
+                  onClick={() => {
+                    console.log('Saving enhanced text to database:', enhancedText);
+                    handleApply(enhancedText);
+                  }}
+                  className="gap-2"
                 >
-                  Preview Changes
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleEnhance}
-                  disabled={isEnhancing}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Re-enhance
+                  Save & Apply
                 </Button>
               </div>
             </div>
