@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { FileUpload } from "@/components/ui/file-upload"
-import { EnhancedDocumentCategorySelector } from "@/components/documents/EnhancedDocumentCategorySelector"
+import { MultiTabDocumentUpload } from "@/components/documents/MultiTabDocumentUpload"
 import { Card, CardContent } from "@/components/ui/card"
 import { insertInvestmentRequestSchema } from "@shared/schema"
 import { z } from "zod"
@@ -30,10 +30,16 @@ const formSchema = insertInvestmentRequestSchema.omit({
 
 type FormData = z.infer<typeof formSchema>
 
+interface DocumentUploadTab {
+  id: string;
+  categoryId: number | null;
+  customCategoryName: string;
+  files: File[];
+}
+
 export function InvestmentForm() {
   const [, setLocation] = useLocation()
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
-  const [selectedCategories, setSelectedCategories] = useState<{categoryId: number, customCategoryName?: string}[]>([])
+  const [documentTabs, setDocumentTabs] = useState<DocumentUploadTab[]>([])
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -64,31 +70,36 @@ export function InvestmentForm() {
       console.log("API response:", response)
       const investment = await response.json()
       
-      // Upload files if any
-      if (uploadedFiles.length > 0) {
-        console.log("Uploading files:", uploadedFiles)
-        const formData = new FormData()
-        uploadedFiles.forEach((file) => {
-          formData.append('documents', file)
-        })
-        formData.append('requestType', 'investment')
-        formData.append('requestId', investment.id.toString())
-        // Add multiple categories if selected
-        if (selectedCategories.length > 0) {
-          formData.append('categories', JSON.stringify(selectedCategories))
+      // Upload files from document tabs
+      for (const tab of documentTabs) {
+        if (tab.files.length > 0 && tab.categoryId) {
+          console.log("Uploading files for tab:", tab)
+          const formData = new FormData()
+          tab.files.forEach((file) => {
+            formData.append('documents', file)
+          })
+          formData.append('requestType', 'investment')
+          formData.append('requestId', investment.id.toString())
+          
+          // Create category data for this tab
+          const categoryData = {
+            categoryId: tab.categoryId,
+            customCategoryName: tab.customCategoryName || ''
+          }
+          formData.append('categories', JSON.stringify([categoryData]))
+          
+          const uploadResponse = await fetch('/api/documents/upload', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+          })
+          
+          if (!uploadResponse.ok) {
+            throw new Error(`Failed to upload documents for category ${tab.categoryId}`)
+          }
+          
+          console.log("Files uploaded successfully for tab:", tab.id)
         }
-        
-        const uploadResponse = await fetch('/api/documents/upload', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include',
-        })
-        
-        if (!uploadResponse.ok) {
-          throw new Error('Failed to upload documents')
-        }
-        
-        console.log("Files uploaded successfully")
       }
       
       return investment
@@ -124,25 +135,34 @@ export function InvestmentForm() {
       })
       const investment = await response.json()
       
-      // Upload documents if any are selected
-      if (uploadedFiles.length > 0) {
-        console.log("Uploading documents for draft:", uploadedFiles.length)
-        const formData = new FormData()
-        uploadedFiles.forEach(file => {
-          formData.append('documents', file)
-        })
-        
-        const uploadResponse = await fetch(`/api/documents/investment/${investment.id}`, {
-          method: 'POST',
-          body: formData,
-          credentials: 'include',
-        })
-        
-        if (!uploadResponse.ok) {
-          throw new Error('Failed to upload documents')
+      // Upload files from document tabs (draft)
+      for (const tab of documentTabs) {
+        if (tab.files.length > 0 && tab.categoryId) {
+          console.log("Uploading draft files for tab:", tab)
+          const formData = new FormData()
+          tab.files.forEach((file) => {
+            formData.append('documents', file)
+          })
+          formData.append('requestType', 'investment')
+          formData.append('requestId', investment.id.toString())
+          
+          // Create category data for this tab
+          const categoryData = {
+            categoryId: tab.categoryId,
+            customCategoryName: tab.customCategoryName || ''
+          }
+          formData.append('categories', JSON.stringify([categoryData]))
+          
+          const uploadResponse = await fetch('/api/documents/upload', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+          })
+          
+          if (!uploadResponse.ok) {
+            throw new Error(`Failed to upload draft documents for category ${tab.categoryId}`)
+          }
         }
-        
-        console.log("Documents uploaded successfully for draft")
       }
       
       return investment
@@ -157,8 +177,8 @@ export function InvestmentForm() {
         description: "Your investment request has been saved as a draft",
       })
       
-      // Clear uploaded files after successful save
-      setUploadedFiles([])
+      // Clear document tabs after successful save
+      setDocumentTabs([])
     },
     onError: (error: any) => {
       console.error("Draft save error:", error)
@@ -297,31 +317,10 @@ export function InvestmentForm() {
       {/* Document Upload */}
       <Card>
         <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold mb-4">Supporting Documents</h3>
-          
-          {/* Document Categorization */}
-          <div className="mb-6">
-            <EnhancedDocumentCategorySelector
-              onCategoriesChange={setSelectedCategories}
-              initialCategories={selectedCategories}
-            />
-          </div>
-          
-          {/* File Upload */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Upload Documents</Label>
-            <FileUpload
-              multiple={true}
-              accept=".pdf,.doc,.docx,.xls,.xlsx"
-              maxSize={50 * 1024 * 1024}
-              onFilesChange={setUploadedFiles}
-            />
-            {uploadedFiles.length > 0 && selectedCategories.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                Files will be categorized with {selectedCategories.length} selected {selectedCategories.length === 1 ? 'category' : 'categories'}
-              </p>
-            )}
-          </div>
+          <MultiTabDocumentUpload
+            onDocumentTabsChange={setDocumentTabs}
+            initialTabs={documentTabs}
+          />
         </CardContent>
       </Card>
 
