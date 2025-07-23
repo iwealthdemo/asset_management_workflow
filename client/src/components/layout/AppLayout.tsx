@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -41,7 +41,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { data: user } = useUser();
   const logout = useLogout();
 
@@ -106,6 +106,18 @@ export function AppLayout({ children }: AppLayoutProps) {
     logout.mutate();
   };
 
+  // Handle ESC key to close sidebar
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isSidebarOpen) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isSidebarOpen]);
+
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo & Brand */}
@@ -121,9 +133,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
         <Button 
           variant="ghost" 
-          size="icon" 
-          className="lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
+          size="icon"
+          onClick={() => setIsSidebarOpen(false)}
         >
           <Menu className="h-4 w-4" />
         </Button>
@@ -140,7 +151,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               <Button
                 variant={isActive ? "default" : "ghost"}
                 className="w-full justify-start"
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={() => setIsSidebarOpen(false)}
               >
                 <Icon className="mr-3 h-4 w-4" />
                 {item.label}
@@ -174,7 +185,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <Button
                     variant={isActive ? "default" : "ghost"}
                     className="w-full justify-start"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={() => setIsSidebarOpen(false)}
                   >
                     <Icon className="mr-3 h-4 w-4" />
                     {item.label}
@@ -222,33 +233,44 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="flex h-screen bg-background animate-fade-in">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:flex w-72 bg-card shadow-lg card-shadow">
-        <SidebarContent />
-      </div>
+      {/* Sidebar Overlay - Slides from right */}
+      {isSidebarOpen && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 animate-fade-in"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+          
+          {/* Sidebar Panel */}
+          <div className="fixed right-0 top-0 h-full w-72 bg-card shadow-xl z-50 animate-slide-in-right">
+            <SidebarContent />
+          </div>
+        </>
+      )}
 
-      {/* Mobile Sidebar */}
-      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-        <SheetContent side="left" className="w-72 p-0">
-          <SidebarContent />
-        </SheetContent>
-      </Sheet>
-
-      {/* Main Content */}
+      {/* Main Content - Full Width */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
         <header className="bg-card shadow-sm border-b border-border animate-slide-up">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
+                {/* Clickable Logo to open sidebar */}
                 <Button 
                   variant="ghost" 
-                  size="icon" 
-                  className="lg:hidden"
-                  onClick={() => setIsMobileMenuOpen(true)}
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="flex items-center space-x-3 hover:bg-accent p-2 rounded-lg"
                 >
-                  <Menu className="h-5 w-5" />
+                  <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                    <BarChart3 className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <h1 className="text-lg font-semibold">ABCBank</h1>
+                    <p className="text-xs text-muted-foreground">Investment Portal</p>
+                  </div>
                 </Button>
+                
                 <h2 className="text-2xl font-semibold text-gray-900">
                   {location === '/' ? 'Dashboard' : 
                    location === '/new-investment' ? 'New Investment' :
