@@ -230,19 +230,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const userId = req.userId!;
 
-      // Check for existing approvals to prevent deletion of requests in workflow
-      const approvals = await storage.getApprovalsByRequest('investment', id);
-      if (approvals.length > 0) {
-        return res.status(400).json({ 
-          message: 'Cannot delete investment request that has approvals. Request is already in the approval workflow.' 
-        });
+      // Get the investment request to check its status
+      const investment = await storage.getInvestmentRequest(id);
+      if (!investment) {
+        return res.status(404).json({ message: 'Investment request not found' });
+      }
+
+      // Check ownership
+      if (investment.requesterId !== userId) {
+        return res.status(403).json({ message: 'You can only delete your own investment requests' });
+      }
+
+      // Check for existing approvals only for active workflow statuses
+      const activeWorkflowStatuses = ['new', 'Manager approved', 'Committee approved', 'Finance approved', 'approved'];
+      if (activeWorkflowStatuses.includes(investment.status)) {
+        const approvals = await storage.getApprovalsByRequest('investment', id);
+        if (approvals.length > 0) {
+          return res.status(400).json({ 
+            message: 'Cannot delete investment request that is actively in the approval workflow.' 
+          });
+        }
       }
 
       const success = await storage.softDeleteInvestmentRequest(id, userId);
       
       if (!success) {
         return res.status(400).json({ 
-          message: 'Cannot delete this investment request. It may not exist, belong to you, or be in a non-deletable status.' 
+          message: 'Cannot delete this investment request. It may be in a non-deletable status.' 
         });
       }
       

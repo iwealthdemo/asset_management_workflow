@@ -234,10 +234,15 @@ export class DatabaseStorage implements IStorage {
 
   async softDeleteInvestmentRequest(id: number, userId: number): Promise<boolean> {
     try {
-      // Check if the request exists and belongs to the user
-      const request = await this.getInvestmentRequest(id);
+      // Get the request without the deletedAt filter to check current state
+      const [request] = await db.select().from(investmentRequests).where(eq(investmentRequests.id, id));
       if (!request || request.requesterId !== userId) {
         return false;
+      }
+
+      // Check if already deleted
+      if (request.deletedAt) {
+        return false; // Already deleted
       }
 
       // Check if the request can be deleted (business rules)
