@@ -863,6 +863,11 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
               </CardHeader>
               {isRationaleExpanded && (
                 <CardContent className="pt-0 pb-4">
+                  {/* Show Analyst's Original Notes */}
+                  <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px] mb-4">
+                    {investmentDetails?.description || 'No description provided by the analyst'}
+                  </p>
+                  
                   <div className="space-y-4">
                     {rationales && rationales.length > 0 ? (
                       <div className="space-y-3">

@@ -22,7 +22,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 export default function MyTasks() {
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
   const [comments, setComments] = useState("");
-  // Remove previewDocument state as we're using new tab approach
+  const [isDocumentsExpanded, setIsDocumentsExpanded] = useState(false);
+  const [isResearchExpanded, setIsResearchExpanded] = useState(false);
+  const [isRationaleExpanded, setIsRationaleExpanded] = useState(false);
+  const [isRationaleModalOpen, setIsRationaleModalOpen] = useState(false);
+  const [editingRationaleId, setEditingRationaleId] = useState<number | null>(null);
+  const [editingRationaleContent, setEditingRationaleContent] = useState('');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [rationaleToDelete, setRationaleToDelete] = useState<number | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -562,135 +569,142 @@ function TaskCard({
 
             {/* III. Investment Rationale */}
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader 
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
+                onClick={() => setIsRationaleExpanded(!isRationaleExpanded)}
+              >
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <FileText className="h-4 w-4" />
                     Investment Rationale
                   </CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsRationaleModalOpen(true)}
-                  >
-                    Create Rationale
-                  </Button>
+                  {isRationaleExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
-                {/* Show Analyst's Original Notes */}
-                {requestData?.description && (
-                  <div className="mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
-                    <div className="flex items-center gap-2 mb-2">
-                      <User className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-800">Analyst's Notes</span>
-                    </div>
-                    <p className="text-sm text-blue-700">{requestData.description}</p>
-                  </div>
-                )}
-                {rationales && rationales.length > 0 ? (
-                  <div className="space-y-4">
-                    {rationales.map((rationale: any) => (
-                      <Card key={rationale.id} className="bg-gray-50 border-l-4 border-blue-500">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className="text-xs">
-                                  {rationale.type === 'manual' ? 'Manual Entry' : 'AI Generated'}
-                                </Badge>
-                                <span className="text-xs text-gray-500">
-                                  by {rationale.authorName} • {format(new Date(rationale.createdAt), 'MMM dd, yyyy HH:mm')}
-                                </span>
+              {isRationaleExpanded && (
+                <CardContent className="pt-0 pb-4">
+                  {/* Show Analyst's Original Notes */}
+                  <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px] mb-4">
+                    {requestData?.description || 'No description provided by the analyst'}
+                  </p>
+                  
+                  {/* Investment Rationales */}
+                  {rationales && rationales.length > 0 ? (
+                    <div className="space-y-4">
+                      {rationales.map((rationale: any) => (
+                        <Card key={rationale.id} className="bg-gray-50 border-l-4 border-blue-500">
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    {rationale.type === 'manual' ? 'Manual Entry' : 'AI Generated'}
+                                  </Badge>
+                                  <span className="text-xs text-gray-500">
+                                    by {rationale.authorName} • {format(new Date(rationale.createdAt), 'MMM dd, yyyy HH:mm')}
+                                  </span>
+                                </div>
+                                
+                                {editingRationaleId === rationale.id ? (
+                                  <div className="space-y-3">
+                                    <Textarea
+                                      value={editingRationaleContent}
+                                      onChange={(e) => setEditingRationaleContent(e.target.value)}
+                                      rows={10}
+                                      className="w-full"
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          setEditingRationaleId(null);
+                                          setEditingRationaleContent('');
+                                        }}
+                                      >
+                                        Cancel
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => saveRationaleEdit.mutate({
+                                          rationaleId: rationale.id,
+                                          content: editingRationaleContent
+                                        })}
+                                        disabled={saveRationaleEdit.isPending}
+                                      >
+                                        {saveRationaleEdit.isPending ? 'Saving...' : 'Save Changes'}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="prose prose-sm max-w-none">
+                                    <div className="text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded border">
+                                      <MarkdownRenderer content={rationale.content} />
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                               
-                              {editingRationaleId === rationale.id ? (
-                                <div className="space-y-3">
-                                  <Textarea
-                                    value={editingRationaleContent}
-                                    onChange={(e) => setEditingRationaleContent(e.target.value)}
-                                    rows={10}
-                                    className="w-full"
-                                  />
-                                  <div className="flex justify-end gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => {
-                                        setEditingRationaleId(null);
-                                        setEditingRationaleContent('');
-                                      }}
-                                    >
-                                      Cancel
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      onClick={() => saveRationaleEdit.mutate({
-                                        rationaleId: rationale.id,
-                                        content: editingRationaleContent
-                                      })}
-                                      disabled={saveRationaleEdit.isPending}
-                                    >
-                                      {saveRationaleEdit.isPending ? 'Saving...' : 'Save'}
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="prose prose-sm max-w-none">
-                                  <MarkdownRenderer content={rationale.content} />
+                              {editingRationaleId !== rationale.id && (
+                                <div className="flex gap-1 ml-4">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => downloadRationale(rationale)}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingRationaleId(rationale.id);
+                                      setEditingRationaleContent(rationale.content);
+                                    }}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setRationaleToDelete(rationale.id);
+                                      setDeleteConfirmOpen(true);
+                                    }}
+                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
                                 </div>
                               )}
                             </div>
-                            
-                            {editingRationaleId !== rationale.id && (
-                              <div className="flex gap-1 ml-4">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => downloadRationale(rationale)}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <Download className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditingRationaleId(rationale.id);
-                                    setEditingRationaleContent(rationale.content);
-                                  }}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <Edit className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setRationaleToDelete(rationale.id);
-                                    setDeleteConfirmOpen(true);
-                                  }}
-                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-gray-500">
+                      <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm">No investment rationale added yet.</p>
+                    </div>
+                  )}
+                  
+                  {/* Add Rationale Button */}
+                  <div className="pt-3 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsRationaleModalOpen(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Add Investment Rationale
+                    </Button>
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-2">No investment rationale available</p>
-                    <p className="text-sm text-gray-500">
-                      Create a detailed investment analysis to help with decision making.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
 
             {/* IV. Approval History */}
