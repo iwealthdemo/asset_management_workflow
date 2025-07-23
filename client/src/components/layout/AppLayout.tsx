@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -42,6 +42,7 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const { data: user } = useUser();
   const logout = useLogout();
 
@@ -106,7 +107,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     logout.mutate();
   };
 
-  // Handle ESC key to close sidebar
+  // Handle ESC key and click outside to close sidebar
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isSidebarOpen) {
@@ -114,8 +115,19 @@ export function AppLayout({ children }: AppLayoutProps) {
       }
     };
 
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isSidebarOpen && sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        setIsSidebarOpen(false);
+      }
+    };
+
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isSidebarOpen]);
 
   const SidebarContent = () => (
@@ -233,20 +245,14 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="flex h-screen bg-background animate-fade-in">
-      {/* Sidebar Overlay - Slides from right */}
+      {/* Sidebar Overlay - Slides from left */}
       {isSidebarOpen && (
-        <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black/50 z-40 animate-fade-in"
-            onClick={() => setIsSidebarOpen(false)}
-          />
-          
-          {/* Sidebar Panel */}
-          <div className="fixed left-0 top-0 h-full w-72 bg-card shadow-xl z-50 animate-slide-in-left">
-            <SidebarContent />
-          </div>
-        </>
+        <div 
+          ref={sidebarRef}
+          className="fixed left-0 top-0 h-full w-72 bg-card shadow-xl z-50 animate-slide-in-left"
+        >
+          <SidebarContent />
+        </div>
       )}
 
       {/* Main Content - Full Width */}
