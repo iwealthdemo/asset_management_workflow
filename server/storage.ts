@@ -1368,70 +1368,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(investmentRationales).where(eq(investmentRationales.id, id));
   }
 
-  // Audit trail operations
-  async getCurrentCycleApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]> {
-    return await db
-      .select()
-      .from(approvals)
-      .where(
-        and(
-          eq(approvals.requestType, requestType),
-          eq(approvals.requestId, requestId),
-          eq(approvals.isCurrentCycle, true)
-        )
-      )
-      .orderBy(approvals.stage);
-  }
 
-  async getAllCycleApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]> {
-    return await db
-      .select()
-      .from(approvals)
-      .where(
-        and(
-          eq(approvals.requestType, requestType),
-          eq(approvals.requestId, requestId)
-        )
-      )
-      .orderBy(desc(approvals.approvalCycle), approvals.stage);
-  }
-
-  async incrementApprovalCycle(requestType: string, requestId: number): Promise<number> {
-    // Mark all current cycle approvals as inactive
-    await db
-      .update(approvals)
-      .set({ isCurrentCycle: false })
-      .where(
-        and(
-          eq(approvals.requestType, requestType),
-          eq(approvals.requestId, requestId),
-          eq(approvals.isCurrentCycle, true)
-        )
-      );
-
-    // Get the next cycle number
-    const result = await db
-      .select({ maxCycle: max(approvals.approvalCycle) })
-      .from(approvals)
-      .where(
-        and(
-          eq(approvals.requestType, requestType),
-          eq(approvals.requestId, requestId)
-        )
-      );
-
-    const nextCycle = (result[0]?.maxCycle || 0) + 1;
-
-    // Update the investment record with new cycle
-    if (requestType === 'investment') {
-      await db
-        .update(investmentRequests)
-        .set({ currentApprovalCycle: nextCycle })
-        .where(eq(investmentRequests.id, requestId));
-    }
-
-    return nextCycle;
-  }
 }
 
 export const storage = new DatabaseStorage();
