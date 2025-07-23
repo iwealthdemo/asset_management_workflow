@@ -42,19 +42,40 @@ export function TextEnhancementModal({
     if (!originalText.trim()) return;
 
     setIsEnhancing(true);
+    console.log('🚀 Starting enhancement for text:', originalText);
 
     try {
       const response = await apiRequest('POST', '/api/text/enhance', {
         text: originalText,
         type: 'professional' // Type doesn't matter as backend uses single comprehensive prompt
-      }) as unknown as { enhancedText: string };
+      });
 
-      setEnhancedText(response.enhancedText);
+      console.log('📥 Raw API Response:', response);
+      
+      // Handle response properly - response might be directly the object or need parsing
+      let enhancedResult;
+      if (typeof response === 'string') {
+        enhancedResult = JSON.parse(response);
+      } else {
+        enhancedResult = response;
+      }
+      
+      console.log('📄 Parsed response:', enhancedResult);
+      console.log('✨ Enhanced text:', enhancedResult.enhancedText);
+
+      if (enhancedResult.enhancedText) {
+        setEnhancedText(enhancedResult.enhancedText);
+        console.log('✅ State updated with enhanced text');
+      } else {
+        console.error('❌ No enhancedText in response');
+        setEnhancedText('');
+      }
     } catch (error) {
-      console.error('Enhancement failed:', error);
+      console.error('❌ Enhancement failed:', error);
       setEnhancedText('');
     } finally {
       setIsEnhancing(false);
+      console.log('🏁 Enhancement process completed');
     }
   };
 
