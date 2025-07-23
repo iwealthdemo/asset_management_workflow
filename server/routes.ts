@@ -418,6 +418,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // New endpoint for current cycle approvals only
+  app.get('/api/approvals/:requestType/:requestId/current', authMiddleware, async (req, res) => {
+    try {
+      const { requestType, requestId } = req.params;
+      const approvals = await storage.getCurrentCycleApprovalsByRequest(requestType, parseInt(requestId));
+      res.json(approvals);
+    } catch (error) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // New endpoint for all cycle approvals (complete history)
+  app.get('/api/approvals/:requestType/:requestId/all', authMiddleware, async (req, res) => {
+    try {
+      const { requestType, requestId } = req.params;
+      const approvals = await storage.getAllCycleApprovalsByRequest(requestType, parseInt(requestId));
+      res.json(approvals);
+    } catch (error) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Document routes
   app.post('/api/documents/upload', authMiddleware, fileUpload.array('documents'), async (req, res) => {
     try {

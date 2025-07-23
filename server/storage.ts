@@ -13,7 +13,7 @@ import {
   type Sequence, type InsertSequence, type InvestmentRationale, type InsertInvestmentRationale
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, sql, ne, isNotNull } from "drizzle-orm";
+import { eq, desc, and, or, sql, ne, isNotNull, max } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -44,7 +44,11 @@ export interface IStorage {
   updateApproval(id: number, approval: Partial<InsertApproval>): Promise<Approval>;
   deleteApproval(id: number): Promise<void>;
   getApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]>;
+  getCurrentCycleApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]>;
+  getAllCycleApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]>;
   getApprovalsByUser(userId: number): Promise<Approval[]>;
+  markPreviousCycleApprovalsAsInactive(requestType: string, requestId: number): Promise<void>;
+  incrementApprovalCycle(requestType: string, requestId: number): Promise<number>;
   
   // Task operations
   createTask(task: InsertTask): Promise<Task>;
@@ -87,6 +91,11 @@ export interface IStorage {
   getInvestmentRationales(investmentId: number): Promise<InvestmentRationale[]>;
   updateInvestmentRationale(id: number, rationale: Partial<InsertInvestmentRationale>): Promise<InvestmentRationale>;
   deleteInvestmentRationale(id: number): Promise<void>;
+  
+  // Audit trail operations
+  getCurrentCycleApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]>;
+  getAllCycleApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]>;
+  incrementApprovalCycle(requestType: string, requestId: number): Promise<number>;
   
   // Dashboard stats
   getDashboardStats(userId: number): Promise<{
@@ -359,6 +368,61 @@ export class DatabaseStorage implements IStorage {
         eq(approvals.requestId, requestId)
       ))
       .orderBy(approvals.stage);
+  }
+
+  async getCurrentCycleApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]> {
+    return await db.select().from(approvals)
+      .where(and(
+        eq(approvals.requestType, requestType),
+        eq(approvals.requestId, requestId),
+        eq(approvals.isCurrentCycle, true)
+      ))
+      .orderBy(approvals.stage);
+  }
+
+  async getAllCycleApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]> {
+    return await db.select().from(approvals)
+      .where(and(
+        eq(approvals.requestType, requestType),
+        eq(approvals.requestId, requestId)
+      ))
+      .orderBy(desc(approvals.approvalCycle), approvals.stage);
+  }
+
+  async markPreviousCycleApprovalsAsInactive(requestType: string, requestId: number): Promise<void> {
+    await db.update(approvals)
+      .set({ isCurrentCycle: false })
+      .where(and(
+        eq(approvals.requestType, requestType),
+        eq(approvals.requestId, requestId),
+        eq(approvals.isCurrentCycle, true)
+      ));
+  }
+
+  async incrementApprovalCycle(requestType: string, requestId: number): Promise<number> {
+    // First mark previous cycle as inactive
+    await this.markPreviousCycleApprovalsAsInactive(requestType, requestId);
+    
+    // Get the maximum cycle number for this request
+    const [maxCycle] = await db.select({ 
+      maxCycle: sql<number>`COALESCE(MAX(${approvals.approvalCycle}), 0)` 
+    })
+    .from(approvals)
+    .where(and(
+      eq(approvals.requestType, requestType),
+      eq(approvals.requestId, requestId)
+    ));
+    
+    const newCycle = (maxCycle?.maxCycle || 0) + 1;
+    
+    // Update the investment request's current cycle
+    if (requestType === 'investment') {
+      await db.update(investmentRequests)
+        .set({ currentApprovalCycle: newCycle })
+        .where(eq(investmentRequests.id, requestId));
+    }
+    
+    return newCycle;
   }
 
   async getApprovalsByUser(userId: number): Promise<Approval[]> {
@@ -1297,6 +1361,71 @@ export class DatabaseStorage implements IStorage {
 
   async deleteInvestmentRationale(id: number): Promise<void> {
     await db.delete(investmentRationales).where(eq(investmentRationales.id, id));
+  }
+
+  // Audit trail operations
+  async getCurrentCycleApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]> {
+    return await db
+      .select()
+      .from(approvals)
+      .where(
+        and(
+          eq(approvals.requestType, requestType),
+          eq(approvals.requestId, requestId),
+          eq(approvals.isCurrentCycle, true)
+        )
+      )
+      .orderBy(approvals.stage);
+  }
+
+  async getAllCycleApprovalsByRequest(requestType: string, requestId: number): Promise<Approval[]> {
+    return await db
+      .select()
+      .from(approvals)
+      .where(
+        and(
+          eq(approvals.requestType, requestType),
+          eq(approvals.requestId, requestId)
+        )
+      )
+      .orderBy(desc(approvals.approvalCycle), approvals.stage);
+  }
+
+  async incrementApprovalCycle(requestType: string, requestId: number): Promise<number> {
+    // Mark all current cycle approvals as inactive
+    await db
+      .update(approvals)
+      .set({ isCurrentCycle: false })
+      .where(
+        and(
+          eq(approvals.requestType, requestType),
+          eq(approvals.requestId, requestId),
+          eq(approvals.isCurrentCycle, true)
+        )
+      );
+
+    // Get the next cycle number
+    const result = await db
+      .select({ maxCycle: max(approvals.approvalCycle) })
+      .from(approvals)
+      .where(
+        and(
+          eq(approvals.requestType, requestType),
+          eq(approvals.requestId, requestId)
+        )
+      );
+
+    const nextCycle = (result[0]?.maxCycle || 0) + 1;
+
+    // Update the investment record with new cycle
+    if (requestType === 'investment') {
+      await db
+        .update(investmentRequests)
+        .set({ currentApprovalCycle: nextCycle })
+        .where(eq(investmentRequests.id, requestId));
+    }
+
+    return nextCycle;
   }
 }
 

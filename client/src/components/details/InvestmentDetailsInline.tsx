@@ -22,6 +22,7 @@ import UnifiedSearchInterface from "@/components/documents/UnifiedSearchInterfac
 import InvestmentRationaleModal from "@/components/rationale/InvestmentRationaleModal";
 import { EnhancedDocumentCategorySelector } from "@/components/documents/EnhancedDocumentCategorySelector";
 import MarkdownRenderer from "@/components/documents/MarkdownRenderer";
+import { ApprovalHistoryCard } from '@/components/approval/ApprovalHistoryCard';
 
 // Edit form schema
 const editFormSchema = z.object({
@@ -1098,51 +1099,12 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
             </Card>
 
             {/* IV. Approval History */}
-            {approvalHistory && approvalHistory.length > 0 && (
-              <Card>
-                <CardHeader 
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
-                  onClick={() => setIsApprovalExpanded(!isApprovalExpanded)}
-                >
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Clock className="h-4 w-4" />
-                      Approval History
-                    </CardTitle>
-                    {isApprovalExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </div>
-                </CardHeader>
-                {isApprovalExpanded && (
-                  <CardContent className="pt-0 pb-4">
-                  <div className="space-y-3">
-                    {approvalHistory.map((approval: any) => (
-                      <div key={approval.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                        {getStatusIcon(approval.status)}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium">
-                              Stage {approval.stage} - {approval.status}
-                            </p>
-                            <Badge className={getStatusColor(approval.status)}>
-                              {approval.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            {approval.approverName} • {format(new Date(approval.createdAt), 'MMM dd, yyyy HH:mm')}
-                          </p>
-                          {approval.comments && (
-                            <p className="text-sm text-gray-700 mt-1 italic">
-                              "{approval.comments}"
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  </CardContent>
-                )}
-              </Card>
-            )}
+            <ApprovalHistoryCard
+              requestType="investment"
+              requestId={investment.id}
+              isExpanded={isApprovalExpanded}
+              onToggle={() => setIsApprovalExpanded(!isApprovalExpanded)}
+            />
           </div>
         ) : (
           <div className="text-center p-8 text-gray-500">

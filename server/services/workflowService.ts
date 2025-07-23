@@ -19,13 +19,22 @@ export class WorkflowService {
     const workflow = this.approvalWorkflows[requestType];
     const firstStage = workflow[0];
 
-    // Create approval record for first stage
+    // Get current approval cycle
+    let currentCycle = 1;
+    if (requestType === 'investment') {
+      const investment = await storage.getInvestmentRequest(requestId);
+      currentCycle = investment?.currentApprovalCycle || 1;
+    }
+
+    // Create approval record for first stage with current cycle
     await storage.createApproval({
       requestType,
       requestId,
       stage: firstStage.stage,
       approverId: null, // Will be assigned when someone claims it
       status: 'pending',
+      approvalCycle: currentCycle,
+      isCurrentCycle: true,
     });
 
     // Create task for first stage
@@ -34,13 +43,19 @@ export class WorkflowService {
 
   // New method for starting Admin review for "opportunity" status
   async startAdminReview(requestId: number) {
-    // Create approval record for admin review (stage 0)
+    // Get current approval cycle
+    const investment = await storage.getInvestmentRequest(requestId);
+    const currentCycle = investment?.currentApprovalCycle || 1;
+
+    // Create approval record for admin review (stage 0) with cycle tracking
     await storage.createApproval({
       requestType: 'investment',
       requestId,
       stage: 0,
       approverId: null,
       status: 'pending',
+      approvalCycle: currentCycle,
+      isCurrentCycle: true,
     });
 
     // Create task for admin review
@@ -55,8 +70,8 @@ export class WorkflowService {
     comments?: string
   ) {
     try {
-      // Get current approval record
-      const approvals = await storage.getApprovalsByRequest(requestType, requestId);
+      // Get current cycle approval records only
+      const approvals = await storage.getCurrentCycleApprovalsByRequest(requestType, requestId);
       const currentApproval = approvals.find(a => a.status === 'pending');
 
       if (!currentApproval) {
@@ -162,13 +177,22 @@ export class WorkflowService {
     const nextStage = workflow.find(w => w.stage === currentStage + 1);
 
     if (nextStage) {
-      // Create next approval record
+      // Get current approval cycle
+      let currentCycle = 1;
+      if (requestType === 'investment') {
+        const investment = await storage.getInvestmentRequest(requestId);
+        currentCycle = investment?.currentApprovalCycle || 1;
+      }
+
+      // Create next approval record with cycle tracking
       await storage.createApproval({
         requestType,
         requestId,
         stage: nextStage.stage,
         approverId: null,
         status: 'pending',
+        approvalCycle: currentCycle,
+        isCurrentCycle: true,
       });
 
       // Create next task
@@ -218,6 +242,13 @@ export class WorkflowService {
       });
     }
 
+    // Get current approval cycle
+    let currentCycle = 1;
+    if (requestType === 'investment') {
+      const investment = await storage.getInvestmentRequest(requestId);
+      currentCycle = investment?.currentApprovalCycle || 1;
+    }
+
     // Create a new approval record at stage 0 for the analyst to modify
     await storage.createApproval({
       requestType,
@@ -225,6 +256,8 @@ export class WorkflowService {
       stage: 0,
       approverId: null,
       status: 'pending',
+      approvalCycle: currentCycle,
+      isCurrentCycle: true,
     });
 
     // Send notification

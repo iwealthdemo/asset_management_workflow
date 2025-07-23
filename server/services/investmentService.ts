@@ -91,14 +91,11 @@ export class InvestmentService {
         currentApprovalStage: 0,
       });
 
-      // If this was a changes_requested proposal, clear existing approval records and complete the changes_requested task
+      // If this was a changes_requested proposal, preserve approval history and start new cycle
       if (existingRequest.status.toLowerCase() === 'changes_requested') {
-        // Clear any existing approval records for this request
-        const existingApprovals = await storage.getApprovalsByRequest('investment', requestId);
-        for (const approval of existingApprovals) {
-          await storage.deleteApproval(approval.id);
-        }
-
+        // Increment approval cycle and mark previous approvals as inactive (preserves audit trail)
+        const newCycle = await storage.incrementApprovalCycle('investment', requestId);
+        
         // Complete any pending changes_requested tasks for this request
         const pendingTasks = await storage.getTasksByRequest('investment', requestId);
         for (const task of pendingTasks) {

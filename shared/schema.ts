@@ -35,6 +35,8 @@ export const investmentRequests = pgTable("investment_requests", {
   deletedAt: timestamp("deleted_at"), // Soft delete timestamp
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  // Audit trail fields
+  currentApprovalCycle: integer("current_approval_cycle").notNull().default(1), // Track current submission cycle
 });
 
 // Cash requests table
@@ -73,6 +75,9 @@ export const approvals = pgTable("approvals", {
   comments: text("comments"),
   approvedAt: timestamp("approved_at"),
   createdAt: timestamp("created_at").defaultNow(),
+  // Audit trail fields
+  approvalCycle: integer("approval_cycle").notNull().default(1), // Track which submission cycle
+  isCurrentCycle: boolean("is_current_cycle").notNull().default(true), // Whether this is part of current active cycle
 });
 
 // Tasks table

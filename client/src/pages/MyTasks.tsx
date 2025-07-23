@@ -17,6 +17,7 @@ import DocumentAnalysisCard from '@/components/documents/DocumentAnalysisCard';
 import UnifiedSearchInterface from '@/components/documents/UnifiedSearchInterface';
 import InvestmentRationaleModal from '@/components/rationale/InvestmentRationaleModal';
 import MarkdownRenderer from '@/components/documents/MarkdownRenderer';
+import { ApprovalHistoryCard } from '@/components/approval/ApprovalHistoryCard';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function MyTasks() {
@@ -735,56 +736,12 @@ function TaskCard({
             </Card>
 
             {/* IV. Approval History */}
-            <Card>
-              <CardHeader 
-                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
-                onClick={() => setIsApprovalExpanded(!isApprovalExpanded)}
-              >
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <CheckCircle className="h-4 w-4" />
-                    Approval History
-                  </CardTitle>
-                  {isApprovalExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </div>
-              </CardHeader>
-              {isApprovalExpanded && (
-                <CardContent className="pt-0 pb-4">
-                  <div className="space-y-3">
-                    {approvalHistory && approvalHistory.length > 0 ? (
-                      approvalHistory.map((approval: any) => (
-                        <div key={approval.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                          {getStatusIcon(approval.status)}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium">
-                                Stage {approval.stage} - {approval.status === 'approve' ? 'approved' : approval.status}
-                              </p>
-                              <Badge className={getStatusColor(approval.status === 'approve' ? 'approved' : approval.status)}>
-                                {approval.status === 'approve' ? 'approved' : approval.status}
-                              </Badge>
-                            </div>
-                            {approval.approvedAt && (
-                              <p className="text-xs text-gray-500">
-                                {format(new Date(approval.approvedAt), 'MMM dd, yyyy HH:mm')}
-                              </p>
-                            )}
-                            <div className="mt-1">
-                              <p className="text-xs text-gray-500 font-medium">Comments:</p>
-                              <p className="text-sm text-gray-600 bg-white p-2 rounded">
-                                {approval.comments || 'No comments provided'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-500 text-center py-4">No approval history available</p>
-                    )}
-                  </div>
-                </CardContent>
-              )}
-            </Card>
+            <ApprovalHistoryCard
+              requestType={task.requestType}
+              requestId={task.requestId}
+              isExpanded={isApprovalExpanded}
+              onToggle={() => setIsApprovalExpanded(!isApprovalExpanded)}
+            />
 
 
 

@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { CheckCircle, XCircle, Clock, User, Download, FileText, File } from "lucide-react"
 import { format } from "date-fns"
+import { ApprovalHistoryCard } from '@/components/approval/ApprovalHistoryCard'
 
 interface ApprovalModalProps {
   isOpen: boolean
@@ -189,46 +190,12 @@ export function ApprovalModal({ isOpen, onClose, task }: ApprovalModalProps) {
           </Card>
 
           {/* Approval History */}
-          <Card>
-            <CardContent className="pt-6">
-              <h4 className="text-lg font-semibold mb-4">Approval History</h4>
-              {approvalHistory && approvalHistory.length > 0 ? (
-                <div className="space-y-3">
-                  {approvalHistory.map((approval: any, index: number) => (
-                    <div key={approval.id} className="flex items-center space-x-3">
-                      {getStatusIcon(approval.status)}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium">
-                            Stage {approval.stage} - {approval.status}
-                          </p>
-                          <Badge className={getStatusColor(approval.status)}>
-                            {approval.status}
-                          </Badge>
-                        </div>
-                        {approval.approvedAt && (
-                          <p className="text-xs text-gray-500">
-                            {format(new Date(approval.approvedAt), 'MMM dd, yyyy HH:mm')}
-                          </p>
-                        )}
-                        <div className="mt-1">
-                          <p className="text-xs text-gray-500 font-medium">Comments:</p>
-                          <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                            {approval.comments || 'No comments provided'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No approval history yet</p>
-                  <p className="text-sm">This is the first stage of approval</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ApprovalHistoryCard
+            requestType={task?.requestType || 'investment'}
+            requestId={task?.requestId || 0}
+            isExpanded={true}
+            onToggle={() => {}}
+          />
 
           {/* Documents */}
           {documents && documents.length > 0 && (
