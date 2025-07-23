@@ -63,42 +63,98 @@ export function InvestmentForm() {
         ...data,
         amount: data.amount.toString(),
         expectedReturn: data.expectedReturn.toString(),
-        status: "opportunity", // Set status to "opportunity" for admin review
+        status: "new", // Set status to "new" for approval workflow
       }
       console.log("Converted API data:", apiData)
       const response = await apiRequest("POST", "/api/investments", apiData)
       console.log("API response:", response)
       const investment = await response.json()
       
-      // Upload files from document tabs
-      for (const tab of documentTabs) {
-        if (tab.files.length > 0 && tab.categoryId) {
-          console.log("Uploading files for tab:", tab)
-          const formData = new FormData()
-          tab.files.forEach((file) => {
-            formData.append('documents', file)
-          })
-          formData.append('requestType', 'investment')
-          formData.append('requestId', investment.id.toString())
-          
-          // Create category data for this tab
-          const categoryData = {
-            categoryId: tab.categoryId,
-            customCategoryName: tab.customCategoryName || ''
+      // Upload files from document tabs with improved error handling
+      if (documentTabs.length > 0) {
+        console.log(`Starting upload process for ${documentTabs.length} document tabs`)
+        
+        try {
+          // Process each tab sequentially to avoid race conditions
+          for (let i = 0; i < documentTabs.length; i++) {
+            const tab = documentTabs[i]
+            
+            if (tab.files.length > 0 && tab.categoryId) {
+              console.log(`Uploading files for tab ${i + 1}/${documentTabs.length}:`, tab.id)
+              
+              // Retry logic for each tab
+              let uploadSuccess = false
+              let retryCount = 0
+              const maxRetries = 3
+              
+              while (!uploadSuccess && retryCount < maxRetries) {
+                try {
+                  const formData = new FormData()
+                  tab.files.forEach((file) => {
+                    formData.append('documents', file)
+                  })
+                  formData.append('requestType', 'investment')
+                  formData.append('requestId', investment.id.toString())
+                  
+                  // Create category data for this tab
+                  const categoryData = {
+                    categoryId: tab.categoryId,
+                    customCategoryName: tab.customCategoryName || ''
+                  }
+                  formData.append('categories', JSON.stringify([categoryData]))
+                  
+                  // Add timeout to prevent hanging requests
+                  const controller = new AbortController()
+                  const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+                  
+                  const uploadResponse = await fetch('/api/documents/upload', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include',
+                    signal: controller.signal,
+                  })
+                  
+                  clearTimeout(timeoutId)
+                  
+                  if (!uploadResponse.ok) {
+                    const errorText = await uploadResponse.text()
+                    throw new Error(`Upload failed with status ${uploadResponse.status}: ${errorText}`)
+                  }
+                  
+                  const result = await uploadResponse.json()
+                  const documentsCount = result.documents ? result.documents.length : (result.length || 0)
+                  console.log(`Files uploaded successfully for tab ${tab.id}:`, documentsCount, 'documents')
+                  
+                  // Check for partial upload warnings
+                  if (result.errors && result.errors.length > 0) {
+                    console.warn(`Partial upload for tab ${tab.id}:`, result.errors)
+                  }
+                  uploadSuccess = true
+                  
+                } catch (error) {
+                  retryCount++
+                  console.warn(`Upload attempt ${retryCount} failed for tab ${tab.id}:`, error)
+                  
+                  if (retryCount < maxRetries) {
+                    console.log(`Retrying upload for tab ${tab.id} in 2 seconds...`)
+                    await new Promise(resolve => setTimeout(resolve, 2000)) // Wait 2 seconds before retry
+                  } else {
+                    console.error(`All retry attempts failed for tab ${tab.id}`)
+                    throw new Error(`Failed to upload documents after ${maxRetries} attempts: ${error instanceof Error ? error.message : String(error)}`)
+                  }
+                }
+              }
+            } else if (tab.files.length > 0 && !tab.categoryId) {
+              console.warn(`Tab ${tab.id} has files but no category selected - skipping upload`)
+            }
           }
-          formData.append('categories', JSON.stringify([categoryData]))
           
-          const uploadResponse = await fetch('/api/documents/upload', {
-            method: 'POST',
-            body: formData,
-            credentials: 'include',
-          })
-          
-          if (!uploadResponse.ok) {
-            throw new Error(`Failed to upload documents for category ${tab.categoryId}`)
-          }
-          
-          console.log("Files uploaded successfully for tab:", tab.id)
+          console.log("All document uploads completed successfully")
+        } catch (uploadError) {
+          console.error("Document upload process failed:", uploadError)
+          // Don't delete the investment if upload fails - user can manually upload later
+          console.log("Investment created but document upload failed - user can upload documents manually")
+          throw new Error(`Investment created successfully, but failed to upload documents: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`)
         }
       }
       
@@ -135,33 +191,91 @@ export function InvestmentForm() {
       })
       const investment = await response.json()
       
-      // Upload files from document tabs (draft)
-      for (const tab of documentTabs) {
-        if (tab.files.length > 0 && tab.categoryId) {
-          console.log("Uploading draft files for tab:", tab)
-          const formData = new FormData()
-          tab.files.forEach((file) => {
-            formData.append('documents', file)
-          })
-          formData.append('requestType', 'investment')
-          formData.append('requestId', investment.id.toString())
-          
-          // Create category data for this tab
-          const categoryData = {
-            categoryId: tab.categoryId,
-            customCategoryName: tab.customCategoryName || ''
+      // Upload files from document tabs (draft) with improved error handling
+      if (documentTabs.length > 0) {
+        console.log(`Starting draft upload process for ${documentTabs.length} document tabs`)
+        
+        try {
+          // Process each tab sequentially to avoid race conditions
+          for (let i = 0; i < documentTabs.length; i++) {
+            const tab = documentTabs[i]
+            
+            if (tab.files.length > 0 && tab.categoryId) {
+              console.log(`Uploading draft files for tab ${i + 1}/${documentTabs.length}:`, tab.id)
+              
+              // Retry logic for each tab
+              let uploadSuccess = false
+              let retryCount = 0
+              const maxRetries = 3
+              
+              while (!uploadSuccess && retryCount < maxRetries) {
+                try {
+                  const formData = new FormData()
+                  tab.files.forEach((file) => {
+                    formData.append('documents', file)
+                  })
+                  formData.append('requestType', 'investment')
+                  formData.append('requestId', investment.id.toString())
+                  
+                  // Create category data for this tab
+                  const categoryData = {
+                    categoryId: tab.categoryId,
+                    customCategoryName: tab.customCategoryName || ''
+                  }
+                  formData.append('categories', JSON.stringify([categoryData]))
+                  
+                  // Add timeout to prevent hanging requests
+                  const controller = new AbortController()
+                  const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+                  
+                  const uploadResponse = await fetch('/api/documents/upload', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include',
+                    signal: controller.signal,
+                  })
+                  
+                  clearTimeout(timeoutId)
+                  
+                  if (!uploadResponse.ok) {
+                    const errorText = await uploadResponse.text()
+                    throw new Error(`Draft upload failed with status ${uploadResponse.status}: ${errorText}`)
+                  }
+                  
+                  const result = await uploadResponse.json()
+                  const documentsCount = result.documents ? result.documents.length : (result.length || 0)
+                  console.log(`Draft files uploaded successfully for tab ${tab.id}:`, documentsCount, 'documents')
+                  
+                  // Check for partial upload warnings
+                  if (result.errors && result.errors.length > 0) {
+                    console.warn(`Partial draft upload for tab ${tab.id}:`, result.errors)
+                  }
+                  uploadSuccess = true
+                  
+                } catch (error) {
+                  retryCount++
+                  console.warn(`Draft upload attempt ${retryCount} failed for tab ${tab.id}:`, error)
+                  
+                  if (retryCount < maxRetries) {
+                    console.log(`Retrying draft upload for tab ${tab.id} in 2 seconds...`)
+                    await new Promise(resolve => setTimeout(resolve, 2000)) // Wait 2 seconds before retry
+                  } else {
+                    console.error(`All retry attempts failed for draft tab ${tab.id}`)
+                    throw new Error(`Failed to upload draft documents after ${maxRetries} attempts: ${error instanceof Error ? error.message : String(error)}`)
+                  }
+                }
+              }
+            } else if (tab.files.length > 0 && !tab.categoryId) {
+              console.warn(`Draft tab ${tab.id} has files but no category selected - skipping upload`)
+            }
           }
-          formData.append('categories', JSON.stringify([categoryData]))
           
-          const uploadResponse = await fetch('/api/documents/upload', {
-            method: 'POST',
-            body: formData,
-            credentials: 'include',
-          })
-          
-          if (!uploadResponse.ok) {
-            throw new Error(`Failed to upload draft documents for category ${tab.categoryId}`)
-          }
+          console.log("All draft document uploads completed successfully")
+        } catch (uploadError) {
+          console.error("Draft document upload process failed:", uploadError)
+          // Don't delete the draft if upload fails - user can manually upload later
+          console.log("Draft investment created but document upload failed - user can upload documents manually")
+          throw new Error(`Draft created successfully, but failed to upload documents: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`)
         }
       }
       

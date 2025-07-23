@@ -424,67 +424,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { requestType, requestId, categories, categoryId, subcategoryId } = req.body;
       const files = req.files as Express.Multer.File[];
       
+      console.log(`Document upload request: ${req.userId}, requestType: ${requestType}, requestId: ${requestId}, files: ${files?.length || 0}`);
+      
       if (!files || files.length === 0) {
+        console.warn('No files provided in upload request');
         return res.status(400).json({ message: 'No files uploaded' });
+      }
+
+      if (!requestType || !requestId) {
+        console.warn('Missing required parameters: requestType or requestId');
+        return res.status(400).json({ message: 'Missing required parameters: requestType and requestId are required' });
       }
       
       const documents = [];
-      for (const file of files) {
-        const documentData: any = {
-          fileName: file.filename,
-          originalName: file.originalname,
-          fileSize: file.size,
-          mimeType: file.mimetype,
-          fileUrl: file.path,
-          uploaderId: req.userId!,
-          requestType,
-          requestId: parseInt(requestId),
-        };
-        
-        // Legacy support: Add single category information if provided
-        if (categoryId) {
-          documentData.categoryId = parseInt(categoryId);
-        }
-        if (subcategoryId) {
-          documentData.subcategoryId = parseInt(subcategoryId);
-        }
-        
-        const document = await storage.createDocument(documentData);
-        
-        // Handle multiple category associations
-        if (categories && categories.length > 0) {
-          const categoryList = Array.isArray(categories) ? categories : JSON.parse(categories);
-          for (const category of categoryList) {
-            await storage.createDocumentCategoryAssociation(
-              document.id,
-              category.categoryId,
-              category.customCategoryName || null
-            );
+      const errors = [];
+      
+      // Process files individually to handle partial failures
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          console.log(`Processing file ${i + 1}/${files.length}: ${file.originalname} (${file.size} bytes)`);
+          
+          // Validate file
+          if (!file.originalname || file.size === 0) {
+            throw new Error(`Invalid file: ${file.originalname || 'unknown'}`);
           }
-        }
-        
-        documents.push(document);
-        
-        // Document uploaded successfully - manual analysis trigger will be available in UI
-        console.log(`Document uploaded successfully: ${document.fileName} (ID: ${document.id})`);
-        
-        // Queue background job for all users (analysts and managers)
-        const currentUser = await storage.getUser(req.userId!);
-        if (currentUser) {
-          console.log(`Queueing background AI preparation for ${currentUser.role}: ${document.fileName}`);
-          await backgroundJobService.addJob({
-            jobType: 'prepare-ai',
-            documentId: document.id,
+          
+          const documentData: any = {
+            fileName: file.filename,
+            originalName: file.originalname,
+            fileSize: file.size,
+            mimeType: file.mimetype,
+            fileUrl: file.path,
+            uploaderId: req.userId!,
             requestType,
             requestId: parseInt(requestId),
-            priority: 'high'
+          };
+          
+          // Legacy support: Add single category information if provided
+          if (categoryId) {
+            documentData.categoryId = parseInt(categoryId);
+          }
+          if (subcategoryId) {
+            documentData.subcategoryId = parseInt(subcategoryId);
+          }
+          
+          const document = await storage.createDocument(documentData);
+          console.log(`Document record created: ${document.id} for file ${file.originalname}`);
+          
+          // Handle multiple category associations
+          if (categories && categories.length > 0) {
+            try {
+              const categoryList = Array.isArray(categories) ? categories : JSON.parse(categories);
+              for (const category of categoryList) {
+                await storage.createDocumentCategoryAssociation(
+                  document.id,
+                  category.categoryId,
+                  category.customCategoryName || null
+                );
+              }
+              console.log(`Category associations created for document ${document.id}`);
+            } catch (categoryError) {
+              console.error(`Failed to create category associations for document ${document.id}:`, categoryError);
+              // Continue processing - category associations are not critical
+            }
+          }
+          
+          documents.push(document);
+          
+          // Queue background job for AI processing
+          try {
+            const currentUser = await storage.getUser(req.userId!);
+            if (currentUser) {
+              console.log(`Queueing background AI preparation for ${currentUser.role}: ${document.fileName}`);
+              await backgroundJobService.addJob({
+                jobType: 'prepare-ai',
+                documentId: document.id,
+                requestType,
+                requestId: parseInt(requestId),
+                priority: 'high'
+              });
+              console.log(`Background job queued for document ${document.id}`);
+            }
+          } catch (backgroundJobError) {
+            console.error(`Failed to queue background job for document ${document.id}:`, backgroundJobError);
+            // Continue processing - background job failure shouldn't block upload
+          }
+          
+        } catch (fileError) {
+          console.error(`Failed to process file ${file.originalname}:`, fileError);
+          errors.push({
+            fileName: file.originalname,
+            error: fileError instanceof Error ? fileError.message : String(fileError)
           });
         }
       }
       
-      res.json(documents);
+      // If no documents were successfully processed, return error
+      if (documents.length === 0) {
+        console.error('No documents were successfully processed');
+        return res.status(500).json({ 
+          message: 'Failed to upload any documents',
+          errors 
+        });
+      }
+      
+      // If some documents failed, include errors in response but still return success
+      const response: any = { 
+        documents,
+        successful: documents.length,
+        total: files.length
+      };
+      
+      if (errors.length > 0) {
+        response.errors = errors;
+        response.message = `${documents.length}/${files.length} documents uploaded successfully`;
+        console.warn(`Partial upload success: ${documents.length}/${files.length} files processed`);
+      } else {
+        console.log(`All ${documents.length} documents uploaded successfully`);
+      }
+      
+      res.json(response);
     } catch (error) {
-      res.status(500).json({ message: 'Internal server error' });
+      console.error('Document upload system error:', error);
+      res.status(500).json({ 
+        message: 'Document upload system error',
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
