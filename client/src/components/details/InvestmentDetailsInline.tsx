@@ -546,7 +546,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
               </Card>
             )}
 
-            {/* III. Investment Rationale / Description */}
+            {/* III. Analyst Notes / Description */}
             <Card>
               <CardHeader 
                 className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
@@ -555,7 +555,7 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <FileText className="h-4 w-4" />
-                    Investment Rationale
+                    Analyst Notes
                   </CardTitle>
                   {isRationaleExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </div>
@@ -863,11 +863,6 @@ export function InvestmentDetailsInline({ investment, isExpanded, onToggle }: In
               </CardHeader>
               {isRationaleExpanded && (
                 <CardContent className="pt-0 pb-4">
-                  {/* Show Analyst's Original Notes */}
-                  <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px] mb-4">
-                    {investmentDetails?.description || 'No description provided by the analyst'}
-                  </p>
-                  
                   <div className="space-y-4">
                     {rationales && rationales.length > 0 ? (
                       <div className="space-y-3">

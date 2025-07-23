@@ -575,7 +575,7 @@ function TaskCard({
               </Card>
             )}
 
-            {/* III. Investment Rationale */}
+            {/* III. Analyst Notes */}
             <Card>
               <CardHeader 
                 className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
@@ -584,7 +584,7 @@ function TaskCard({
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <FileText className="h-4 w-4" />
-                    Investment Rationale
+                    Analyst Notes
                   </CardTitle>
                   {isRationaleExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </div>
@@ -595,7 +595,29 @@ function TaskCard({
                   <p className="text-gray-800 bg-gray-50 p-3 rounded border min-h-[60px] mb-4">
                     {requestData?.description || 'No description provided by the analyst'}
                   </p>
-                  
+                </CardContent>
+              )}
+            </Card>
+
+            {/* IV. Investment Rationale (Formal Analysis) */}
+            <Card>
+              <CardHeader 
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-3"
+                onClick={() => setIsRationaleExpanded(!isRationaleExpanded)}
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <FileText className="h-4 w-4" />
+                    Investment Rationale
+                    {rationales && rationales.length > 0 && (
+                      <Badge variant="secondary">{rationales.length}</Badge>
+                    )}
+                  </CardTitle>
+                  {isRationaleExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </div>
+              </CardHeader>
+              {isRationaleExpanded && (
+                <CardContent className="pt-0 pb-4">
                   {/* Investment Rationales */}
                   {rationales && rationales.length > 0 ? (
                     <div className="space-y-4">
