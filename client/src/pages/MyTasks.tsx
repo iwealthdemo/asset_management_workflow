@@ -97,6 +97,7 @@ export default function MyTasks() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/count"] }); // Add this for sidebar task count
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent-requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/investments"] });
