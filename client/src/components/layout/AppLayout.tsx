@@ -172,7 +172,6 @@ export function AppLayout({ children }: AppLayoutProps) {
               <Button
                 variant={isActive ? "default" : "ghost"}
                 className="w-full justify-start"
-                onClick={() => setIsSidebarOpen(false)}
               >
                 <Icon className="mr-3 h-4 w-4" />
                 {item.label}
@@ -206,7 +205,6 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <Button
                     variant={isActive ? "default" : "ghost"}
                     className="w-full justify-start"
-                    onClick={() => setIsSidebarOpen(false)}
                   >
                     <Icon className="mr-3 h-4 w-4" />
                     {item.label}
