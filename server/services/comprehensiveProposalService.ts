@@ -148,7 +148,7 @@ ${(template.templateData as any)?.sections?.map((section: any, index: number) =>
 SECTION ${index + 1}: ${section.name}
 - Word Limit: ${section.wordLimit} words
 - Description: ${section.description}
-- Focus Areas: ${section.focusAreas.join(', ')}
+- Focus Areas: ${(section.focusAreas || []).join(', ') || 'Not specified'}
 `).join('\n') || 'No sections defined'}
 
 EXISTING DOCUMENT ANALYSIS:
