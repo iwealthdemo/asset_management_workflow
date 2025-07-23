@@ -25,7 +25,8 @@ const templateFormSchema = z.object({
     sections: z.array(z.object({
       name: z.string(),
       description: z.string(),
-      wordLimit: z.number().min(50).max(1000)
+      wordLimit: z.number().min(50).max(1000),
+      focusAreas: z.array(z.string()).optional()
     })).min(1, "At least one section is required")
   })
 });
@@ -37,7 +38,7 @@ const Templates: React.FC = () => {
   const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
-  const [sections, setSections] = useState([{ name: '', description: '', wordLimit: 200 }]);
+  const [sections, setSections] = useState([{ name: '', description: '', wordLimit: 200, focusAreas: [] as string[] }]);
 
   // Fetch templates
   const { data: templates, isLoading } = useQuery({
@@ -60,7 +61,7 @@ const Templates: React.FC = () => {
       investmentType: 'equity',
       description: '',
       templateData: {
-        sections: [{ name: '', description: '', wordLimit: 200 }]
+        sections: [{ name: '', description: '', wordLimit: 200, focusAreas: [] }]
       }
     }
   });
@@ -131,7 +132,7 @@ const Templates: React.FC = () => {
   });
 
   const addSection = () => {
-    setSections([...sections, { name: '', description: '', wordLimit: 200 }]);
+    setSections([...sections, { name: '', description: '', wordLimit: 200, focusAreas: [] }]);
   };
 
   const removeSection = (index: number) => {
@@ -149,7 +150,7 @@ const Templates: React.FC = () => {
 
   const resetForm = () => {
     form.reset();
-    setSections([{ name: '', description: '', wordLimit: 200 }]);
+    setSections([{ name: '', description: '', wordLimit: 200, focusAreas: [] }]);
     setEditingTemplate(null);
     setIsCreateModalOpen(false);
   };
@@ -160,16 +161,22 @@ const Templates: React.FC = () => {
       ? JSON.parse(template.templateData) 
       : template.templateData;
     
+    // Ensure sections have focusAreas arrays
+    const sectionsWithFocusAreas = (templateData.sections || [{ name: '', description: '', wordLimit: 200, focusAreas: [] }]).map((section: any) => ({
+      ...section,
+      focusAreas: section.focusAreas || []
+    }));
+
     form.reset({
       name: template.name,
       investmentType: template.investmentType as any,
       description: template.description || '',
       templateData: {
-        sections: templateData.sections || [{ name: '', description: '', wordLimit: 200 }]
+        sections: sectionsWithFocusAreas
       }
     });
     
-    setSections(templateData.sections || [{ name: '', description: '', wordLimit: 200 }]);
+    setSections(sectionsWithFocusAreas);
     setIsCreateModalOpen(true);
   };
 
@@ -339,6 +346,20 @@ const Templates: React.FC = () => {
                             onChange={(e) => updateSection(index, 'description', e.target.value)}
                             rows={2}
                           />
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium">Key Focus Areas</label>
+                          <Textarea
+                            placeholder="Enter focus areas separated by line breaks (each line will be a bullet point)..."
+                            value={(section.focusAreas || []).join('\n')}
+                            onChange={(e) => {
+                              const focusAreas = e.target.value.split('\n').filter(area => area.trim() !== '');
+                              updateSection(index, 'focusAreas', focusAreas);
+                            }}
+                            rows={3}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Each line will appear as a bullet point in the template view</p>
                         </div>
                       </div>
                     ))}
